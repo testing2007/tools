@@ -1,0 +1,29 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #2c3e50;
+  background-color: #f5f7fa;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+}
+
+.el-button--primary {
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.el-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.el-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
