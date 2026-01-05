@@ -174,55 +174,87 @@
     >
       <!-- 元素编辑器 -->
       <el-form v-if="editMode === 'element'" :model="elementSettings" label-width="80px" size="small">
-        <el-form-item label="文本内容">
-          <el-input v-model="elementSettings.text" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="文字颜色">
-          <el-color-picker v-model="elementSettings.color" />
-        </el-form-item>
-        <el-form-item label="字体大小">
-          <el-input v-model="elementSettings.fontSize" placeholder="16px" />
-        </el-form-item>
-        <el-form-item label="加粗">
-          <el-switch v-model="elementSettings.isBold" />
-        </el-form-item>
-        <el-form-item label="装饰">
-          <el-checkbox-group v-model="elementSettings.decorations">
-            <el-checkbox label="underline">下划线</el-checkbox>
-            <el-checkbox label="line-through">删除线</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
-        <el-form-item label="文字阴影">
-          <el-input v-model="elementSettings.textShadow" placeholder="2px 2px 4px rgba(0,0,0,0.3)" />
-        </el-form-item>
-        <el-form-item label="背景颜色">
-          <el-color-picker v-model="elementSettings.backgroundColor" show-alpha />
-        </el-form-item>
+        <template v-if="isImageElement">
+          <el-divider content-position="left">图片设置</el-divider>
+          <el-form-item label="图片地址">
+            <el-input v-model="elementSettings.src" placeholder="图片 URL" />
+            <el-upload
+              class="img-uploader"
+              :action="`http://localhost:3002/api/upload?folderName=${currentProject.folderName}`"
+              name="image"
+              :show-file-list="false"
+              :on-success="handleElementImageUploadSuccess"
+              :disabled="!currentProject.folderName"
+              style="margin-top: 8px"
+            >
+              <el-button type="primary" size="small" :disabled="!currentProject.folderName">上传图片</el-button>
+            </el-upload>
+          </el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="文本内容">
+            <el-input v-model="elementSettings.text" type="textarea" :rows="3" />
+          </el-form-item>
+          <el-form-item label="文字颜色">
+            <el-color-picker v-model="elementSettings.color" />
+          </el-form-item>
+          <el-form-item label="字体大小">
+            <el-input v-model="elementSettings.fontSize" placeholder="16px" />
+          </el-form-item>
+          <el-form-item label="加粗">
+            <el-switch v-model="elementSettings.isBold" />
+          </el-form-item>
+          <el-form-item label="装饰">
+            <el-checkbox-group v-model="elementSettings.decorations">
+              <el-checkbox label="underline">下划线</el-checkbox>
+              <el-checkbox label="line-through">删除线</el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+          <el-form-item label="文字阴影">
+            <el-input v-model="elementSettings.textShadow" placeholder="2px 2px 4px rgba(0,0,0,0.3)" />
+          </el-form-item>
+          <el-form-item label="对齐方式">
+            <el-radio-group v-model="elementSettings.textAlign" size="small">
+              <el-radio-button label="left">左</el-radio-button>
+              <el-radio-button label="center">中</el-radio-button>
+              <el-radio-button label="right">右</el-radio-button>
+              <el-radio-button label="justify">两端</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="行高">
+            <el-input v-model="elementSettings.lineHeight" placeholder="e.g. 1.5" />
+          </el-form-item>
+          <el-form-item label="背景颜色">
+            <el-color-picker v-model="elementSettings.backgroundColor" show-alpha />
+          </el-form-item>
+        </template>
 
         <el-divider content-position="left">变换 (Transform)</el-divider>
         <el-form-item label="水平位置(X)">
-          <el-slider v-model="elementSettings.left" :min="-500" :max="1000" />
+          <el-slider v-model="elementSettings.left" :min="0" :max="1000" />
         </el-form-item>
         <el-form-item label="垂直位置(Y)">
-          <el-slider v-model="elementSettings.top" :min="-500" :max="5000" />
+          <el-slider v-model="elementSettings.top" :min="0" :max="2000" />
         </el-form-item>
         <el-form-item label="旋转角度">
           <el-slider v-model="elementSettings.rotate" :min="-180" :max="180" />
         </el-form-item>
         <el-form-item label="缩放倍率">
-          <el-slider v-model="elementSettings.scale" :min="0.1" :max="3" :step="0.1" />
+          <el-slider v-model="elementSettings.scale" :min="0.1" :max="5" :step="0.01" />
+        </el-form-item>
+        <el-form-item label="层级深度">
+          <el-input-number v-model="elementSettings.zIndex" :min="-10" :max="100" />
         </el-form-item>
         <el-form-item label="绝对定位">
           <el-switch v-model="elementSettings.isAbsolute" />
-          <div style="font-size: 10px; color: #999; line-height: 1.2; margin-top: 4px;">开启绝对定位后文字可自由移动</div>
         </el-form-item>
 
         <el-divider content-position="left">快速对齐</el-divider>
         <el-form-item label="对齐">
           <el-button-group>
-            <el-button @click="quickAlign('left')" :disabled="!elementSettings.isAbsolute">⬅ 左</el-button>
-            <el-button @click="quickAlign('center')" :disabled="!elementSettings.isAbsolute">⬜ 中</el-button>
-            <el-button @click="quickAlign('right')" :disabled="!elementSettings.isAbsolute">➡ 右</el-button>
+            <el-button @click="quickAlign('left')" :disabled="!elementSettings.isAbsolute">左对齐</el-button>
+            <el-button @click="quickAlign('center')" :disabled="!elementSettings.isAbsolute">居中</el-button>
+            <el-button @click="quickAlign('right')" :disabled="!elementSettings.isAbsolute">右对齐</el-button>
           </el-button-group>
         </el-form-item>
         
@@ -249,29 +281,38 @@
               <el-button type="primary" size="small" :disabled="!currentProject.folderName">
                 上传本地图片
               </el-button>
-              <template #tip>
-                <div class="el-upload__tip" style="font-size: 10px; color: #f56c6c" v-if="!currentProject.folderName">
-                  请先保存为物理文件夹后再上传图片
-                </div>
-              </template>
             </el-upload>
           </div>
         </el-form-item>
+        
+        <el-divider content-position="left">背景变换 (Background)</el-divider>
         <el-form-item label="背景大小(%)">
-          <el-slider v-model="sectionSettings.bgSize" :min="10" :max="300" />
+          <el-slider v-model="sectionSettings.bgSize" :min="10" :max="500" />
         </el-form-item>
-        <el-form-item label="垂直位置(%)">
-          <el-slider v-model="sectionSettings.bgPosY" :min="0" :max="100" />
+        <el-form-item label="水平偏移(X)">
+          <el-slider v-model="sectionSettings.bgPosX" :min="-100" :max="200" />
         </el-form-item>
+        <el-form-item label="垂直偏移(Y)">
+          <el-slider v-model="sectionSettings.bgPosY" :min="-100" :max="200" />
+        </el-form-item>
+        <el-form-item label="旋转角度">
+          <el-slider v-model="sectionSettings.bgRotate" :min="-180" :max="180" />
+        </el-form-item>
+
+        <el-divider content-position="left">板块设置</el-divider>
         <el-form-item label="板块高度(px)">
           <el-input-number v-model="sectionSettings.height" :min="0" :max="5000" />
-          <el-button type="text" @click="syncHeightToImage">根据图片吸附</el-button>
-        </el-form-item>
-        <el-form-item label="边缘高亮">
-          <el-switch v-model="sectionSettings.highlight" />
+          <el-button type="text" @click="syncHeightToImage">根据图片比例吸附</el-button>
         </el-form-item>
         <el-form-item label="背景颜色">
           <el-color-picker v-model="sectionSettings.backgroundColor" show-alpha />
+        </el-form-item>
+        <el-form-item label="背景层级">
+          <el-input-number v-model="sectionSettings.bgZIndex" :min="-10" :max="10" />
+          <div style="font-size: 10px; color: #999; margin-top: 4px;">负值使背景在内容后面</div>
+        </el-form-item>
+        <el-form-item label="编辑模式">
+          <el-switch v-model="sectionSettings.highlight" active-text="显示溢出背景" />
         </el-form-item>
         
         <div style="margin-top: 20px; display: flex; gap: 10px">
@@ -426,73 +467,115 @@ const isEditorOpen = ref(false)
 const editMode = ref('element') // 'element' or 'section'
 const targetElement = ref(null)
 
+const isImageElement = computed(() => targetElement.value && targetElement.value.tagName === 'IMG')
+
 const elementSettings = ref({
   text: '',
+  src: '',
   color: '',
   fontSize: '',
   isBold: false,
   decorations: [],
   textShadow: '',
   backgroundColor: '',
+  textAlign: 'left',
+  lineHeight: '1.5',
   left: 0,
   top: 0,
   rotate: 0,
   scale: 1,
+  zIndex: 0,
   isAbsolute: false
 })
 
 const sectionSettings = ref({
   bgImage: '',
   bgSize: 100,
+  bgPosX: 50,
   bgPosY: 50,
+  bgRotate: 0,
+  bgZIndex: 0,
   height: 400,
   backgroundColor: '',
   highlight: false
 })
 
 const isDragging = ref(false)
-const dragStart = ref({ x: 0, y: 0, left: 0, top: 0 })
+const isPendingDrag = ref(false)
+const dragStart = ref({ x: 0, y: 0, left: 0, top: 0, bgPosX: 0, bgPosY: 0 })
+const selectedSectionIndex = ref(-1) 
+const selectedElementIndex = ref(-1) 
+const selectedElementRef = ref(null) 
 
 const handlePreviewMouseDown = (e) => {
-  // Skip if clicking on capture button - it has its own special handler
+  // Capture button
   if (e.target.closest('.section-capture-btn')) return
   
-  const textEl = e.target.closest('h1, h2, h3, p, span, .badge, div:not(.section):not(.detail-page):not(#preview-content):not(.section-capture-btn)')
-  if (textEl && textEl.id !== 'preview-content' && !textEl.classList.contains('section') && !textEl.classList.contains('section-capture-btn')) {
+  // Resize handle
+  if (e.target.closest('.section-resize-handle')) {
+    handleResizeMouseDown(e)
+    return
+  }
+
+  // Clear visual selection immediately
+  document.querySelectorAll('.element-editing, .section-editing').forEach(el => {
+    el.classList.remove('element-editing', 'section-editing')
+  })
+
+
+  // Element selection (prioritize specific tags)
+  const selectableTags = 'img, h1, h2, h3, h4, h5, h6, p, span, small, strong, b, em, i, a, .badge, .tag, .label'
+  const el = e.target.closest(selectableTags)
+  
+  // Also support selectable divs (e.g. absolute positioned ones) if they are not the section itself
+  let targetEl = el
+  if (!targetEl) {
+    const div = e.target.closest('div:not(.section):not(.detail-page):not(#preview-content):not(.section-bg-layer)')
+    if (div && (div.style.position === 'absolute' || div.classList.contains('element-editing'))) {
+      targetEl = div
+    }
+  }
+
+  if (targetEl) {
     editMode.value = 'element'
-    targetElement.value = textEl
-    loadElementSettings(textEl)
+    targetElement.value = targetEl
+    selectedElementRef.value = targetEl
     
+    // Calculate indices for robust lookup
+    const section = targetEl.closest('.section')
+    const allSections = document.querySelectorAll('#preview-content .section')
+    selectedSectionIndex.value = Array.from(allSections).indexOf(section)
+    
+    if (section) {
+      const allSelectables = section.querySelectorAll(selectableTags + ', div[style*="position: absolute"]')
+      selectedElementIndex.value = Array.from(allSelectables).indexOf(targetEl)
+    }
+    
+    console.log(`Selected element at Section ${selectedSectionIndex.value}, Index ${selectedElementIndex.value}`)
+    
+    targetEl.classList.add('element-editing')
+    loadElementSettings(targetEl)
+    
+    // Position handling for drag
     if (!elementSettings.value.isAbsolute) {
-      // Calculate position BEFORE switching to absolute
-      const section = textEl.closest('.section')
+      const section = targetEl.closest('.section')
       const secRect = section.getBoundingClientRect()
-      const elRect = textEl.getBoundingClientRect()
+      const elRect = targetEl.getBoundingClientRect()
       
-      // Store original dimensions
-      const originalWidth = textEl.offsetWidth
-      const originalHeight = textEl.offsetHeight
+      const originalWidth = targetEl.offsetWidth
+      const originalHeight = targetEl.offsetHeight
       
-      // Create placeholder to maintain layout
       const placeholder = document.createElement('div')
       placeholder.className = 'element-placeholder'
-      placeholder.style.cssText = `
-        width: ${originalWidth}px;
-        height: ${originalHeight}px;
-        visibility: hidden;
-        pointer-events: none;
-      `
-      placeholder.dataset.placeholderFor = textEl.dataset.elementId || Date.now()
-      textEl.dataset.elementId = placeholder.dataset.placeholderFor
-      textEl.parentNode.insertBefore(placeholder, textEl.nextSibling)
+      placeholder.style.cssText = `width: ${originalWidth}px; height: ${originalHeight}px; visibility: hidden; pointer-events: none;`
+      targetEl.parentNode.insertBefore(placeholder, targetEl.nextSibling)
       
-      // Now switch to absolute
       elementSettings.value.isAbsolute = true
       elementSettings.value.left = elRect.left - secRect.left
       elementSettings.value.top = elRect.top - secRect.top
     }
 
-    isDragging.value = true
+    isPendingDrag.value = true
     dragStart.value = {
       x: e.clientX,
       y: e.clientY,
@@ -502,36 +585,128 @@ const handlePreviewMouseDown = (e) => {
 
     window.addEventListener('mousemove', handleGlobalMouseMove)
     window.addEventListener('mouseup', handleGlobalMouseUp)
+    window.addEventListener('keydown', handleGlobalKeyDown)
     
     e.preventDefault()
     isEditorOpen.value = true
+    return
   }
+
+  // Check if click on a section (background)
+  const sectionEl = e.target.closest('.section')
+  if (sectionEl) {
+    editMode.value = 'section'
+    targetElement.value = sectionEl
+    sectionEl.classList.add('section-editing')
+    
+    // Store the section index for reliable lookup later
+    const allSections = document.querySelectorAll('#preview-content .section')
+    selectedSectionIndex.value = Array.from(allSections).indexOf(sectionEl)
+    console.log('Stored section index:', selectedSectionIndex.value)
+    
+    loadSectionSettings(sectionEl)
+    
+    // Background dragging (Panning)
+    isPendingDrag.value = true
+    dragStart.value = {
+      x: e.clientX,
+      y: e.clientY,
+      bgPosX: sectionSettings.value.bgPosX,
+      bgPosY: sectionSettings.value.bgPosY
+    }
+
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    
+    e.preventDefault()
+    isEditorOpen.value = true
+    return
+  }
+  
+  // If we reach here, nothing was selected
+  editMode.value = ''
+  targetElement.value = null
+  selectedSectionIndex.value = -1
+  selectedElementIndex.value = -1
+  // We don't necessarily close the editor drawer if it's already open, 
+  // but we can clear the selection.
+}
+
+let isResizing = false
+const handleResizeMouseDown = (e) => {
+  isResizing = true
+  const handle = e.target.closest('.section-resize-handle')
+  const section = handle.parentElement
+  targetElement.value = section
+  editMode.value = 'section'
+  loadSectionSettings(section)
+  
+  dragStart.value = {
+    y: e.clientY,
+    height: sectionSettings.value.height
+  }
+  
+  window.addEventListener('mousemove', handleResizeMouseMove)
+  window.addEventListener('mouseup', handleResizeMouseUp)
+  e.stopPropagation()
+  e.preventDefault()
+}
+
+const handleResizeMouseMove = (e) => {
+  if (!isResizing) return
+  const dy = e.clientY - dragStart.value.y
+  sectionSettings.value.height = Math.max(50, dragStart.value.height + dy)
+}
+
+const handleResizeMouseUp = () => {
+  isResizing = false
+  window.removeEventListener('mousemove', handleResizeMouseMove)
+  window.removeEventListener('mouseup', handleResizeMouseUp)
+  applyChangesToProject()
 }
 
 const handleGlobalMouseMove = (e) => {
-  if (!isDragging.value || !targetElement.value) return
+  if (!isPendingDrag.value || !targetElement.value) return
   
   const dx = e.clientX - dragStart.value.x
   const dy = e.clientY - dragStart.value.y
-  
-  let newLeft = dragStart.value.left + dx
-  let newTop = dragStart.value.top + dy
-  
-  // Get section and element dimensions for boundary clamping
-  const section = targetElement.value.closest('.section')
-  if (section) {
-    const sectionWidth = section.offsetWidth
-    const sectionHeight = section.offsetHeight
-    const elWidth = targetElement.value.offsetWidth
-    const elHeight = targetElement.value.offsetHeight
-    
-    // Clamp to section bounds
-    newLeft = Math.max(0, Math.min(newLeft, sectionWidth - elWidth))
-    newTop = Math.max(0, Math.min(newTop, sectionHeight - elHeight))
+
+  // Threshold check to start real dragging
+  if (!isDragging.value) {
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      isDragging.value = true
+      console.log('Dragging started')
+    } else {
+      return
+    }
   }
   
-  elementSettings.value.left = newLeft
-  elementSettings.value.top = newTop
+  if (editMode.value === 'element') {
+    let newLeft = dragStart.value.left + dx
+    let newTop = dragStart.value.top + dy
+    
+    const section = targetElement.value.closest('.section')
+    if (section) {
+      const sectionWidth = section.offsetWidth
+      const sectionHeight = section.offsetHeight
+      const elWidth = targetElement.value.offsetWidth
+      const elHeight = targetElement.value.offsetHeight
+      
+      newLeft = Math.max(0, Math.min(newLeft, sectionWidth - elWidth))
+      newTop = Math.max(0, Math.min(newTop, sectionHeight - elHeight))
+    }
+    
+    elementSettings.value.left = newLeft
+    elementSettings.value.top = newTop
+  } else if (editMode.value === 'section') {
+    // Background Panning (X% and Y%) - using 10px = 1% drag sensitivity
+    const dxPercent = Math.round(dx / 5) 
+    const dyPercent = Math.round(dy / 5)
+    
+    sectionSettings.value.bgPosX = dragStart.value.bgPosX + dxPercent
+    sectionSettings.value.bgPosY = dragStart.value.bgPosY + dyPercent
+  }
 }
 
 const handleGlobalMouseUp = () => {
@@ -539,37 +714,64 @@ const handleGlobalMouseUp = () => {
     // Sync current DOM state to project HTML
     const previewDiv = document.getElementById('preview-content')
     if (previewDiv) {
-      // Clone and clean up preview-only elements
       const clone = previewDiv.cloneNode(true)
-      clone.querySelectorAll('.section-editing').forEach(el => el.classList.remove('section-editing'))
-      clone.querySelectorAll('.section-capture-btn').forEach(btn => btn.remove())
-      clone.querySelectorAll('.element-placeholder').forEach(ph => ph.remove())
+      clone.querySelectorAll('.section-editing, .element-editing').forEach(el => el.classList.remove('section-editing', 'element-editing'))
+      clone.querySelectorAll('.section-capture-btn, .section-resize-handle, .element-placeholder').forEach(el => el.remove())
       
-      // Update project HTML with new state
       currentProject.value.html = clone.innerHTML
-      
-      // Push the NEW state (after drag) to history
-      // This allows undo to go back to this state
       pushSnapshot({ html: currentProject.value.html, css: currentProject.value.css })
     }
   }
   isDragging.value = false
+  isPendingDrag.value = false
   window.removeEventListener('mousemove', handleGlobalMouseMove)
   window.removeEventListener('mouseup', handleGlobalMouseUp)
+  window.removeEventListener('keydown', handleGlobalKeyDown)
+}
+
+const handleGlobalKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    if (isDragging.value) {
+      // Revert to start positions
+      if (editMode.value === 'element') {
+        elementSettings.value.left = dragStart.value.left
+        elementSettings.value.top = dragStart.value.top
+      } else if (editMode.value === 'section') {
+        sectionSettings.value.bgPosX = dragStart.value.bgPosX
+        sectionSettings.value.bgPosY = dragStart.value.bgPosY
+      }
+      console.log('Drag cancelled via Escape')
+    }
+    
+    // Clear selection if not dragging
+    if (!isDragging.value) {
+      editMode.value = ''
+      isEditorOpen.value = false
+      document.querySelectorAll('.element-editing, .section-editing').forEach(el => {
+        el.classList.remove('element-editing', 'section-editing')
+      })
+    }
+    
+    handleGlobalMouseUp() // Clean up listeners
+  }
 }
 
 const handlePreviewClick = (e) => {
-  // Check if it was a drag or a simple click
-  if (isDragging.value) return
-  // Check if click on section-capture-btn
-  if (e.target.closest('.section-capture-btn')) return
+  if (isDragging.value || isResizing) return
+  if (e.target.closest('.section-capture-btn, .section-resize-handle')) return
 
-  // Find if click on a text element first
-  const textEl = e.target.closest('h1, h2, h3, p, span, .badge')
-  if (textEl && textEl.id !== 'preview-content') {
+  // Cleanup previous editing classes
+  document.querySelectorAll('.element-editing, .section-editing').forEach(el => {
+    el.classList.remove('element-editing', 'section-editing')
+  })
+
+  // Find if click on a text element or image first
+  const el = e.target.closest('img, h1, h2, h3, p, span, .badge')
+  if (el && el.id !== 'preview-content') {
     editMode.value = 'element'
-    targetElement.value = textEl
-    loadElementSettings(textEl)
+    targetElement.value = el
+    el.classList.add('element-editing')
+    loadElementSettings(el)
     isEditorOpen.value = true
     return
   }
@@ -579,6 +781,7 @@ const handlePreviewClick = (e) => {
   if (sectionEl) {
     editMode.value = 'section'
     targetElement.value = sectionEl
+    sectionEl.classList.add('section-editing')
     loadSectionSettings(sectionEl)
     isEditorOpen.value = true
     return
@@ -588,18 +791,22 @@ const handlePreviewClick = (e) => {
 const loadElementSettings = (el) => {
   const computed = window.getComputedStyle(el)
   elementSettings.value = {
-    text: el.innerHTML.trim(),
+    text: el.tagName === 'IMG' ? '' : el.innerHTML.trim(),
+    src: el.tagName === 'IMG' ? el.getAttribute('src') : '',
     color: rgbToHex(computed.color),
     fontSize: computed.fontSize,
     isBold: computed.fontWeight === 'bold' || parseInt(computed.fontWeight) >= 700,
     decorations: computed.textDecoration.split(' ').filter(d => ['underline', 'line-through'].includes(d)),
     textShadow: computed.textShadow === 'none' ? '' : computed.textShadow,
     backgroundColor: rgbToHex(computed.backgroundColor),
-    left: parseInt(computed.left) || 0,
-    top: parseInt(computed.top) || 0,
-    rotate: getRotationDegrees(computed.transform),
-    scale: getScaleFactor(computed.transform),
-    isAbsolute: computed.position === 'absolute'
+    textAlign: computed.textAlign || 'left',
+    lineHeight: computed.lineHeight || '1.5',
+    left: parseInt(el.style.left) || 0,
+    top: parseInt(el.style.top) || 0,
+    rotate: getRotationDegrees(el.style.transform),
+    scale: getScaleFactor(el.style.transform) || 1,
+    zIndex: parseInt(el.style.zIndex) || 0,
+    isAbsolute: el.style.position === 'absolute'
   }
 }
 
@@ -623,17 +830,39 @@ const getScaleFactor = (matrix) => {
 
 const loadSectionSettings = (el) => {
   const computed = window.getComputedStyle(el)
-  const bgImg = computed.backgroundImage
-  const bgSize = computed.backgroundSize
-  const bgPos = computed.backgroundPosition.split(' ')
+  const bgLayer = el.querySelector('.section-bg-layer')
+  
+  let bgImg = ''
+  let bgSize = ''
+  let bgPos = ['50', '50']
+  let bgRotate = 0
+
+  if (bgLayer) {
+    bgImg = bgLayer.style.backgroundImage
+    bgSize = bgLayer.style.backgroundSize
+    bgPos = bgLayer.style.backgroundPosition.split(' ')
+    bgRotate = parseInt(bgLayer.style.transform.replace(/rotate\((.+)deg\)/, '$1')) || 0
+  } else {
+    bgImg = el.style.backgroundImage || computed.backgroundImage
+    bgSize = el.style.backgroundSize || computed.backgroundSize
+    bgPos = (el.style.backgroundPosition || computed.backgroundPosition).split(' ')
+  }
 
   sectionSettings.value = {
     bgImage: bgImg === 'none' ? '' : bgImg.replace(/url\(['"]?(.+?)['"]?\)/, '$1'),
     bgSize: bgSize === 'cover' ? 100 : (parseInt(bgSize) || 100),
+    bgPosX: parseInt(bgPos[0]) || 50,
     bgPosY: parseInt(bgPos[1]) || 50,
+    bgRotate: bgRotate,
+    bgZIndex: bgLayer ? (parseInt(bgLayer.style.zIndex) || 0) : 0,
     height: el.offsetHeight,
     backgroundColor: rgbToHex(computed.backgroundColor),
-    highlight: true
+    highlight: false
+  }
+  
+  // Resolve relative path for the editor
+  if (sectionSettings.value.bgImage && !sectionSettings.value.bgImage.startsWith('http')) {
+    onBgImageChange(sectionSettings.value.bgImage) // Just to trigger loading/size detection
   }
 }
 
@@ -645,13 +874,19 @@ const onBgImageChange = (url) => {
     imageNaturalHeight = 0
     return
   }
+  
+  let finalUrl = url
+  if (url.startsWith('images/') && currentProject.value.folderName) {
+    finalUrl = `http://localhost:3002/product_details/${currentProject.value.folderName}/${url}`
+  }
+  
   const img = new Image()
   img.onload = () => {
     imageNaturalHeight = img.naturalHeight
     imageNaturalWidth = img.naturalWidth
-    ElMessage.info(`图片已加载: ${img.naturalWidth}x${img.naturalHeight}px`)
+    console.log(`Background loaded: ${img.naturalWidth}x${img.naturalHeight}px`)
   }
-  img.src = url
+  img.src = finalUrl
 }
 
 const beforeUpload = (file) => {
@@ -666,17 +901,21 @@ const beforeUpload = (file) => {
 const handleUploadSuccess = (response) => {
   sectionSettings.value.bgImage = response.url
   onBgImageChange(response.url)
-  ElMessage.success('图片上传成功并已应用')
+  ElMessage.success('背景图片上传成功')
+}
+
+const handleElementImageUploadSuccess = (response) => {
+  elementSettings.value.src = response.url
+  ElMessage.success('图片上传成功')
 }
 
 const syncHeightToImage = () => {
   if (imageNaturalHeight && imageNaturalWidth) {
-    // scale height based on 1000px width and bgSize
     const scaledHeight = Math.round((imageNaturalHeight * (1000 / imageNaturalWidth)) * (sectionSettings.value.bgSize / 100))
     sectionSettings.value.height = scaledHeight
-    ElMessage.success('已根据图片比例智能吸附高度')
+    ElMessage.success('已根据图片比例吸附高度')
   } else {
-    ElMessage.warning('尚未加载图片或无法获取尺寸')
+    ElMessage.warning('尚未加载图片尺寸')
   }
 }
 
@@ -696,53 +935,107 @@ const rgbToHex = (rgb) => {
 }
 
 watch(elementSettings, (val) => {
-  if (editMode.value !== 'element' || !targetElement.value) return
-  const el = targetElement.value
+  if (editMode.value !== 'element') return
   
-  // Apply live changes
-  el.innerHTML = val.text 
-  el.style.color = val.color
-  el.style.fontSize = val.fontSize
-  el.style.fontWeight = val.isBold ? 'bold' : 'normal'
-  el.style.textDecoration = val.decorations.join(' ')
-  el.style.textShadow = val.textShadow
-  el.style.backgroundColor = val.backgroundColor
+  // Robust lookup: Find the section, then find the element within it by index
+  const sections = document.querySelectorAll('#preview-content .section')
+  const section = sections[selectedSectionIndex.value]
+  if (!section) return
   
-  if (val.isAbsolute) {
-    el.style.position = 'absolute'
-    el.style.left = `${val.left}px`
-    el.style.top = `${val.top}px`
-    el.style.margin = '0'
-    // Preserve width and prevent text wrapping
-    if (!el.dataset.originalWidth) {
-      el.dataset.originalWidth = el.offsetWidth
-    }
-    el.style.minWidth = `${el.dataset.originalWidth}px`
-    el.style.whiteSpace = 'nowrap'
+  const selectableTags = 'img, h1, h2, h3, h4, h5, h6, p, span, small, strong, b, em, i, a, .badge, .tag, .label'
+  const allSelectables = section.querySelectorAll(selectableTags + ', div[style*="position: absolute"]')
+  const el = allSelectables[selectedElementIndex.value]
+  
+  if (!el) {
+    console.log('Element not found in live DOM at indices:', selectedSectionIndex.value, selectedElementIndex.value)
+    return
+  }
+  
+  // Update the reference for other logic
+  selectedElementRef.value = el
+  targetElement.value = el
+  
+  if (el.tagName === 'IMG') {
+    el.setAttribute('src', val.src)
   } else {
-    el.style.position = ''
-    el.style.left = ''
-    el.style.top = ''
-    el.style.margin = ''
-    el.style.width = ''
-    el.style.minWidth = ''
-    el.style.whiteSpace = ''
-    delete el.dataset.originalWidth
+    el.innerHTML = val.text 
+    el.style.color = val.color
+    el.style.fontSize = val.fontSize
+    el.style.fontWeight = val.isBold ? 'bold' : 'normal'
+    el.style.textDecoration = val.decorations.join(' ')
+    el.style.textShadow = val.textShadow
+    el.style.textAlign = val.textAlign
+    el.style.lineHeight = val.lineHeight
+  }
+  
+  console.log(`Element watcher applying to ${el.tagName}:`, { left: val.left, top: val.top, absolute: el.style.position })
+  
+  el.style.backgroundColor = val.backgroundColor
+  el.style.zIndex = val.zIndex
+  
+  // Always apply position for movable elements
+  // Position only works with absolute/relative positioning
+  el.style.position = 'absolute'
+  el.style.left = `${val.left}px`
+  el.style.top = `${val.top}px`
+  el.style.margin = '0'
+  
+  // Preserve text width to prevent wrapping
+  if (!el.dataset.originalWidth && el.offsetWidth > 0) {
+    el.dataset.originalWidth = el.offsetWidth
+  }
+  if (el.dataset.originalWidth) {
+    el.style.minWidth = `${el.dataset.originalWidth}px`
   }
 
   el.style.transform = `rotate(${val.rotate}deg) scale(${val.scale})`
 }, { deep: true })
 
+
 watch(sectionSettings, (val) => {
-  if (editMode.value !== 'section' || !targetElement.value) return
-  const el = targetElement.value
+  if (editMode.value !== 'section') {
+    console.log('Watcher early return: not in section mode')
+    return
+  }
   
-  el.style.backgroundImage = val.bgImage ? `url(${val.bgImage})` : 'none'
-  el.style.backgroundSize = `${val.bgSize}% auto`
-  el.style.backgroundPosition = `center ${val.bgPosY}%`
-  el.style.height = `${val.height}px`
+  // Always use the stored index to find the current live DOM element
+  const sections = document.querySelectorAll('#preview-content .section')
+  const el = sections[selectedSectionIndex.value]
+  
+  if (!el) {
+    console.log('Watcher: Could not find section at index', selectedSectionIndex.value)
+    return
+  }
+  
+  console.log('Applying to section at index:', selectedSectionIndex.value, 'Element:', el.className)
+  
+  // Background styling (standard fallback)
   el.style.backgroundColor = val.backgroundColor || 'transparent'
-  el.style.backgroundRepeat = 'no-repeat'
+  el.style.height = `${val.height}px`
+
+  // Find bgLayer in the live DOM
+  let bgLayer = el.querySelector('.section-bg-layer')
+  console.log('Found bgLayer, current z-index:', bgLayer?.style.zIndex, 'New z-index:', val.bgZIndex)
+  
+  if (!bgLayer && val.bgImage) {
+    bgLayer = document.createElement('div')
+    bgLayer.className = 'section-bg-layer'
+    bgLayer.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-repeat: no-repeat;`
+    el.insertBefore(bgLayer, el.firstChild)
+    console.log('Created new bgLayer')
+  }
+
+  if (bgLayer) {
+    bgLayer.style.backgroundImage = val.bgImage ? `url(${val.bgImage})` : 'none'
+    bgLayer.style.backgroundSize = `${val.bgSize}% auto`
+    bgLayer.style.backgroundPosition = `${val.bgPosX}% ${val.bgPosY}%`
+    bgLayer.style.transform = `rotate(${val.bgRotate}deg)`
+    bgLayer.style.zIndex = String(val.bgZIndex)
+    console.log('Applied z-index:', val.bgZIndex, 'Verify in DOM:', bgLayer.style.zIndex)
+    
+    // Force browser to recalculate styles
+    bgLayer.offsetHeight
+  }
   
   if (val.highlight) {
     el.classList.add('section-editing')
@@ -755,18 +1048,21 @@ const applyChangesToProject = () => {
   const previewDiv = document.getElementById('preview-content').cloneNode(true)
   
   // Cleanup preview-only elements and classes
-  const allSections = previewDiv.querySelectorAll('.section')
-  allSections.forEach(sec => {
+  previewDiv.querySelectorAll('.section').forEach(sec => {
     sec.classList.remove('section-editing')
+    
+    // Keep the bgLayer for persistence (it stores z-index, rotation, etc.)
+    // Only clean up editing-related classes, not the layer itself
+    const bgLayer = sec.querySelector('.section-bg-layer')
+    if (bgLayer) {
+      // Reset any editing-related transient styles if needed
+      // But keep all core styles for persistence
+    }
   })
 
-  const captureBtns = previewDiv.querySelectorAll('.section-capture-btn')
-  captureBtns.forEach(btn => btn.remove())
+  previewDiv.querySelectorAll('.section-capture-btn, .section-resize-handle, .element-placeholder').forEach(el => el.remove())
   
-  // Push to history before updating
   pushSnapshot({ html: currentProject.value.html, css: currentProject.value.css })
-
-  // Update the project HTML
   currentProject.value.html = previewDiv.innerHTML
   isEditorOpen.value = false
   ElMessage.success('已同步到源码')
@@ -774,8 +1070,15 @@ const applyChangesToProject = () => {
 
 // Quick Alignment Function
 const quickAlign = (alignment) => {
-  const el = targetElement.value
-  if (!el || !elementSettings.value.isAbsolute) return
+  // Use robust lookup for quick alignment too
+  const sections = document.querySelectorAll('#preview-content .section')
+  const section = sections[selectedSectionIndex.value]
+  if (!section) return
+  
+  const selectableTags = 'img, h1, h2, h3, h4, h5, h6, p, span, small, strong, b, em, i, a, .badge, .tag, .label'
+  const allSelectables = section.querySelectorAll(selectableTags + ', div[style*="position: absolute"]')
+  const el = allSelectables[selectedElementIndex.value]
+  if (!el) return
 
   const elWidth = el.offsetWidth
   
@@ -856,25 +1159,33 @@ const renderedHTML = computed(() => {
   const sections = tempDiv.querySelectorAll('.section')
   sections.forEach((section, index) => {
     section.style.position = 'relative'
+    
+    // Background layer handling for existing content
+    // If the section has a background image but no layer, we should consider it
+    if (section.style.backgroundImage && section.style.backgroundImage !== 'none' && !section.querySelector('.section-bg-layer')) {
+      const bgLayer = document.createElement('div')
+      bgLayer.className = 'section-bg-layer'
+      bgLayer.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; background-repeat: no-repeat;`
+      bgLayer.style.backgroundImage = section.style.backgroundImage
+      bgLayer.style.backgroundSize = section.style.backgroundSize
+      bgLayer.style.backgroundPosition = section.style.backgroundPosition
+      section.style.backgroundImage = '' // Move to layer
+      section.insertBefore(bgLayer, section.firstChild)
+    }
+
+    // Add UI Controls
     const btn = document.createElement('div')
     btn.className = 'section-capture-btn'
-    btn.setAttribute('data-html2canvas-ignore', 'true') // Exclude from screenshots
-    btn.innerHTML = `截取此屏 (Section ${index + 1})`
-    btn.style.cssText = `
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(64, 158, 255, 0.9);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: pointer;
-      z-index: 100;
-      opacity: 0;
-      transition: opacity 0.2s;
-    `
+    btn.setAttribute('data-html2canvas-ignore', 'true')
+    btn.innerHTML = `截取 Section ${index + 1}`
+    btn.style.cssText = `position: absolute; top: 10px; right: 10px; background: rgba(64, 158, 255, 0.9); color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; z-index: 100; opacity: 0; transition: opacity 0.2s;`
     section.appendChild(btn)
+    
+    const handle = document.createElement('div')
+    handle.className = 'section-resize-handle'
+    handle.setAttribute('data-html2canvas-ignore', 'true')
+    handle.style.cssText = `position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: rgba(64, 158, 255, 0); cursor: ns-resize; z-index: 101; transition: background 0.2s;`
+    section.appendChild(handle)
   })
   return tempDiv.innerHTML
 })
@@ -1428,9 +1739,39 @@ onUnmounted(() => {
   font-size: 16px; /* Reset font size for content */
 }
 
-:deep(.section h1), :deep(.section h2), :deep(.section h3), :deep(.section p), :deep(.section span) {
-  cursor: move;
-  user-select: none;
+:deep(.section h1:hover), :deep(.section h2:hover), :deep(.section h3:hover), :deep(.section p:hover), :deep(.section span:hover), :deep(.section img:hover) {
+  outline: 1px dashed #409eff;
+}
+
+:deep(.element-editing) {
+  outline: 2px solid #409eff !important;
+  z-index: 102 !important;
+}
+
+:deep(.section-bg-layer) {
+  transition: transform 0.1s;
+  /* Debug: add visible border */
+  outline: 2px dashed rgba(255, 0, 0, 0.5);
+}
+
+:deep(.section) {
+  position: relative !important;
+  overflow: visible;
+}
+
+/* Ensure content is above background layer by default */
+:deep(.section > *:not(.section-bg-layer):not(.section-capture-btn):not(.section-resize-handle)) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover for controls */
+:deep(.section:hover .section-capture-btn) {
+  opacity: 1 !important;
+}
+
+:deep(.section:hover .section-resize-handle) {
+  background: rgba(64, 158, 255, 0.5) !important;
 }
 
 :deep(.section-editing) {
@@ -1438,10 +1779,6 @@ onUnmounted(() => {
   outline-offset: -4px !important;
   position: relative;
   z-index: 10 !important;
-}
-
-/* Hover to show capture buttons */
-:deep(.section:hover .section-capture-btn) {
-  opacity: 1 !important;
+  overflow: visible !important; /* Show overflow backgrounds when editing */
 }
 </style>
