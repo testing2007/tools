@@ -12,7 +12,7 @@ const app = express()
 app.use(cors())
 app.use(express.json({ limit: '50mb' }))
 
-const BASE_DIR = path.resolve(__dirname, '../product_details')
+const BASE_DIR = path.resolve(__dirname, 'product_details')
 
 // Serve static files
 app.use('/product_details', express.static(BASE_DIR))
@@ -49,19 +49,102 @@ const upload = multer({ storage })
 app.get('/api/ping', (req, res) => res.send('pong'))
 
 app.post('/api/save', (req, res) => {
-  const { folderName, html, css } = req.body
+  const { folderName, productTitle, html, css, bannerHtml, bannerCss, description, shareHtml, shareCss, shareText } = req.body
   if (!folderName) return res.status(400).send('Folder name is required')
 
   const projectDir = path.join(BASE_DIR, folderName)
   try {
     if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir, { recursive: true })
-    fs.writeFileSync(path.join(projectDir, 'index.html'), html)
-    fs.writeFileSync(path.join(projectDir, 'style.css'), css)
+    
+    // Save core files
+    fs.writeFileSync(path.join(projectDir, 'index.html'), html || '')
+    fs.writeFileSync(path.join(projectDir, 'style.css'), css || '')
+    
+    // Save all data to a JSON for persistence of extended fields
+    const projectData = {
+      folderName,
+      productTitle,
+      html,
+      css,
+      bannerHtml,
+      bannerCss,
+      description,
+      shareHtml,
+      shareCss,
+      shareText,
+      updatedAt: new Date().toLocaleString()
+    }
+    fs.writeFileSync(path.join(projectDir, 'data.json'), JSON.stringify(projectData, null, 2))
+    
     console.log(`Successfully saved project: ${folderName}`)
     res.send('Saved successfully')
   } catch (err) {
     console.error('Save Failure:', err)
     res.status(500).send('Failed to save')
+  }
+})
+
+// Add endpoint to list all projects with their full data
+app.get('/api/projects', (req, res) => {
+  try {
+    if (!fs.existsSync(BASE_DIR)) return res.json([])
+    
+    const folders = fs.readdirSync(BASE_DIR)
+    const projects = folders.map(folder => {
+      const dataPath = path.join(BASE_DIR, folder, 'data.json')
+      if (fs.existsSync(dataPath)) {
+        const content = fs.readFileSync(dataPath, 'utf8')
+        // Strip UTF-8 BOM if present (more robust regex)
+        const cleanContent = content.replace(/^\uFEFF/, '').trim()
+        try {
+          return JSON.parse(cleanContent)
+        } catch (err) {
+          console.error(`Syntax Error in ${dataPath}:`, err.message)
+          console.error('Content starts with:', cleanContent.substring(0, 20))
+          return null
+        }
+      }
+      // Fallback for older projects
+      const htmlPath = path.join(BASE_DIR, folder, 'index.html')
+      const cssPath = path.join(BASE_DIR, folder, 'style.css')
+      if (fs.existsSync(htmlPath)) {
+        return {
+          id: 'local_' + folder,
+          folderName: folder,
+          name: folder,
+          html: fs.readFileSync(htmlPath, 'utf8'),
+          css: fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '',
+          updatedAt: '本地文件',
+          isLocal: true
+        }
+      }
+      return null
+    }).filter(p => p !== null)
+    
+    res.json(projects)
+  } catch (err) {
+    console.error('List Projects Failure:', err)
+    res.status(500).send('Failed to list projects')
+  }
+})
+
+app.delete('/api/delete', (req, res) => {
+  const folderName = req.query.folderName
+  if (!folderName) return res.status(400).send('FolderName is required')
+  
+  const projectDir = path.join(BASE_DIR, folderName)
+  try {
+    if (fs.existsSync(projectDir)) {
+      // Robust recursive deletion
+      fs.rmSync(projectDir, { recursive: true, force: true })
+      console.log(`Deleted project folder: ${folderName}`)
+      res.send('Deleted successfully')
+    } else {
+      res.status(404).send('Project not found')
+    }
+  } catch (err) {
+    console.error('Delete Failure:', err)
+    res.status(500).send('Failed to delete')
   }
 })
 

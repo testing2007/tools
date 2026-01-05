@@ -33,12 +33,13 @@
     <el-main class="main-area">
       <div class="toolbar">
         <el-input v-model="currentProject.name" placeholder="项目名称" style="width: 200px" />
+        <el-input v-model="currentProject.productTitle" placeholder="产品主标题" style="width: 240px; margin-left: 10px;" />
         <div class="actions">
           <el-button type="success" @click="saveProject">
             <el-icon><Check /></el-icon> 暂存代码
           </el-button>
           <el-button type="danger" @click="saveToPhysicalFile" :disabled="!currentProject.folderName">
-            <el-icon><Monitor /></el-icon> 保存同步到物理文件
+            <el-icon><Monitor /></el-icon> 保存物理文件
           </el-button>
           <el-button type="warning" @click="exportImage">
             <el-icon><Download /></el-icon> 导出长图
@@ -46,40 +47,120 @@
           <el-button type="primary" @click="exportAllSections">
             <el-icon><Files /></el-icon> 批量切图
           </el-button>
-          <el-button type="info" @click="exportCode">
-            <el-icon><Document /></el-icon> 导出源码
-          </el-button>
         </div>
       </div>
 
       <el-tabs v-model="activeTab" class="editor-tabs">
-        <el-tab-pane label="HTML" name="html">
-          <el-input
-            v-model="currentProject.html"
-            type="textarea"
-            :rows="20"
-            placeholder="输入 HTML 代码..."
-            class="code-editor"
-          />
+        <el-tab-pane label="详情页 (1000px)" name="detail">
+          <el-tabs v-model="subTabDetail" type="border-card">
+            <el-tab-pane label="HTML" name="html">
+              <el-input
+                v-model="currentProject.html"
+                type="textarea"
+                :rows="20"
+                placeholder="输入 HTML 代码..."
+                class="code-editor"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="CSS" name="css">
+              <el-input
+                v-model="currentProject.css"
+                type="textarea"
+                :rows="20"
+                placeholder="输入 CSS 代码..."
+                class="code-editor"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="预览" name="preview">
+              <div class="preview-container" @click="handlePreviewClick" @mousedown="handlePreviewMouseDown">
+                <div 
+                  class="preview-content" 
+                  id="preview-content" 
+                  :style="{ width: '1000px' }"
+                  v-html="renderedHTML"
+                ></div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </el-tab-pane>
-        <el-tab-pane label="CSS" name="css">
-          <el-input
-            v-model="currentProject.css"
-            type="textarea"
-            :rows="20"
-            placeholder="输入 CSS 代码..."
-            class="code-editor"
-          />
-        </el-tab-pane>
-        <el-tab-pane label="预览" name="preview">
-          <div class="preview-container" @click="handlePreviewClick">
-            <div 
-              class="preview-content" 
-              id="preview-content" 
-              :style="{ width: '1000px' }"
-              v-html="renderedHTML"
-            ></div>
-          </div>
+
+        <el-tab-pane label="营销素材 (Carousel/Share)" name="marketing">
+          <el-tabs v-model="subTabMarketing" type="border-card">
+            <el-tab-pane label="轮播图 (800x800)" name="carousel">
+              <div class="marketing-split">
+                <div class="marketing-editor">
+                  <el-form label-position="top">
+                    <el-form-item label="HTML">
+                      <el-input v-model="currentProject.bannerHtml" type="textarea" :rows="10" />
+                    </el-form-item>
+                    <el-form-item label="CSS">
+                      <el-input v-model="currentProject.bannerCss" type="textarea" :rows="10" />
+                    </el-form-item>
+                  </el-form>
+                </div>
+                <div class="marketing-preview">
+                  <div class="preview-box" id="banner-preview" style="width: 800px; height: 800px;" v-html="currentProject.bannerHtml"></div>
+                  <el-button type="primary" @click="exportBannerImage" style="margin-top: 20px">
+                    <el-icon><Download /></el-icon> 下载轮播图 (800x800)
+                  </el-button>
+                </div>
+              </div>
+              <component :is="'style'">{{ currentProject.bannerCss }}</component>
+            </el-tab-pane>
+
+            <el-tab-pane label="描述/分享语" name="copywriting">
+              <el-form label-position="top" style="padding: 20px;">
+                <div style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
+                  <el-button type="warning" @click="syncFromDetail">
+                    <el-icon><Refresh /></el-icon> 从详情页智能提取
+                  </el-button>
+                </div>
+                
+                <el-form-item label="产品主标题">
+                  <div style="display: flex; gap: 10px;">
+                    <el-input v-model="currentProject.productTitle" />
+                    <el-button @click="copyToClipboard(currentProject.productTitle)">复制</el-button>
+                  </div>
+                </el-form-item>
+
+                <el-form-item label="产品文字描述">
+                  <el-input v-model="currentProject.description" type="textarea" :rows="6" />
+                  <div style="margin-top: 5px;">
+                    <el-button type="primary" size="small" @click="copyToClipboard(currentProject.description)">复制描述</el-button>
+                  </div>
+                </el-form-item>
+
+                <el-form-item label="分享语">
+                  <el-input v-model="currentProject.shareText" type="textarea" :rows="4" />
+                  <div style="margin-top: 5px;">
+                    <el-button type="primary" size="small" @click="copyToClipboard(currentProject.shareText)">复制分享语</el-button>
+                  </div>
+                </el-form-item>
+              </el-form>
+            </el-tab-pane>
+
+            <el-tab-pane label="分享图 (5:4)" name="share_img">
+              <div class="marketing-split">
+                <div class="marketing-editor">
+                  <el-form label-position="top">
+                    <el-form-item label="HTML">
+                      <el-input v-model="currentProject.shareHtml" type="textarea" :rows="10" />
+                    </el-form-item>
+                    <el-form-item label="CSS">
+                      <el-input v-model="currentProject.shareCss" type="textarea" :rows="10" />
+                    </el-form-item>
+                  </el-form>
+                </div>
+                <div class="marketing-preview">
+                  <div class="preview-box" id="share-preview" style="width: 1000px; height: 800px; transform: scale(0.4); transform-origin: top center;" v-html="currentProject.shareHtml"></div>
+                  <el-button type="primary" @click="exportShareImage" style="margin-top: -450px">
+                    <el-icon><Download /></el-icon> 下载分享图 (1000x800)
+                  </el-button>
+                </div>
+              </div>
+              <component :is="'style'">{{ currentProject.shareCss }}</component>
+            </el-tab-pane>
+          </el-tabs>
         </el-tab-pane>
       </el-tabs>
     </el-main>
@@ -116,6 +197,33 @@
         </el-form-item>
         <el-form-item label="背景颜色">
           <el-color-picker v-model="elementSettings.backgroundColor" show-alpha />
+        </el-form-item>
+
+        <el-divider content-position="left">变换 (Transform)</el-divider>
+        <el-form-item label="水平位置(X)">
+          <el-slider v-model="elementSettings.left" :min="-500" :max="1000" />
+        </el-form-item>
+        <el-form-item label="垂直位置(Y)">
+          <el-slider v-model="elementSettings.top" :min="-500" :max="5000" />
+        </el-form-item>
+        <el-form-item label="旋转角度">
+          <el-slider v-model="elementSettings.rotate" :min="-180" :max="180" />
+        </el-form-item>
+        <el-form-item label="缩放倍率">
+          <el-slider v-model="elementSettings.scale" :min="0.1" :max="3" :step="0.1" />
+        </el-form-item>
+        <el-form-item label="绝对定位">
+          <el-switch v-model="elementSettings.isAbsolute" />
+          <div style="font-size: 10px; color: #999; line-height: 1.2; margin-top: 4px;">开启绝对定位后文字可自由移动</div>
+        </el-form-item>
+
+        <el-divider content-position="left">快速对齐</el-divider>
+        <el-form-item label="对齐">
+          <el-button-group>
+            <el-button @click="quickAlign('left')" :disabled="!elementSettings.isAbsolute">⬅ 左</el-button>
+            <el-button @click="quickAlign('center')" :disabled="!elementSettings.isAbsolute">⬜ 中</el-button>
+            <el-button @click="quickAlign('right')" :disabled="!elementSettings.isAbsolute">➡ 右</el-button>
+          </el-button-group>
         </el-form-item>
         
         <div style="margin-top: 20px; display: flex; gap: 10px">
@@ -162,6 +270,9 @@
         <el-form-item label="边缘高亮">
           <el-switch v-model="sectionSettings.highlight" />
         </el-form-item>
+        <el-form-item label="背景颜色">
+          <el-color-picker v-model="sectionSettings.backgroundColor" show-alpha />
+        </el-form-item>
         
         <div style="margin-top: 20px; display: flex; gap: 10px">
           <el-button type="primary" @click="applyChangesToProject" style="flex: 1">同步到源码</el-button>
@@ -183,26 +294,49 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import html2canvas from 'html2canvas'
 import { Plus, Delete, Check, Download, Document, Refresh, Camera, Files, Edit, Monitor } from '@element-plus/icons-vue'
 
-const activeTab = ref('html')
+// Composables
+import { useHistory } from './composables/useHistory'
+import { useAlignment, applyAlignment } from './composables/useAlignment'
+
+// Initialize composables
+const { pushSnapshot, undo, redo, canUndo, canRedo } = useHistory()
+const { SECTION_WIDTH } = useAlignment()
+
+const activeTab = ref('detail')
+const subTabDetail = ref('preview')
+const subTabMarketing = ref('carousel')
+
 const projects = ref([])
 const currentProjectId = ref(null)
 
 const defaultHtml = `
 <div class="detail-page">
-  <section class="banner">
-    <h1>新品发布</h1>
-    <p>点击 Antigravity 为您生成更多创意内容</p>
+  <section class="section banner" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1000'); background-size: cover; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;">
+    <h1 style="font-size: 48px; margin-bottom: 10px;">智能极简手表</h1>
+    <p style="font-size: 20px;">重新定义您的时间，极简美学，不凡品味</p>
   </section>
-  <section class="specs">
-    <h2>产品规格</h2>
-    <ul>
-      <li>材质: 316L 不锈钢</li>
-      <li>尺寸: 1000px 宽度适配</li>
+  <section class="section white" style="padding: 60px 40px; background: #fff;">
+    <h2 style="font-size: 32px; text-align: center; border-bottom: 2px solid #333; display: inline-block; padding-bottom: 10px; margin-bottom: 40px; width: 100%;">匠心工艺</h2>
+    <div style="display: flex; gap: 40px; align-items: center;">
+       <div style="flex: 1;"><img src="https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=500" style="width: 100%; border-radius: 8px;"></div>
+       <div style="flex: 1;">
+         <h3 style="font-size: 24px;">316L 精钢表壳</h3>
+         <p style="color: #666; line-height: 1.8;">采用高规格精钢，经过 12 道工序手工抛光，温润如玉，经久耐用。</p>
+       </div>
+    </div>
+  </section>
+  <section class="section gray" style="padding: 60px 40px; background: #f9f9f9;">
+    <h2 style="font-size: 32px; text-align: center; margin-bottom: 40px;">极致规格</h2>
+    <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <li style="background: white; padding: 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"><strong>运动机芯:</strong> 瑞士原装石英机芯</li>
+      <li style="background: white; padding: 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"><strong>防水性能:</strong> 50米生活防水</li>
+      <li style="background: white; padding: 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"><strong>镜面材质:</strong> 蓝宝石玻璃</li>
+      <li style="background: white; padding: 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"><strong>表带材质:</strong> 意大利头层牛皮</li>
     </ul>
   </section>
 </div>
@@ -210,29 +344,81 @@ const defaultHtml = `
 
 const defaultCss = `
 .detail-page {
-  font-family: 'PingFang SC', sans-serif;
+  font-family: 'PingFang SC', 'STHeiti', 'Microsoft YaHei', sans-serif;
   color: #333;
-  background: #fff;
+  line-height: 1.5;
 }
-.banner {
-  height: 400px;
-  background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: white;
+.section {
+  width: 1000px;
+  overflow: hidden;
 }
-.specs {
-  padding: 40px;
-}
+`
+
+const defaultBannerHtml = `
+<div class="banner-carousel" style="width: 800px; height: 800px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow: hidden; border: 1px solid #eee;">
+  <!-- Decor elements -->
+  <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 120%, rgba(0,0,0,0.05) 0%, transparent 70%);"></div>
+  <div style="font-size: 200px; font-weight: 900; color: #f0f0f0; position: absolute; z-index: 1; top: 40px; transform: rotate(-5deg); pointer-events: none; letter-spacing: -5px;">PREMIUM</div>
+  
+  <div style="z-index: 2; text-align: center; width: 100%;">
+    <div style="text-transform: uppercase; letter-spacing: 4px; font-size: 14px; color: #999; margin-bottom: 20px;">NEW COLLECTION 2026</div>
+    <h2 style="font-size: 64px; font-weight: 800; color: #111; margin: 0; line-height: 1.1;">智能极简手表</h2>
+    <div style="width: 40px; height: 2px; background: #333; margin: 30px auto;"></div>
+  </div>
+
+  <div style="z-index: 2; position: relative; width: 450px; height: 450px; margin-top: 20px;">
+    <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=600" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));">
+  </div>
+  
+  <div style="z-index: 2; margin-top: 20px; display: flex; gap: 30px;">
+    <div style="text-align: center;">
+      <div style="font-size: 12px; color: #aaa;">WATER RESISTANT</div>
+      <div style="font-size: 16px; font-weight: bold; color: #333;">50M</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size: 12px; color: #aaa;">SWISS MOVEMENT</div>
+      <div style="font-size: 16px; font-weight: bold; color: #333;">QUARTZ</div>
+    </div>
+  </div>
+</div>
+`
+
+const defaultShareHtml = `
+<div class="share-pic" style="width: 1000px; height: 800px; background: #fff; display: flex; flex-direction: column; border: 1px solid #eee; font-family: 'PingFang SC', sans-serif; overflow: hidden; position: relative;">
+  <!-- Main image area -->
+  <div style="flex: 1; position: relative; background: #fbfbfb;">
+    <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1000" style="width: 100%; height: 100%; object-fit: cover;">
+    <div style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.7); color: #fff; padding: 10px 20px; border-radius: 4px; font-size: 24px;">精品好物推荐</div>
+  </div>
+  
+  <!-- Content area -->
+  <div style="height: 240px; padding: 40px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+    <div style="flex: 1;">
+      <h2 style="font-size: 40px; color: #333; margin: 0 0 10px;">智能极简手表</h2>
+      <p style="font-size: 24px; color: #999; margin: 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">重新定义您的时间，极简美学，不凡品味</p>
+    </div>
+    <div style="width: 140px; height: 140px; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-left: 30px;">
+       <div style="text-align: center; color: #999;">
+         <div style="font-size: 12px;">扫码查看</div>
+         <div style="font-size: 40px;">QR</div>
+       </div>
+    </div>
+  </div>
+</div>
 `
 
 const currentProject = ref({
   id: Date.now(),
-  name: '新项目',
+  name: '旗舰新品项目',
+  productTitle: '智能极简手表',
   html: defaultHtml,
   css: defaultCss,
+  bannerHtml: defaultBannerHtml,
+  bannerCss: '',
+  description: '这是一款融合了北欧极简美学与精准工艺的智能手表。它采用 316L 精钢表壳，蓝宝石镜面，搭载瑞士进口机芯。不仅是一款计时工具，更是你生活品味的象征。支持 50 米生活防水，佩戴舒适，适配多种场合。',
+  shareHtml: defaultShareHtml,
+  shareCss: '',
+  shareText: '【新品首发】被这块表惊艳到了！极简主义巅峰之作，懂行的朋友快来看看 🔗 点击进入详情',
   updatedAt: new Date().toLocaleString()
 })
 
@@ -247,7 +433,12 @@ const elementSettings = ref({
   isBold: false,
   decorations: [],
   textShadow: '',
-  backgroundColor: ''
+  backgroundColor: '',
+  left: 0,
+  top: 0,
+  rotate: 0,
+  scale: 1,
+  isAbsolute: false
 })
 
 const sectionSettings = ref({
@@ -255,10 +446,121 @@ const sectionSettings = ref({
   bgSize: 100,
   bgPosY: 50,
   height: 400,
+  backgroundColor: '',
   highlight: false
 })
 
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0, left: 0, top: 0 })
+
+const handlePreviewMouseDown = (e) => {
+  // Skip if clicking on capture button - it has its own special handler
+  if (e.target.closest('.section-capture-btn')) return
+  
+  const textEl = e.target.closest('h1, h2, h3, p, span, .badge, div:not(.section):not(.detail-page):not(#preview-content):not(.section-capture-btn)')
+  if (textEl && textEl.id !== 'preview-content' && !textEl.classList.contains('section') && !textEl.classList.contains('section-capture-btn')) {
+    editMode.value = 'element'
+    targetElement.value = textEl
+    loadElementSettings(textEl)
+    
+    if (!elementSettings.value.isAbsolute) {
+      // Calculate position BEFORE switching to absolute
+      const section = textEl.closest('.section')
+      const secRect = section.getBoundingClientRect()
+      const elRect = textEl.getBoundingClientRect()
+      
+      // Store original dimensions
+      const originalWidth = textEl.offsetWidth
+      const originalHeight = textEl.offsetHeight
+      
+      // Create placeholder to maintain layout
+      const placeholder = document.createElement('div')
+      placeholder.className = 'element-placeholder'
+      placeholder.style.cssText = `
+        width: ${originalWidth}px;
+        height: ${originalHeight}px;
+        visibility: hidden;
+        pointer-events: none;
+      `
+      placeholder.dataset.placeholderFor = textEl.dataset.elementId || Date.now()
+      textEl.dataset.elementId = placeholder.dataset.placeholderFor
+      textEl.parentNode.insertBefore(placeholder, textEl.nextSibling)
+      
+      // Now switch to absolute
+      elementSettings.value.isAbsolute = true
+      elementSettings.value.left = elRect.left - secRect.left
+      elementSettings.value.top = elRect.top - secRect.top
+    }
+
+    isDragging.value = true
+    dragStart.value = {
+      x: e.clientX,
+      y: e.clientY,
+      left: elementSettings.value.left,
+      top: elementSettings.value.top
+    }
+
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    
+    e.preventDefault()
+    isEditorOpen.value = true
+  }
+}
+
+const handleGlobalMouseMove = (e) => {
+  if (!isDragging.value || !targetElement.value) return
+  
+  const dx = e.clientX - dragStart.value.x
+  const dy = e.clientY - dragStart.value.y
+  
+  let newLeft = dragStart.value.left + dx
+  let newTop = dragStart.value.top + dy
+  
+  // Get section and element dimensions for boundary clamping
+  const section = targetElement.value.closest('.section')
+  if (section) {
+    const sectionWidth = section.offsetWidth
+    const sectionHeight = section.offsetHeight
+    const elWidth = targetElement.value.offsetWidth
+    const elHeight = targetElement.value.offsetHeight
+    
+    // Clamp to section bounds
+    newLeft = Math.max(0, Math.min(newLeft, sectionWidth - elWidth))
+    newTop = Math.max(0, Math.min(newTop, sectionHeight - elHeight))
+  }
+  
+  elementSettings.value.left = newLeft
+  elementSettings.value.top = newTop
+}
+
+const handleGlobalMouseUp = () => {
+  if (isDragging.value) {
+    // Sync current DOM state to project HTML
+    const previewDiv = document.getElementById('preview-content')
+    if (previewDiv) {
+      // Clone and clean up preview-only elements
+      const clone = previewDiv.cloneNode(true)
+      clone.querySelectorAll('.section-editing').forEach(el => el.classList.remove('section-editing'))
+      clone.querySelectorAll('.section-capture-btn').forEach(btn => btn.remove())
+      clone.querySelectorAll('.element-placeholder').forEach(ph => ph.remove())
+      
+      // Update project HTML with new state
+      currentProject.value.html = clone.innerHTML
+      
+      // Push the NEW state (after drag) to history
+      // This allows undo to go back to this state
+      pushSnapshot({ html: currentProject.value.html, css: currentProject.value.css })
+    }
+  }
+  isDragging.value = false
+  window.removeEventListener('mousemove', handleGlobalMouseMove)
+  window.removeEventListener('mouseup', handleGlobalMouseUp)
+}
+
 const handlePreviewClick = (e) => {
+  // Check if it was a drag or a simple click
+  if (isDragging.value) return
   // Check if click on section-capture-btn
   if (e.target.closest('.section-capture-btn')) return
 
@@ -292,8 +594,31 @@ const loadElementSettings = (el) => {
     isBold: computed.fontWeight === 'bold' || parseInt(computed.fontWeight) >= 700,
     decorations: computed.textDecoration.split(' ').filter(d => ['underline', 'line-through'].includes(d)),
     textShadow: computed.textShadow === 'none' ? '' : computed.textShadow,
-    backgroundColor: rgbToHex(computed.backgroundColor)
+    backgroundColor: rgbToHex(computed.backgroundColor),
+    left: parseInt(computed.left) || 0,
+    top: parseInt(computed.top) || 0,
+    rotate: getRotationDegrees(computed.transform),
+    scale: getScaleFactor(computed.transform),
+    isAbsolute: computed.position === 'absolute'
   }
+}
+
+const getRotationDegrees = (matrix) => {
+  if (!matrix || matrix === 'none') return 0
+  const values = matrix.split('(')[1].split(')')[0].split(',')
+  const a = values[0]
+  const b = values[1]
+  const angle = Math.round(Math.atan2(b, a) * (180 / Math.PI))
+  return angle
+}
+
+const getScaleFactor = (matrix) => {
+  if (!matrix || matrix === 'none') return 1
+  const values = matrix.split('(')[1].split(')')[0].split(',')
+  const a = values[0]
+  const b = values[1]
+  const scale = Math.sqrt(a * a + b * b)
+  return parseFloat(scale.toFixed(2))
 }
 
 const loadSectionSettings = (el) => {
@@ -307,6 +632,7 @@ const loadSectionSettings = (el) => {
     bgSize: bgSize === 'cover' ? 100 : (parseInt(bgSize) || 100),
     bgPosY: parseInt(bgPos[1]) || 50,
     height: el.offsetHeight,
+    backgroundColor: rgbToHex(computed.backgroundColor),
     highlight: true
   }
 }
@@ -381,6 +707,30 @@ watch(elementSettings, (val) => {
   el.style.textDecoration = val.decorations.join(' ')
   el.style.textShadow = val.textShadow
   el.style.backgroundColor = val.backgroundColor
+  
+  if (val.isAbsolute) {
+    el.style.position = 'absolute'
+    el.style.left = `${val.left}px`
+    el.style.top = `${val.top}px`
+    el.style.margin = '0'
+    // Preserve width and prevent text wrapping
+    if (!el.dataset.originalWidth) {
+      el.dataset.originalWidth = el.offsetWidth
+    }
+    el.style.minWidth = `${el.dataset.originalWidth}px`
+    el.style.whiteSpace = 'nowrap'
+  } else {
+    el.style.position = ''
+    el.style.left = ''
+    el.style.top = ''
+    el.style.margin = ''
+    el.style.width = ''
+    el.style.minWidth = ''
+    el.style.whiteSpace = ''
+    delete el.dataset.originalWidth
+  }
+
+  el.style.transform = `rotate(${val.rotate}deg) scale(${val.scale})`
 }, { deep: true })
 
 watch(sectionSettings, (val) => {
@@ -391,6 +741,7 @@ watch(sectionSettings, (val) => {
   el.style.backgroundSize = `${val.bgSize}% auto`
   el.style.backgroundPosition = `center ${val.bgPosY}%`
   el.style.height = `${val.height}px`
+  el.style.backgroundColor = val.backgroundColor || 'transparent'
   el.style.backgroundRepeat = 'no-repeat'
   
   if (val.highlight) {
@@ -412,16 +763,93 @@ const applyChangesToProject = () => {
   const captureBtns = previewDiv.querySelectorAll('.section-capture-btn')
   captureBtns.forEach(btn => btn.remove())
   
+  // Push to history before updating
+  pushSnapshot({ html: currentProject.value.html, css: currentProject.value.css })
+
   // Update the project HTML
   currentProject.value.html = previewDiv.innerHTML
   isEditorOpen.value = false
   ElMessage.success('已同步到源码')
 }
 
+// Quick Alignment Function
+const quickAlign = (alignment) => {
+  const el = targetElement.value
+  if (!el || !elementSettings.value.isAbsolute) return
+
+  const elWidth = el.offsetWidth
+  
+  switch (alignment) {
+    case 'left':
+      elementSettings.value.left = 0
+      break
+    case 'center':
+      elementSettings.value.left = Math.round((SECTION_WIDTH - elWidth) / 2)
+      break
+    case 'right':
+      elementSettings.value.left = SECTION_WIDTH - elWidth
+      break
+  }
+}
+
+// Keyboard Shortcuts Handler
+const handleKeyboardShortcuts = (e) => {
+  // Ctrl+Z = Undo, Ctrl+Shift+Z or Ctrl+Y = Redo
+  if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault()
+    if (e.shiftKey) {
+      // Redo (Ctrl+Shift+Z)
+      const snapshot = redo()
+      console.log('[Redo] snapshot:', snapshot, 'canRedo:', canRedo.value)
+      if (snapshot) {
+        currentProject.value.html = snapshot.html
+        currentProject.value.css = snapshot.css
+        ElMessage.info('重做成功')
+      } else {
+        ElMessage.warning('没有可重做的操作')
+      }
+    } else {
+      // Undo (Ctrl+Z)
+      const snapshot = undo()
+      console.log('[Undo] snapshot:', snapshot, 'canUndo:', canUndo.value)
+      if (snapshot) {
+        currentProject.value.html = snapshot.html
+        currentProject.value.css = snapshot.css
+        ElMessage.info('撤销成功')
+      } else {
+        ElMessage.warning('没有可撤销的操作')
+      }
+    }
+  }
+  // Ctrl+Y = Redo (alternative)
+  if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+    e.preventDefault()
+    const snapshot = redo()
+    if (snapshot) {
+      currentProject.value.html = snapshot.html
+      currentProject.value.css = snapshot.css
+      ElMessage.info('重做成功')
+    } else {
+      ElMessage.warning('没有可重做的操作')
+    }
+  }
+}
+
 const renderedHTML = computed(() => {
-  // Inject a capture button into each section for the preview
-  const rawHtml = currentProject.value.html
-  if (activeTab.value !== 'preview') return rawHtml
+  let rawHtml = currentProject.value.html
+  
+  // Resolve relative image paths for preview
+  if (currentProject.value.folderName) {
+    const baseUrl = `http://localhost:3002/product_details/${currentProject.value.folderName}/`
+    // Match src="images/..." or background-image: url('images/...')
+    rawHtml = rawHtml.replace(/(src=["'])(images\/)/g, `$1${baseUrl}$2`)
+    rawHtml = rawHtml.replace(/(url\(["']?)(images\/)/g, `$1${baseUrl}$2`)
+  }
+
+  if (activeTab.value !== 'detail' || subTabDetail.value !== 'preview') return rawHtml
+
+  // Strip newlines and extra spaces between tags to avoid whitespace nodes causing gaps
+  rawHtml = rawHtml.replace(/>\s+</g, '><')
 
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = rawHtml
@@ -452,62 +880,51 @@ const renderedHTML = computed(() => {
 })
 
 // Persistence
-const loadProjects = () => {
-  // Clear existing to avoid duplicates if re-scanning
-  projects.value = []
-  // 1. Load from localStorage first (for user edits and new projects)
-  const saved = localStorage.getItem('detail_generator_projects')
-  if (saved) {
-    projects.value = JSON.parse(saved)
-  }
-
-  // 2. Load from local filesystem (using Vite glob)
-  // We use eager: true to get the content directly if needed, or just the paths
-  const htmlFiles = import.meta.glob('../product_details/**/index.html', { query: '?raw', import: 'default', eager: true })
-  const cssFiles = import.meta.glob('../product_details/**/style.css', { query: '?raw', import: 'default', eager: true })
-
-  Object.entries(htmlFiles).forEach(([path, html]) => {
-    // Extract folder name: ../product_details/1_legend/index.html -> 1_legend
-    const match = path.match(/product_details\/(.+)\/index\.html/)
-    if (match) {
-      const folderName = match[1]
-      const cssPath = path.replace('index.html', 'style.css')
-      const css = cssFiles[cssPath] || ''
+const loadProjects = async () => {
+  try {
+    const response = await fetch('http://localhost:3002/api/projects')
+    if (response.ok) {
+      const serverProjects = await response.json()
+      projects.value = serverProjects.map(sp => ({
+        ...sp,
+        id: sp.id || 'local_' + sp.folderName,
+        isLocal: true
+      }))
       
-      // Check if project already exists (don't overwrite localStorage edits if any)
-      const existing = projects.value.find(p => p.folderName === folderName)
-      if (!existing) {
-        projects.value.push({
-          id: 'local_' + folderName,
-          folderName: folderName,
-          name: folderName,
-          html: html,
-          css: css,
-          updatedAt: '本地文件',
-          isLocal: true
-        })
+      // If no project selected, or previously selected project no longer exists
+      if (!currentProjectId.value && projects.value.length > 0) {
+        selectProject(projects.value[0])
+      } else if (currentProjectId.value) {
+        const found = projects.value.find(p => p.id === currentProjectId.value)
+        if (found) selectProject(found)
       }
     }
-  })
-}
-
-const saveToLocal = () => {
-  localStorage.setItem('detail_generator_projects', JSON.stringify(projects.value))
+  } catch (err) {
+    console.error('Failed to load server projects:', err)
+  }
 }
 
 const createNewProject = () => {
   currentProject.value = {
     id: Date.now(),
     name: '未命名项目 ' + (projects.value.length + 1),
+    productTitle: '',
     html: defaultHtml,
     css: defaultCss,
+    bannerHtml: defaultBannerHtml,
+    bannerCss: '',
+    description: '此处输入产品描述...',
+    shareHtml: defaultShareHtml,
+    shareCss: '',
+    shareText: '此处输入分享语...',
     updatedAt: new Date().toLocaleString()
   }
   currentProjectId.value = currentProject.value.id
-  activeTab.value = 'html'
+  activeTab.value = 'marketing' // Default to marketing to see new features
+  subTabMarketing.value = 'carousel'
 }
 
-const saveProject = () => {
+const saveProjectInMemory = () => {
   currentProject.value.updatedAt = new Date().toLocaleString()
   const index = projects.value.findIndex(p => p.id === currentProject.value.id)
   if (index !== -1) {
@@ -515,8 +932,11 @@ const saveProject = () => {
   } else {
     projects.value.push({ ...currentProject.value })
   }
-  saveToLocal()
-  ElMessage.success('代码已暂存到浏览器')
+}
+
+const saveProject = () => {
+  saveProjectInMemory()
+  ElMessage.success('代码已暂存（刷新浏览器将丢失）')
 }
 
 const saveToPhysicalFile = async () => {
@@ -537,13 +957,19 @@ const saveToPhysicalFile = async () => {
       body: JSON.stringify({
         folderName: currentProject.value.folderName,
         html: currentProject.value.html,
-        css: currentProject.value.css
+        css: currentProject.value.css,
+        bannerHtml: currentProject.value.bannerHtml,
+        bannerCss: currentProject.value.bannerCss,
+        description: currentProject.value.description,
+        shareHtml: currentProject.value.shareHtml,
+        shareCss: currentProject.value.shareCss,
+        shareText: currentProject.value.shareText
       })
     })
     
     if (response.ok) {
-      ElMessage.success('物理文件已同步更新！')
-      saveProject() // Also update localStorage
+      ElMessage.success('物理文件同步保存成功！')
+      await loadProjects() // Refresh side-bar
     } else {
       throw new Error('Save failed')
     }
@@ -556,15 +982,44 @@ const saveToPhysicalFile = async () => {
 const selectProject = (proj) => {
   currentProject.value = { ...proj }
   currentProjectId.value = proj.id
+  
+  // Push initial snapshot for undo/redo
+  pushSnapshot({ html: proj.html, css: proj.css })
 }
 
 const deleteProject = (id) => {
-  ElMessageBox.confirm('确定要删除这个项目吗？', '提示', { type: 'warning' })
-    .then(() => {
-      projects.value = projects.value.filter(p => p.id !== id)
-      saveToLocal()
-      if (currentProject.value.id === id) {
-        createNewProject()
+  const proj = projects.value.find(p => p.id === id)
+  const displayName = proj ? proj.name : '该项目'
+  
+  ElMessageBox.confirm(`确定要彻底删除“${displayName}”及其对应的物理文件夹吗？`, '警告', { 
+    type: 'warning',
+    confirmButtonText: '确定删除',
+    cancelButtonText: '取消',
+    confirmButtonClass: 'el-button--danger'
+  })
+    .then(async () => {
+      if (proj && proj.folderName) {
+        try {
+          const response = await fetch(`http://localhost:3002/api/delete?folderName=${proj.folderName}`, {
+            method: 'DELETE'
+          })
+          if (response.ok) {
+            ElMessage.success('项目已物理删除')
+            loadProjects()
+            if (currentProjectId.value === id) {
+              createNewProject()
+            }
+          } else {
+            ElMessage.error('物理删除失败')
+          }
+        } catch (err) {
+          ElMessage.error('无法连接服务器进行删除')
+        }
+      } else {
+        // Just remove from memory if it hasn't been saved to disk yet
+        projects.value = projects.value.filter(p => p.id !== id)
+        if (currentProjectId.value === id) createNewProject()
+        ElMessage.success('已从列表中移除')
       }
     })
 }
@@ -594,8 +1049,10 @@ const exportCode = () => {
 }
 
 const exportImage = async () => {
-  activeTab.value = 'preview'
+  activeTab.value = 'detail'
+  subTabDetail.value = 'preview'
   await nextTick()
+  await new Promise(r => setTimeout(r, 500)) // ensure images load
   
   const element = document.getElementById('preview-content')
   if (!element) return
@@ -625,6 +1082,95 @@ const exportImage = async () => {
   }
 }
 
+const exportBannerImage = async () => {
+  activeTab.value = 'marketing'
+  subTabMarketing.value = 'carousel'
+  await nextTick()
+  await new Promise(r => setTimeout(r, 300))
+  
+  const element = document.getElementById('banner-preview')
+  if (!element) return
+  ElMessage.info('正在生成轮播图...')
+  try {
+    const canvas = await html2canvas(element, {
+      width: 800,
+      height: 800,
+      useCORS: true,
+      scale: 2,
+    })
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    const link = document.createElement('a')
+    link.download = `${currentProject.value.name}_轮播图.jpg`
+    link.href = dataUrl
+    link.click()
+    ElMessage.success('轮播图已导出')
+  } catch (error) {
+    ElMessage.error('轮播图生成失败')
+  }
+}
+
+const syncFromDetail = () => {
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = currentProject.value.html
+  
+  // 1. Extract Title (first h1 or h2)
+  const titleEl = tempDiv.querySelector('h1, h2')
+  if (titleEl) {
+    currentProject.value.productTitle = titleEl.innerText.trim()
+  }
+  
+  // 2. Extract Description (all P tags)
+  const pTags = Array.from(tempDiv.querySelectorAll('p'))
+    .map(p => p.innerText.trim())
+    .filter(t => t.length > 5 && !t.includes('Section'))
+    .slice(0, 5)
+  if (pTags.length > 0) {
+    currentProject.value.description = pTags.join('\n')
+    currentProject.value.shareText = `【新品推荐】${currentProject.value.productTitle}：${pTags[0].substring(0, 30)}... 🔗 点击查看详情`
+  }
+  
+  ElMessage.success('已从详情页智能提取文案')
+}
+
+const exportShareImage = async () => {
+  activeTab.value = 'marketing'
+  subTabMarketing.value = 'share_img'
+  await nextTick()
+  await new Promise(r => setTimeout(r, 300))
+
+  const element = document.getElementById('share-preview')
+  if (!element) return
+  ElMessage.info('正在生成分享图...')
+  try {
+    const canvas = await html2canvas(element, {
+      width: 1000,
+      height: 800,
+      useCORS: true,
+      scale: 1.5,
+    })
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+    const link = document.createElement('a')
+    link.download = `${currentProject.value.name}_分享图.jpg`
+    link.href = dataUrl
+    link.click()
+    ElMessage.success('分享图已导出')
+  } catch (error) {
+    ElMessage.error('分享图生成失败')
+  }
+}
+
+const copyToClipboard = (text) => {
+  if (!text) {
+    ElMessage.warning('内容为空')
+    return
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success('已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.error('复制失败')
+  })
+}
+
 const captureElement = async (element, filename) => {
   const canvas = await html2canvas(element, {
     width: 1000,
@@ -640,8 +1186,10 @@ const captureElement = async (element, filename) => {
 }
 
 const exportAllSections = async () => {
-  activeTab.value = 'preview'
+  activeTab.value = 'detail'
+  subTabDetail.value = 'preview'
   await nextTick()
+  await new Promise(r => setTimeout(r, 500))
   
   const sections = document.querySelectorAll('#preview-content .section')
   if (sections.length === 0) {
@@ -673,8 +1221,13 @@ const exportAllSections = async () => {
 
 // Global click handler for individual section capture
 onMounted(() => {
+  // Section capture click handler
   window.addEventListener('click', async (e) => {
     if (e.target.closest('.section-capture-btn')) {
+      // Prevent event bubbling and duplicate handling
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      
       const btn = e.target.closest('.section-capture-btn')
       const section = btn.parentElement
       
@@ -690,18 +1243,23 @@ onMounted(() => {
       }
       btn.style.opacity = '1'
     }
-  })
-})
+  }, { capture: true }) // Use capture phase to intercept early
 
-import { nextTick } from 'vue'
+  // Keyboard shortcut listener (Ctrl+Z, Ctrl+Shift+Z)
+  window.addEventListener('keydown', handleKeyboardShortcuts)
 
-onMounted(() => {
+  // Load projects on mount
   loadProjects()
   if (projects.value.length > 0) {
     selectProject(projects.value[0])
   } else {
     createNewProject()
   }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcuts)
 })
 </script>
 
@@ -800,6 +1358,35 @@ onMounted(() => {
   height: 100%;
 }
 
+.marketing-split {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+.marketing-editor {
+  flex: 1;
+  max-width: 500px;
+}
+
+.marketing-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f0f2f5;
+  padding: 20px;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.preview-box {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
 .code-editor :deep(.el-textarea__inner) {
   font-family: 'Fira Code', 'Monaco', monospace;
   font-size: 14px;
@@ -821,6 +1408,29 @@ onMounted(() => {
   background-color: #fff;
   box-shadow: 0 0 20px rgba(0,0,0,0.1);
   min-height: 1000px;
+}
+
+/* Aggressive Gap Killer */
+:deep(.detail-page) {
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  font-size: 0; /* Kill inline-block whitespace */
+}
+
+:deep(.section) {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  font-size: 16px; /* Reset font size for content */
+}
+
+:deep(.section h1), :deep(.section h2), :deep(.section h3), :deep(.section p), :deep(.section span) {
+  cursor: move;
+  user-select: none;
 }
 
 :deep(.section-editing) {
