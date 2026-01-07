@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML to JSON 转换器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', sans-serif; background: #f5f5f5; padding: 40px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .panel { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .panel h2 { font-size: 16px; color: #666; margin-bottom: 16px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .btn-primary { background: #6366f1; color: #fff; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-success { background: #10b981; color: #fff; }
+        textarea { width: 100%; height: 300px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Monaco', monospace; font-size: 12px; resize: vertical; }
+        .actions { display: flex; gap: 12px; margin-top: 16px; }
+        .info { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 20px; color: #0369a1; }
+        select, input { padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+        .form-row { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+        .form-row label { width: 100px; color: #666; }
+        .form-row select, .form-row input { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 HTML to JSON 转换器</h1>
+        
+        <div class="info">
+            <strong>使用说明：</strong>
+            1. 选择产品文件夹 → 2. 加载 HTML → 3. 转换为 JSON → 4. 保存到编辑器
+        </div>
+
+        <div class="panel">
+            <h2>📂 选择产品</h2>
+            <div class="form-row">
+                <label>产品文件夹</label>
+                <select id="productSelect">
+                    <option value="fabrang-wine">fabrang-wine (法布朗红酒)</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadProductHtml()">加载 HTML</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>📄 HTML 源码</h2>
+            <textarea id="htmlSource" placeholder="HTML 源码会显示在这里..."></textarea>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="convertToJson()">🔄 转换为 JSON</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>📋 JSON 输出</h2>
+            <textarea id="jsonOutput" placeholder="转换后的 JSON 会显示在这里..."></textarea>
+            <div class="actions">
+                <button class="btn btn-success" onclick="copyJson()">📋 复制 JSON</button>
+                <button class="btn btn-primary" onclick="openInEditor()">🎨 在编辑器中打开</button>
+                <button class="btn btn-primary" onclick="saveJsonFile()">💾 保存为 JSON 文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadProductHtml() {
+            const product = document.getElementById('productSelect').value;
+            try {
+                const response = await fetch(`details/${product}/index.html`);
+                const html = await response.text();
+                document.getElementById('htmlSource').value = html;
+                alert('✅ HTML 加载成功！');
+            } catch (err) {
+                alert('❌ 加载失败: ' + err.message);
+            }
+        }
+
+        function convertToJson() {
+            const html = document.getElementById('htmlSource').value;
+            if (!html) {
+                alert('请先加载 HTML');
+                return;
+            }
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const detailPage = doc.querySelector('.detail-page') || doc.body;
+
+            const layers = [];
+            let yOffset = 0;
+
+            // 解析每个 section
+            detailPage.querySelectorAll('.section').forEach((section, sIndex) => {
+                const sectionName = section.dataset.section || `section-${sIndex}`;
+                const sectionHeight = estimateSectionHeight(section);
+
+                // 添加 section 背景
+                layers.push({
+                    id: `${sectionName}-bg`,
+                    type: 'rect',
+                    name: `${sectionName} 背景`,
+                    x: 0,
+                    y: yOffset,
+                    width: 1000,
+                    height: sectionHeight,
+                    fill: getSectionBgColor(section)
+                });
+
+                // 解析文字元素
+                section.querySelectorAll('[data-editable]').forEach((el, eIndex) => {
+                    const editKey = el.dataset.editable;
+                    const text = el.textContent.trim();
+                    const fontSize = getFontSize(el);
+                    const color = getTextColor(el);
+
+                    layers.push({
+                        id: editKey,
+                        type: 'text',
+                        name: editKey,
+                        content: text,
+                        x: 500, // 居中
+                        y: yOffset + 50 + eIndex * 60,
+                        fontSize: fontSize,
+                        fill: color,
+                        originX: 'center',
+                        fontFamily: 'PingFang SC'
+                    });
+                });
+
+                // 解析图片插槽
+                section.querySelectorAll('[data-slot]').forEach((slot) => {
+                    const slotId = slot.dataset.slot;
+                    const img = slot.querySelector('img');
+                    layers.push({
+                        id: slotId,
+                        type: 'image',
+                        name: slotId,
+                        src: img ? img.src : '',
+                        x: 300,
+                        y: yOffset + 50,
+                        width: 400,
+                        height: 300
+                    });
+                });
+
+                yOffset += sectionHeight;
+            });
+
+            const result = {
+                version: "1.0",
+                name: document.getElementById('productSelect').value,
+                width: 1000,
+                height: yOffset,
+                background: "#1a1a2e",
+                layers: layers
+            };
+
+            document.getElementById('jsonOutput').value = JSON.stringify(result, null, 2);
+            alert('✅ 转换完成！');
+        }
+
+        function estimateSectionHeight(section) {
+            const sectionName = section.dataset.section;
+            const heights = {
+                'hero': 700,
+                'intro': 300,
+                'features': 250,
+                'origin': 450,
+                'pairing': 250,
+                'footer': 150
+            };
+            return heights[sectionName] || 300;
+        }
+
+        function getSectionBgColor(section) {
+            const sectionName = section.dataset.section;
+            const colors = {
+                'hero': '#1a1a2e',
+                'intro': '#1a1a2e',
+                'features': '#16213e',
+                'origin': '#1a1a2e',
+                'pairing': '#0f0f1a',
+                'footer': '#0a0a14'
+            };
+            return colors[sectionName] || '#1a1a2e';
+        }
+
+        function getFontSize(el) {
+            const tag = el.tagName.toLowerCase();
+            const sizes = { 'h1': 48, 'h2': 28, 'h3': 22, 'p': 16 };
+            return sizes[tag] || 16;
+        }
+
+        function getTextColor(el) {
+            const tag = el.tagName.toLowerCase();
+            if (tag === 'h1') return '#ffffff';
+            if (tag === 'h2' || tag === 'h3') return '#d4af37';
+            return '#cccccc';
+        }
+
+        function copyJson() {
+            const textarea = document.getElementById('jsonOutput');
+            textarea.select();
+            document.execCommand('copy');
+            alert('✅ JSON 已复制到剪贴板');
+        }
+
+        function openInEditor() {
+            const json = document.getElementById('jsonOutput').value;
+            if (!json) {
+                alert('请先转换 JSON');
+                return;
+            }
+            localStorage.setItem('editorProject', json);
+            window.open('editor.html', '_blank');
+        }
+
+        function saveJsonFile() {
+            const json = document.getElementById('jsonOutput').value;
+            const product = document.getElementById('productSelect').value;
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${product}.json`;
+            a.click();
+        }
+    </script>
+</body>
+</html>

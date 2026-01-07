@@ -1,8 +1,7 @@
-﻿/* Fabrang Legend Custom Style */
-.detail-page {
+﻿.detail-page {
   background: #fff;
   font-family: 'PingFang SC', 'STHeiti', sans-serif;
-  color: #333;
+  color: #1a1a1a;
 }
 
 .section {
@@ -27,19 +26,24 @@
 .hero .badge-icon {
   width: 50px; margin-bottom: 5px; opacity: 0.8;
 }
+.hero .badge-star {
+  font-size: 32px;
+  color: #c9a26b;
+  margin-bottom: 5px;
+}
 .hero .content-center {
   position: absolute;
   left: 60px;
   bottom: 120px;
 }
 .hero .main-title {
-  font-size: 84px; margin: 0; color: #111; letter-spacing: 2px; font-weight: 800;
+  font-size: 84px; margin: 0; color: #b01a1a; letter-spacing: 2px; font-weight: 800;
 }
 .hero .main-title small {
-  font-size: 28px; color: #aaa; display: block; margin-top: 5px; font-weight: 300; letter-spacing: 8px; text-transform: uppercase;
+  font-size: 28px; color: #444; display: block; margin-top: 5px; font-weight: 300; letter-spacing: 8px; text-transform: uppercase;
 }
 .hero .sub-title {
-  font-size: 32px; color: #444; margin: 30px 0; border-left: 6px solid #c9a26b; padding-left: 20px; font-weight: 500;
+  font-size: 32px; color: #111; margin: 30px 0; border-left: 6px solid #c9a26b; padding-left: 20px; font-weight: 600;
 }
 .hero .highlights {
   display: flex; gap: 20px; margin-top: 40px;
@@ -50,16 +54,20 @@
 
 /* Alcohol */
 .alcohol {
-  display: flex; align-items: center; justify-content: flex-end; padding-right: 80px;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 30px !important;
 }
 .alcohol .float-text {
-  background: rgba(255,255,255,0.95); padding: 50px; border-radius: 4px; max-width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-top: 8px solid #b01a1a;
+  background: rgba(255,255,255,0.7) !important; 
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  padding: 30px !important; border-radius: 4px; max-width: 360px !important; 
+  box-shadow: 0 30px 60px rgba(0,0,0,0.1) !important; border-top: 8px solid #b01a1a;
 }
 .alcohol h2 {
-  font-size: 48px; margin: 0 0 25px; color: #b01a1a; line-height: 1.2;
+  font-size: 48px; margin: 0 0 25px; color: #b01a1a; line-height: 1.2; font-weight: 800;
 }
 .alcohol p {
-  font-size: 20px; color: #666; line-height: 1.8; margin-bottom: 35px;
+  font-size: 22px; color: #333; line-height: 1.8; margin-bottom: 35px; font-weight: 500;
 }
 .alcohol .tag {
   display: inline-block; background: #b01a1a; color: #fff; padding: 12px 30px; font-weight: bold; border-radius: 4px; font-size: 22px;
@@ -73,23 +81,29 @@
   font-size: 44px; margin-bottom: 80px; color: #111; font-weight: 700;
 }
 .origin .grid {
-  display: flex; gap: 40px; width: 900px;
+  display: flex; gap: 20px; width: 920px !important; margin: 0 auto !important;
 }
 .origin .card {
-  flex: 1; background: #fff; padding: 50px; border: 1px solid #eee; transition: transform 0.3s;
+  flex: 1; background: rgba(255,255,255,0.8) !important; 
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 25px !important; border: 1px solid #ddd; transition: transform 0.3s;
 }
-.origin .card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.05); }
+.origin .card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
 .origin h3 {
-  font-size: 28px; margin-bottom: 25px; color: #c9a26b;
+  font-size: 30px; margin-bottom: 25px; color: #b01a1a; font-weight: 700;
 }
 .origin p {
-  color: #777; line-height: 2; font-size: 18px;
+  color: #333; line-height: 2; font-size: 20px; font-weight: 400;
 }
 
 /* Flavor */
 .flavor .flavor-overlay {
-  position: absolute; width: 100%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,1) 35%, rgba(255,255,255,0));
-  padding: 100px; display: flex; flex-direction: column; justify-content: center;
+  position: absolute; width: 100%; height: 100%; 
+  background: linear-gradient(to right, rgba(255,255,255,0.9) 25%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0)) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  padding: 60px !important; display: flex; flex-direction: column; justify-content: center;
 }
 .flavor h2 {
   font-size: 56px; color: #b01a1a; margin-bottom: 40px; font-weight: 800;
@@ -98,28 +112,34 @@
   display: flex; gap: 15px; margin-bottom: 45px;
 }
 .flavor .item {
-  background: #f5f5f5; padding: 12px 25px; border-radius: 30px; font-weight: 600; color: #333; border: 1px solid #ddd;
+  background: #111; padding: 12px 25px; border-radius: 30px; font-weight: 700; color: #fff; border: 1px solid #111;
 }
 .flavor .flavor-p {
-  max-width: 500px; font-size: 22px; color: #444; line-height: 1.8; border-left: 2px solid #b01a1a; padding-left: 20px;
+  max-width: 500px; font-size: 24px; color: #111; line-height: 1.8; border-left: 4px solid #b01a1a; padding-left: 20px; font-weight: 500;
 }
 
 /* Pairing */
 .pairing {
-  display: flex; align-items: center; justify-content: flex-end; padding-right: 80px;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 30px !important;
 }
-.pairing-content { background: rgba(255,255,255,0.9); color: #111; padding: 60px; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 500px; }
-.pairing h2 { font-size: 48px; margin-bottom: 15px; font-weight: 700; }
-.pairing-tag { background: #c9a26b; color: #fff; display: inline-block; padding: 6px 20px; border-radius: 2px; margin-bottom: 40px; font-size: 18px; letter-spacing: 2px; }
+.pairing-content { 
+  background: rgba(255,255,255,0.7) !important; 
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  padding: 30px !important; border-radius: 4px; box-shadow: 0 30px 60px rgba(0,0,0,0.1); width: 380px !important; 
+}
+.pairing h2 { font-size: 48px; margin-bottom: 15px; font-weight: 800; color: #b01a1a; }
+.pairing-tag { background: #111; color: #fff; display: inline-block; padding: 6px 20px; border-radius: 2px; margin-bottom: 40px; font-size: 18px; letter-spacing: 2px; font-weight: 700; }
 .pairing-list { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-.pairing-list li { font-size: 24px; font-weight: 500; color: #333; }
+.pairing-list li { font-size: 24px; font-weight: 700; color: #111; }
 
 /* NFC */
 .nfc { background: #000; color: #fff; display: flex; align-items: center; justify-content: center; gap: 60px; }
 .nfc-icon-wrap { width: 120px; height: 120px; border: 2px dashed #c9a26b; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .nfc-icon-wrap img { width: 60px; }
+.nfc-icon-text { font-size: 32px; font-weight: 800; color: #c9a26b; letter-spacing: 2px; }
 .nfc-text h2 { font-size: 40px; margin-bottom: 15px; color: #c9a26b; }
-.nfc-text p { font-size: 20px; color: #888; max-width: 500px; line-height: 1.6; }
+.nfc-text p { font-size: 22px; color: #ccc; max-width: 500px; line-height: 1.6; font-weight: 300; }
 
 /* Specs */
 .specs-table { width: 100%; border-collapse: collapse; font-size: 20px; }

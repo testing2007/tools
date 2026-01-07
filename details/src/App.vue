@@ -329,7 +329,7 @@
   </el-container>
 
   <!-- Hidden style tag for preview CSS -->
-  <component :is="'style'" v-if="activeTab === 'preview'">
+  <component :is="'style'" v-if="activeTab === 'detail' && subTabDetail === 'preview'">
     {{ currentProject.css }}
   </component>
 </template>
@@ -1437,7 +1437,7 @@ const syncFromDetail = () => {
     .slice(0, 5)
   if (pTags.length > 0) {
     currentProject.value.description = pTags.join('\n')
-    currentProject.value.shareText = `【新品推荐】${currentProject.value.productTitle}：${pTags[0].substring(0, 30)}... 🔗 点击查看详情`
+    currentProject.value.shareText = `${currentProject.value.productTitle}：${pTags[0].substring(0, 30)}`
   }
   
   ElMessage.success('已从详情页智能提取文案')
