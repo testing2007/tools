@@ -118,7 +118,7 @@ trigger: always_on
 
 ### 4.3 图片规范
 
-- 优先使用 Pexels 免费图片
+- 优先AI生成图片，如果生成不满意使用 Pexels 查询获取到免费图片
 - URL 格式：`https://images.pexels.com/photos/{id}/...?auto=compress&cs=tinysrgb&w=600`
 - 图片必须放在 `data-slot` 容器内
 

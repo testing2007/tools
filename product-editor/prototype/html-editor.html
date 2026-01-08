@@ -79,19 +79,52 @@
         .toast.success { background: var(--success); }
 
         .hidden { display: none; }
+
+        /* Pexels 搜索结果 */
+        .pexels-results {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            max-height: 400px; overflow-y: auto; padding: 4px;
+        }
+        .pexels-item {
+            cursor: pointer; border-radius: 8px; overflow: hidden;
+            border: 2px solid transparent; transition: all 0.2s;
+        }
+        .pexels-item:hover { border-color: var(--primary); transform: scale(1.02); }
+        .pexels-item img { width: 100%; height: 100px; object-fit: cover; display: block; }
+
+        /* 图片变换控制面板 */
+        .image-transform-panel {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #fff; border-radius: 12px; padding: 16px 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; z-index: 150;
+            min-width: 400px;
+        }
+        .image-transform-panel.show { display: block; }
+        .transform-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .transform-header h3 { font-size: 14px; color: var(--gray-800); margin: 0; }
+        .transform-row {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+        }
+        .transform-row label { width: 50px; font-size: 13px; color: var(--gray-500); }
+        .transform-row input[type="range"] { flex: 1; }
+        .transform-row span { width: 50px; text-align: right; font-size: 13px; color: var(--gray-800); }
+        .transform-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .transform-actions button { flex: 1; }
     </style>
 </head>
 <body>
     <div class="toolbar">
         <div class="logo">🎨 HTML 编辑器 v2</div>
         <select class="toolbar-select" id="productSelect" onchange="loadProduct(this.value)">
-            <option value="fabrang-wine">🍷 法布朗红酒</option>
             <option value="swan-legend">🦢 法布朗传奇</option>
+            <option value="bordeaux-gold">🏆 波尔多佳酿</option>
+            <option value="medoc-cru">🏰 梅多克中级庄</option>
         </select>
         <button class="toolbar-btn" onclick="window.open('details/' + currentProduct + '/index.html', '_blank')">👁️ 原始预览</button>
         <div class="spacer"></div>
         <span class="status" id="status">📝 点击元素开始编辑</span>
         <button class="toolbar-btn" onclick="resetChanges()">↩️ 重置</button>
+        <button class="toolbar-btn" onclick="showPexelsModal()">🖼️ 搜图</button>
         <button class="toolbar-btn" onclick="exportSingleImage()">📸 导出整页</button>
         <button class="toolbar-btn primary" onclick="exportAllSections()">📥 导出区块</button>
     </div>
@@ -118,6 +151,59 @@
         </div>
     </div>
 
+    <!-- Pexels 搜图模态框 -->
+    <div class="modal-overlay" id="pexelsModal">
+        <div class="modal" style="max-width: 800px;">
+            <h2>🖼️ 搜索免费图片 (Pexels)</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                <input type="text" id="pexelsQuery" class="toolbar-select" style="flex: 1;" placeholder="输入搜索关键词（英文效果更好）" value="red wine">
+                <button class="toolbar-btn primary" onclick="searchPexels()">🔍 搜索</button>
+            </div>
+            <div id="pexelsResults" class="pexels-results">
+                <div style="grid-column: span 4; text-align: center; color: #999; padding: 40px;">输入关键词后点击搜索</div>
+            </div>
+            <div class="modal-actions">
+                <button class="toolbar-btn" onclick="closePexelsModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片变换控制面板 -->
+    <div class="image-transform-panel" id="imageTransformPanel">
+        <div class="transform-header">
+            <h3>🖼️ 图片调整</h3>
+            <button class="toolbar-btn" style="height: 28px; padding: 0 10px; font-size: 12px;" onclick="hideImageTransformPanel()">✕ 关闭</button>
+        </div>
+        <div class="transform-row">
+            <label>缩放</label>
+            <input type="range" id="imgScale" min="0.5" max="3" step="0.05" value="1" oninput="applyImageTransform()">
+            <span id="imgScaleValue">100%</span>
+        </div>
+        <div class="transform-row">
+            <label>旋转</label>
+            <input type="range" id="imgRotate" min="-180" max="180" step="1" value="0" oninput="applyImageTransform()">
+            <span id="imgRotateValue">0°</span>
+        </div>
+        <div class="transform-row">
+            <label>X偏移</label>
+            <input type="range" id="imgPanX" min="-200" max="200" step="1" value="0" oninput="applyImageTransform()">
+            <span id="imgPanXValue">0px</span>
+        </div>
+        <div class="transform-row">
+            <label>Y偏移</label>
+            <input type="range" id="imgPanY" min="-200" max="200" step="1" value="0" oninput="applyImageTransform()">
+            <span id="imgPanYValue">0px</span>
+        </div>
+        <div class="transform-actions">
+            <button class="toolbar-btn" onclick="document.getElementById('imageInput').click()">📷 上传图片</button>
+            <button class="toolbar-btn" onclick="showPexelsModal()">🖼️ 搜图替换</button>
+        </div>
+        <div class="transform-actions">
+            <button class="toolbar-btn" onclick="resetImageTransform()">↩️ 重置变换</button>
+            <button class="toolbar-btn primary" onclick="hideImageTransformPanel()">✓ 确认</button>
+        </div>
+    </div>
+
     <!-- Loading -->
     <div class="loading" id="loading">
         <div class="spinner"></div>
@@ -128,11 +214,14 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        let currentProduct = 'fabrang-wine';
+        let currentProduct = '';
         let currentImageSlot = null;
         let loadedStylesheet = null;
 
-        window.onload = () => loadProduct('fabrang-wine');
+        window.onload = () => {
+            const select = document.getElementById('productSelect');
+            loadProduct(select.options[0].value);
+        };
 
         async function loadProduct(productId) {
             currentProduct = productId;
@@ -206,12 +295,11 @@
                 });
             });
 
-            // 图片可替换
+            // 图片可替换 + 可变换
             document.querySelectorAll('#pageContainer [data-slot]').forEach(slot => {
                 slot.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    currentImageSlot = slot;
-                    document.getElementById('imageModal').classList.add('show');
+                    showImageTransformPanel(slot);
                 });
             });
         }
@@ -325,6 +413,151 @@
             t.className = 'toast show ' + type;
             setTimeout(() => t.className = 'toast', 2500);
         }
+
+        // ========== Pexels API 配置 ==========
+        const PEXELS_API_KEY = '9uofWjsQ44gLmNnHXhjzCynIEoyru1ADJrb2rFucAjNrTZfRhAWsAUvD';
+
+        // ========== Pexels 搜图功能 ==========
+        function showPexelsModal() {
+            document.getElementById('pexelsModal').classList.add('show');
+        }
+
+        function closePexelsModal() {
+            document.getElementById('pexelsModal').classList.remove('show');
+        }
+
+        async function searchPexels() {
+            const query = document.getElementById('pexelsQuery').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('pexelsResults');
+            resultsDiv.innerHTML = '<div style="grid-column: span 4; text-align: center; padding: 40px;">🔍 搜索中...</div>';
+
+            try {
+                const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20&size=small`, {
+                    headers: { Authorization: PEXELS_API_KEY }
+                });
+                const data = await response.json();
+
+                if (data.photos && data.photos.length > 0) {
+                    resultsDiv.innerHTML = data.photos.map(photo => `
+                        <div class="pexels-item" onclick="usePexelsImage('${photo.src.large}')">
+                            <img src="${photo.src.small}" alt="${photo.alt || ''}">
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div style="grid-column: span 4; text-align: center; color: #999; padding: 40px;">未找到图片，请尝试其他关键词</div>';
+                }
+            } catch (err) {
+                console.error('Pexels搜索错误:', err);
+                resultsDiv.innerHTML = '<div style="grid-column: span 4; text-align: center; color: #ef4444; padding: 40px;">搜索失败，请重试</div>';
+            }
+        }
+
+        function usePexelsImage(url) {
+            if (!currentImageSlot) {
+                showToast('⚠️ 请先点击页面中的图片区域选择替换位置');
+                return;
+            }
+            
+            const img = currentImageSlot.querySelector('img');
+            if (img) {
+                img.src = url;
+                img.crossOrigin = 'anonymous';
+                showToast('✅ 图片已替换', 'success');
+            }
+            closePexelsModal();
+        }
+
+        // ========== 图片变换功能 ==========
+        function showImageTransformPanel(slot) {
+            currentImageSlot = slot;
+            const img = slot.querySelector('img');
+            if (!img) return;
+            
+            // 解析当前 transform 值并设置滑块
+            const transform = img.style.transform || '';
+            const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
+            const rotateMatch = transform.match(/rotate\(([-\d.]+)deg\)/);
+            const translateMatch = transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+            
+            document.getElementById('imgScale').value = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+            document.getElementById('imgRotate').value = rotateMatch ? parseFloat(rotateMatch[1]) : 0;
+            document.getElementById('imgPanX').value = translateMatch ? parseFloat(translateMatch[1]) : 0;
+            document.getElementById('imgPanY').value = translateMatch ? parseFloat(translateMatch[2]) : 0;
+            
+            updateTransformDisplay();
+            document.getElementById('imageTransformPanel').classList.add('show');
+            document.getElementById('status').textContent = '🖼️ 调整图片: ' + (slot.dataset.slot || '图片');
+        }
+
+        function hideImageTransformPanel() {
+            document.getElementById('imageTransformPanel').classList.remove('show');
+            document.getElementById('status').textContent = '📝 点击元素开始编辑';
+        }
+
+        function applyImageTransform() {
+            if (!currentImageSlot) return;
+            
+            const img = currentImageSlot.querySelector('img');
+            if (!img) return;
+            
+            const scale = document.getElementById('imgScale').value;
+            const rotate = document.getElementById('imgRotate').value;
+            const panX = document.getElementById('imgPanX').value;
+            const panY = document.getElementById('imgPanY').value;
+            
+            img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale}) rotate(${rotate}deg)`;
+            
+            updateTransformDisplay();
+        }
+
+        function updateTransformDisplay() {
+            document.getElementById('imgScaleValue').textContent = Math.round(document.getElementById('imgScale').value * 100) + '%';
+            document.getElementById('imgRotateValue').textContent = document.getElementById('imgRotate').value + '°';
+            document.getElementById('imgPanXValue').textContent = document.getElementById('imgPanX').value + 'px';
+            document.getElementById('imgPanYValue').textContent = document.getElementById('imgPanY').value + 'px';
+        }
+
+        function resetImageTransform() {
+            if (!currentImageSlot) return;
+            
+            const img = currentImageSlot.querySelector('img');
+            if (img) {
+                img.style.transform = '';
+            }
+            
+            document.getElementById('imgScale').value = 1;
+            document.getElementById('imgRotate').value = 0;
+            document.getElementById('imgPanX').value = 0;
+            document.getElementById('imgPanY').value = 0;
+            updateTransformDisplay();
+            
+            showToast('✅ 变换已重置', 'success');
+        }
+
+        // 关闭模态框时也清理 currentImageSlot（但保留变换面板打开时的状态）
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('show');
+            // 仅当变换面板未显示时才清理 slot
+            if (!document.getElementById('imageTransformPanel').classList.contains('show')) {
+                currentImageSlot = null;
+            }
+        }
+
+        // 点击页面其他地方关闭变换面板
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('imageTransformPanel');
+            const isClickInPanel = panel.contains(e.target);
+            const isClickInSlot = e.target.closest('[data-slot]');
+            
+            if (panel.classList.contains('show') && !isClickInPanel && !isClickInSlot) {
+                hideImageTransformPanel();
+            }
+        });
     </script>
 </body>
 </html>

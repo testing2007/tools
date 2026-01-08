@@ -183,6 +183,7 @@ body {
 }
 
 .highlight-box {
+    margin-top: 5px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
