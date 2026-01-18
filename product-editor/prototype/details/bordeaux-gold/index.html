@@ -1,28 +1,41 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1000">
     <title>法布朗®波尔多佳酿 Château Chênes Laforest - 产品详情页</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="detail-page" id="detailPage">
-        
+
         <!-- 第一屏：首图海报 - 三金荣耀 -->
         <section class="section hero-section" data-section="hero">
-            <div class="gold-rays"></div>
+            <div class="section-header">
+                <h2 class="section-title-gold" data-editable="awards-title">三金加冕 · 荣耀之选</h2>
+                <div class="gold-line"></div>
+            </div>
             <div class="hero-content">
                 <div class="product-image-slot" data-slot="product-main">
-                    <img src="https://images.pexels.com/photos/2702805/pexels-photo-2702805.jpeg?auto=compress&cs=tinysrgb&w=400" alt="法布朗波尔多佳酿">
+                    <img src="./prompts/bordeaux-gold/ref-image/1.jpg" alt="法布朗波尔多佳酿">
                 </div>
                 <div class="hero-text">
                     <div class="medals-row">
-                        <span class="medal" data-editable="medal1">🥇</span>
-                        <span class="medal" data-editable="medal2">🥇</span>
-                        <span class="medal" data-editable="medal3">🥇</span>
+                        <div class="medal-item">
+                            <span class="medal-icon" data-editable="medal1">🥇</span>
+                            <span class="medal-label" data-editable="medal1-label">巴黎金奖</span>
+                        </div>
+                        <div class="medal-item">
+                            <span class="medal-icon" data-editable="medal2">🥇</span>
+                            <span class="medal-label" data-editable="medal2-label">马孔金奖</span>
+                        </div>
+                        <div class="medal-item">
+                            <span class="medal-icon" data-editable="medal3">🥇</span>
+                            <span class="medal-label" data-editable="medal3-label">里昂金奖</span>
+                        </div>
                     </div>
-                    <h1 class="hero-title" data-editable="title">三金加冕 · 荣耀之选</h1>
                     <p class="hero-subtitle-en" data-editable="subtitle-en">TRIPLE GOLD MEDAL</p>
                     <p class="hero-subtitle" data-editable="subtitle">法布朗®波尔多佳酿干红 | 14%vol 醇厚珍藏</p>
                     <div class="hero-tags">
@@ -36,31 +49,39 @@
 
         <!-- 第二屏：三金荣耀 -->
         <section class="section awards-section" data-section="awards">
-            <h2 class="section-title" data-editable="awards-title">国际大赛，金牌大满贯</h2>
+            <div class="section-header">
+                <h2 class="section-title-gold" data-editable="awards-title">国际大赛，金牌大满贯</h2>
+                <div class="gold-line"></div>
+            </div>
             <div class="awards-list">
-                <div class="award-item">
-                    <div class="award-icon" data-editable="award1-icon">🥇</div>
+                <div class="award-card">
+                    <div class="award-medal" data-editable="award1-icon">🥇</div>
                     <div class="award-info">
                         <h3 data-editable="award1-name">巴黎金奖</h3>
-                        <p data-editable="award1-desc">2024 法国巴黎农业大赛<br>Concours Général Agricole Paris</p>
+                        <p data-editable="award1-year">2024</p>
+                        <p class="award-desc" data-editable="award1-desc">法国巴黎农业大赛<br>Concours Général Agricole Paris
+                        </p>
                     </div>
                 </div>
-                <div class="award-item">
-                    <div class="award-icon" data-editable="award2-icon">🥇</div>
+                <div class="award-card">
+                    <div class="award-medal" data-editable="award2-icon">🥇</div>
                     <div class="award-info">
                         <h3 data-editable="award2-name">马孔金奖</h3>
-                        <p data-editable="award2-desc">2024 法国著名产区葡萄酒大赛<br>Concours des Grands Vins de France</p>
+                        <p data-editable="award2-year">2024</p>
+                        <p class="award-desc" data-editable="award2-desc">法国著名产区葡萄酒大赛<br>Concours des Grands Vins de
+                            France</p>
                     </div>
                 </div>
-                <div class="award-item">
-                    <div class="award-icon" data-editable="award3-icon">🥇</div>
+                <div class="award-card">
+                    <div class="award-medal" data-editable="award3-icon">🥇</div>
                     <div class="award-info">
                         <h3 data-editable="award3-name">里昂金奖</h3>
-                        <p data-editable="award3-desc">2023 里昂国际大赛<br>Concours International de Lyon</p>
+                        <p data-editable="award3-year">2023</p>
+                        <p class="award-desc" data-editable="award3-desc">里昂国际大赛<br>Concours International de Lyon</p>
                     </div>
                 </div>
             </div>
-            <p class="awards-quote" data-editable="awards-quote">层层盲品筛选，万里挑一的金奖品质</p>
+            <p class="awards-quote" data-editable="awards-quote">"层层盲品筛选，万里挑一的金奖品质"</p>
         </section>
 
         <!-- 第三屏：14度醇厚 -->
@@ -70,25 +91,34 @@
                 <span class="percent" data-editable="alcohol-percent">%vol</span>
             </div>
             <div class="alcohol-content">
-                <h2 class="section-title" data-editable="alcohol-title">珍藏级酒体，岂止于厚</h2>
-                <p class="section-text" data-editable="alcohol-text">
-                    甄选2022年高成熟度葡萄，成就14度黄金酒精度。<br>
-                    入口饱满有力，结构紧致，比普通波尔多更具分量感。
-                </p>
+                <h2 class="section-title-white" data-editable="alcohol-title">珍藏级酒体，岂止于厚</h2>
                 <div class="highlight-box">
-                    <span class="highlight-icon" data-editable="highlight-icon">🍷</span>
-                    <span class="highlight-text" data-editable="highlight-text">Firm Structure · 结构紧致</span>
+                    <span class="highlight-icon" data-editable="highlight-icon1">🍇</span>
+                    <span class="highlight-text" data-editable="highlight-text1">甄选2022年高成熟度葡萄，成就14度黄金酒精度</span>
+                </div>
+                <div class="highlight-box">
+                    <span class="highlight-icon" data-editable="highlight-icon2">🍷</span>
+                    <span class="highlight-text" data-editable="highlight-text2">入口饱满有力，结构紧致 (Firm Structure)</span>
+                </div>
+                <div class="highlight-box">
+                    <span class="highlight-icon" data-editable="highlight-icon3">⚡</span>
+                    <span class="highlight-text" data-editable="highlight-text3">比普通波尔多更具分量感</span>
                 </div>
             </div>
         </section>
 
         <!-- 第四屏：风土与工艺 -->
         <section class="section terroir-section" data-section="terroir">
-            <div class="terroir-image" data-slot="terroir-bg">
-                <img src="https://images.pexels.com/photos/442116/pexels-photo-442116.jpeg?auto=compress&cs=tinysrgb&w=600" alt="波尔多产区">
+            <div class="section-header">
+                <h2 class="section-title-gold" data-editable="terroir-title">波尔多风土 · 匠心工艺</h2>
+                <div class="gold-line"></div>
             </div>
+
             <div class="terroir-content">
-                <h2 class="section-title" data-editable="terroir-title">波尔多风土 · 匠心工艺</h2>
+                <div class="terroir-image" data-slot="terroir-bg">
+                    <img src="https://images.pexels.com/photos/442116/pexels-photo-442116.jpeg?auto=compress&cs=tinysrgb&w=600"
+                        alt="波尔多产区">
+                </div>
                 <div class="terroir-features">
                     <div class="terroir-feature">
                         <span class="feature-icon" data-editable="terroir-icon1">🌍</span>
@@ -117,11 +147,19 @@
 
         <!-- 第五屏：香气与搭配 -->
         <section class="section pairing-section" data-section="pairing">
-            <h2 class="section-title-center" data-editable="pairing-title">嗅觉盛宴 · 佐餐之选</h2>
+            <div class="section-header">
+                <h2 class="section-title-gold" data-editable="pairing-title">嗅觉盛宴 · 佐餐之选</h2>
+                <div class="gold-line"></div>
+            </div>
             <div class="pairing-content">
                 <div class="aroma-box">
                     <h3 data-editable="aroma-label">香气特征</h3>
                     <p data-editable="aroma-text">浓郁的黑莓与黑醋栗果香<br>伴随樱桃与精致香料气息</p>
+                    <div class="aroma-icons">
+                        <span data-editable="aroma-icon1">🫐</span>
+                        <span data-editable="aroma-icon2">🍒</span>
+                        <span data-editable="aroma-icon3">🌿</span>
+                    </div>
                 </div>
                 <div class="pairing-grid">
                     <div class="pairing-item">
@@ -143,43 +181,93 @@
         <!-- 第六屏：NFC智能交互 -->
         <section class="section nfc-section" data-section="nfc">
             <div class="nfc-content">
-                <h2 class="section-title" data-editable="nfc-title">碰一碰，赢红包，查真伪</h2>
+                <!-- <h2 class="section-title-white" data-editable="nfc-title"></h2> -->
+                <div class="section-header">
+                    <h2 class="section-title-gold" data-editable="nfc-title">碰一碰，赢红包，查真伪</h2>
+                    <div class="gold-line"></div>
+                </div>
                 <p class="nfc-text" data-editable="nfc-text">
                     科技赋能传统佳酿<br>
                     手机开启NFC，靠近瓶身感应区<br>
                     正品溯源一步到位，更有惊喜红包等你拿
                 </p>
                 <div class="nfc-demo">
-                    <span class="nfc-icon" data-editable="nfc-icon1">📱</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon1">📱</span>
+                        <span class="nfc-label" data-editable="nfc-label1">开启NFC</span>
+                    </div>
                     <span class="nfc-arrow" data-editable="nfc-arrow">→</span>
-                    <span class="nfc-icon" data-editable="nfc-icon2">🏷️</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon2">🏷️</span>
+                        <span class="nfc-label" data-editable="nfc-label2">靠近瓶身</span>
+                    </div>
+                    <span class="nfc-arrow" data-editable="nfc-arrow2">→</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon3">🧧</span>
+                        <span class="nfc-label" data-editable="nfc-label3">领取红包</span>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- 第七屏：详细参数 -->
         <section class="section specs-section" data-section="specs">
-            <h2 class="section-title-center" data-editable="specs-title">产品档案</h2>
+            <div class="section-header">
+                <h2 class="section-title-gold" data-editable="specs-title">产品档案</h2>
+                <div class="gold-line"></div>
+            </div>
             <table class="specs-table">
-                <tr><td data-editable="spec-label1">品名</td><td data-editable="spec-value1">法布朗®波尔多佳酿干红葡萄酒</td></tr>
-                <tr><td data-editable="spec-label2">法文名</td><td data-editable="spec-value2">Château Chênes Laforest</td></tr>
-                <tr><td data-editable="spec-label3">产地</td><td data-editable="spec-value3">法国·波尔多 Bordeaux AOP</td></tr>
-                <tr><td data-editable="spec-label4">等级</td><td data-editable="spec-value4">法定产区 AOP · Reserve 珍藏</td></tr>
-                <tr><td data-editable="spec-label5">年份</td><td data-editable="spec-value5">2022年</td></tr>
-                <tr><td data-editable="spec-label6">酒精度</td><td data-editable="spec-value6">14% vol</td></tr>
-                <tr><td data-editable="spec-label7">净含量</td><td data-editable="spec-value7">750ml</td></tr>
-                <tr><td data-editable="spec-label8">陈酿</td><td data-editable="spec-value8">6个月橡木桶</td></tr>
-                <tr><td data-editable="spec-label9">饮用温度</td><td data-editable="spec-value9">16-25℃</td></tr>
-                <tr><td data-editable="spec-label10">醒酒建议</td><td data-editable="spec-value10">开瓶即饮或醒酒20分钟</td></tr>
+                <tr>
+                    <td data-editable="spec-label1">品名</td>
+                    <td data-editable="spec-value1">法布朗®波尔多佳酿干红葡萄酒</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label2">法文名</td>
+                    <td data-editable="spec-value2">Château Chênes Laforest</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label3">产地</td>
+                    <td data-editable="spec-value3">法国·波尔多 Bordeaux AOP</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label4">等级</td>
+                    <td data-editable="spec-value4">法定产区 AOP · Reserve 珍藏</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label5">年份</td>
+                    <td data-editable="spec-value5">2022年</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label6">酒精度</td>
+                    <td data-editable="spec-value6">14% vol</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label7">净含量</td>
+                    <td data-editable="spec-value7">750ml</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label8">陈酿</td>
+                    <td data-editable="spec-value8">6个月橡木桶</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label9">饮用温度</td>
+                    <td data-editable="spec-value9">16-25℃</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label10">醒酒建议</td>
+                    <td data-editable="spec-value10">开瓶即饮或醒酒20分钟</td>
+                </tr>
             </table>
         </section>
 
         <!-- 页脚 -->
         <section class="section footer-section" data-section="footer">
+            <div class="footer-logo">SWAN</div>
             <p class="footer-text" data-editable="footer-text">三金荣耀 · 品质之选</p>
             <p class="footer-brand" data-editable="footer-brand">FABRANG® BORDEAUX</p>
         </section>
 
     </div>
 </body>
+
 </html>

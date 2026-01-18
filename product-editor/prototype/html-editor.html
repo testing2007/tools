@@ -350,7 +350,9 @@
 
                 const link = document.createElement('a');
                 link.download = `${currentProduct}_full.jpg`;
-                link.href = canvas.toDataURL('image/jpeg', 0.92);
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                // link.download = `${currentProduct}_full.png`;
+                // link.href = canvas.toDataURL('image/png');
                 link.click();
 
                 hideLoading();
@@ -388,7 +390,9 @@
 
                     const link = document.createElement('a');
                     link.download = `${currentProduct}_${name}.jpg`;
-                    link.href = canvas.toDataURL('image/jpeg', 0.92);
+                    link.href = canvas.toDataURL('image/jpeg', 0.95);
+                    // link.download = `${currentProduct}_${name}.png`;
+                    // link.href = canvas.toDataURL('image/png');
                     link.click();
 
                     await new Promise(r => setTimeout(r, 600));

@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1000">
     <title>法布朗®传奇 SWAN VUE ROUGE - 产品详情页</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="detail-page" id="detailPage">
-        
+
         <!-- 第一屏：首图海报 -->
         <section class="section hero-section" data-section="hero">
-            <div class="swan-pattern"></div>
+            <div class="section-header">
+                <h2 class="section-title" data-editable="hero-title">法布朗®传奇</h2>
+                <div class="gold-line"></div>
+            </div>
             <div class="hero-content">
                 <div class="product-image-slot" data-slot="product-main">
-                    <img src="https://images.pexels.com/photos/2912108/pexels-photo-2912108.jpeg?auto=compress&cs=tinysrgb&w=400" alt="法布朗传奇">
+                    <img src="./prompts/swan-legend/ref-image/1.jpg" alt="法布朗传奇">
                 </div>
                 <div class="hero-text">
-                    <div class="badge">Sélection Caviste</div>
-                    <h1 class="hero-title" data-editable="title">法布朗®传奇</h1>
+                    <div class="badge" data-editable="badge">Sélection Caviste</div>
                     <p class="hero-subtitle-en" data-editable="subtitle-en">SWAN VUE ROUGE</p>
                     <p class="hero-subtitle" data-editable="subtitle">14度欧盟甄选 · 重新定义日常餐酒</p>
                     <div class="hero-tags">
@@ -37,34 +41,37 @@
                 <span class="percent" data-editable="alcohol-percent">%vol</span>
             </div>
             <div class="alcohol-content">
-                <h2 class="section-title" data-editable="alcohol-title">岂止于柔？更有14度的醇厚。</h2>
+                <h2 class="section-title-dark" data-editable="alcohol-title">岂止于柔？更有14度的醇厚。</h2>
                 <div class="highlight-box">
-                    <span class="highlight-icon" data-editable="highlight-icon">🍇</span>
-                    <span class="highlight-text" data-editable="highlight-text">酿造出超越同级的14%vol黄金酒精度。</span>
+                    <span class="highlight-icon" data-editable="highlight-icon1">🍇</span>
+                    <span class="highlight-text" data-editable="highlight-text1">告别寡淡，优选高成熟度葡萄</span>
                 </div>
                 <div class="highlight-box">
-                    <span class="highlight-icon" data-editable="highlight-icon">🔥</span>
-                    <span class="highlight-text" data-editable="highlight-text">告别寡淡，优选高成熟度葡萄</span>
+                    <span class="highlight-icon" data-editable="highlight-icon2">🍷</span>
+                    <span class="highlight-text" data-editable="highlight-text2">酿造出超越同级的14%vol黄金酒精度</span>
                 </div>
                 <div class="highlight-box">
-                    <span class="highlight-icon" data-editable="highlight-icon">🍷</span>
-                    <span class="highlight-text" data-editable="highlight-text">入口不水，回味有劲</span>
+                    <span class="highlight-icon" data-editable="highlight-icon3">✨</span>
+                    <span class="highlight-text" data-editable="highlight-text3">入口不水，回味有劲</span>
                 </div>
             </div>
         </section>
 
         <!-- 第三屏：甄选产区 -->
         <section class="section origin-section" data-section="origin">
-            <h2 class="section-title-center" data-editable="origin-title">欧盟全境甄选</h2>
-            <p class="section-subtitle" data-editable="origin-subtitle">Selected EU Vineyards</p>
+            <div class="section-header">
+                <h2 class="section-title" data-editable="origin-title">欧盟全境甄选</h2>
+                <p class="section-subtitle" data-editable="origin-subtitle">Selected EU Vineyards</p>
+                <div class="gold-line"></div>
+            </div>
             <div class="origin-cards">
                 <div class="origin-card">
-                    <div class="origin-icon">🌍</div>
+                    <div class="origin-icon" data-editable="origin-icon1">🌍</div>
                     <h3 data-editable="origin-card1-title">多产区调配</h3>
                     <p data-editable="origin-card1-text">汲取不同产区的风土优势<br>取长补短，追求完美平衡</p>
                 </div>
                 <div class="origin-card">
-                    <div class="origin-icon">👨‍🍳</div>
+                    <div class="origin-icon" data-editable="origin-icon2">👨‍🍳</div>
                     <h3 data-editable="origin-card2-title">酒窖大师甄选</h3>
                     <p data-editable="origin-card2-text">Sélection Caviste<br>严苛标准，层层把关</p>
                 </div>
@@ -74,10 +81,14 @@
         <!-- 第四屏：果香炸弹 -->
         <section class="section flavor-section" data-section="flavor">
             <div class="flavor-image" data-slot="flavor-bg">
-                <img src="https://images.pexels.com/photos/1407846/pexels-photo-1407846.jpeg?auto=compress&cs=tinysrgb&w=600" alt="新鲜水果">
+                <!-- <img src="https://images.pexels.com/photos/1407846/pexels-photo-1407846.jpeg?auto=compress&cs=tinysrgb&w=600" alt="新鲜水果"> -->
+                <img src="./prompts/swan-legend/ref-image/4.jpg">
             </div>
             <div class="flavor-content">
-                <h2 class="section-title" data-editable="flavor-title">开瓶即饮，果香四溢</h2>
+                <div class="section-header">
+                    <h2 class="section-title" data-editable="flavor-title">开瓶即饮，果香四溢</h2>
+                    <div class="gold-line"></div>
+                </div>
                 <div class="flavor-notes">
                     <div class="flavor-note">
                         <span class="note-label" data-editable="note-label1">闻香</span>
@@ -94,7 +105,10 @@
 
         <!-- 第五屏：百搭餐桌 -->
         <section class="section pairing-section" data-section="pairing">
-            <h2 class="section-title-center" data-editable="pairing-title">懂生活，更懂搭配</h2>
+            <div class="section-header">
+                <h2 class="section-title" data-editable="pairing-title">懂生活，更懂搭配</h2>
+                <div class="gold-line"></div>
+            </div>
             <div class="pairing-grid">
                 <div class="pairing-item">
                     <span class="pairing-emoji" data-editable="pairing-emoji1">🍕</span>
@@ -119,40 +133,85 @@
         <!-- 第六屏：NFC智能互动 -->
         <section class="section nfc-section" data-section="nfc">
             <div class="nfc-content">
-                <h2 class="section-title" data-editable="nfc-title">智慧防伪，惊喜红包</h2>
+                <div class="section-header">
+                    <h2 class="section-title" data-editable="nfc-title">智慧防伪，惊喜红包</h2>
+                    <div class="gold-line"></div>
+                </div>
                 <p class="nfc-text" data-editable="nfc-text">
                     每一瓶都有专属身份ID<br>
                     手机NFC碰一碰，查验真伪，领取幸运红包
                 </p>
                 <div class="nfc-demo">
-                    <span class="nfc-icon">📱</span>
-                    <span class="nfc-arrow">→</span>
-                    <span class="nfc-icon">🏷️</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon1">📱</span>
+                        <span class="nfc-label" data-editable="nfc-label1">开启NFC</span>
+                    </div>
+                    <span class="nfc-arrow" data-editable="nfc-arrow">→</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon2">🏷️</span>
+                        <span class="nfc-label" data-editable="nfc-label2">靠近瓶身</span>
+                    </div>
+                    <span class="nfc-arrow" data-editable="nfc-arrow2">→</span>
+                    <div class="nfc-step">
+                        <span class="nfc-icon" data-editable="nfc-icon3">🧧</span>
+                        <span class="nfc-label" data-editable="nfc-label3">领取红包</span>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- 第七屏：产品档案 -->
         <section class="section specs-section" data-section="specs">
-            <h2 class="section-title-center" data-editable="specs-title">产品档案</h2>
+            <div class="section-header">
+                <h2 class="section-title" data-editable="specs-title">产品档案</h2>
+                <div class="gold-line"></div>
+            </div>
             <table class="specs-table">
-                <tr><td>品名</td><td data-editable="spec-name">法布朗®传奇干红葡萄酒</td></tr>
-                <tr><td>英文名</td><td data-editable="spec-name-en">SWAN VUE ROUGE</td></tr>
-                <tr><td>原产地</td><td data-editable="spec-origin">欧盟 (Vin de l'Union Européenne)</td></tr>
-                <tr><td>类型</td><td data-editable="spec-type">干型红葡萄酒</td></tr>
-                <tr><td>酒精度</td><td data-editable="spec-alcohol">14% vol</td></tr>
-                <tr><td>净含量</td><td data-editable="spec-volume">750ml</td></tr>
-                <tr><td>保质期</td><td data-editable="spec-shelf">10年</td></tr>
-                <tr><td>侍酒温度</td><td data-editable="spec-temp">16-25℃ (宽温区)</td></tr>
+                <tr>
+                    <td data-editable="spec-label1">品名</td>
+                    <td data-editable="spec-value1">法布朗®传奇干红葡萄酒</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label2">英文名</td>
+                    <td data-editable="spec-value2">SWAN VUE ROUGE</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label3">原产地</td>
+                    <td data-editable="spec-value3">欧盟 (Vin de l'Union Européenne)</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label4">类型</td>
+                    <td data-editable="spec-value4">干型红葡萄酒</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label5">酒精度</td>
+                    <td data-editable="spec-value5">14% vol</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label6">净含量</td>
+                    <td data-editable="spec-value6">750ml</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label7">保质期</td>
+                    <td data-editable="spec-value7">10年</td>
+                </tr>
+                <tr>
+                    <td data-editable="spec-label8">侍酒温度</td>
+                    <td data-editable="spec-value8">16-25℃ (宽温区)</td>
+                </tr>
             </table>
         </section>
 
         <!-- 页脚 -->
         <section class="section footer-section" data-section="footer">
+            <div class="footer-logo">SWAN</div>
             <p class="footer-text" data-editable="footer-text">轻松喝好酒 · 日常新传奇</p>
-            <p class="footer-brand">FABRANG® LEGEND</p>
+            <p class="footer-brand" data-editable="footer-brand">FABRANG® LEGEND</p>
         </section>
 
     </div>
 </body>
+
 </html>
+</CodeContent>
+<parameter name="Complexity">5

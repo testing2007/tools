@@ -1,4 +1,4 @@
-/* 法布朗®传奇 SWAN VUE ROUGE - 极简清爽风格 */
+/* 法布朗®传奇 SWAN VUE ROUGE - 清爽现代风格 */
 /* 宽度: 1000px */
 
 * {
@@ -9,7 +9,7 @@
 
 body {
     font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: #f8f8f8;
+    background: #f5f5f5;
     display: flex;
     justify-content: center;
     padding: 20px 0;
@@ -18,12 +18,49 @@ body {
 .detail-page {
     width: 1000px;
     background: #fff;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 60px rgba(0, 0, 0, 0.08);
 }
 
 .section {
     position: relative;
     width: 100%;
+    overflow: hidden;
+}
+
+/* ========== 通用标题样式 ========== */
+.section-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.section-title {
+    font-size: 49px;
+    color: #1a1a1a;
+    font-weight: 700;
+    letter-spacing: 5px;
+    margin-bottom: 11px;
+}
+
+.section-title-dark {
+    font-size: 43px;
+    color: #1a1a1a;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 32px;
+}
+
+.section-subtitle {
+    font-size: 22px;
+    color: #d4af37;
+    letter-spacing: 5px;
+    margin-bottom: 22px;
+}
+
+.gold-line {
+    width: 108px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #d4af37, transparent);
+    margin: 0 auto;
 }
 
 /* ========== 第一屏：首图海报 ========== */
@@ -31,22 +68,14 @@ body {
     min-height: 750px;
     background: linear-gradient(180deg, #ffffff 0%, #f9f6f0 100%);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 60px;
+    padding: 80px 60px;
     position: relative;
-    overflow: hidden;
 }
 
-.swan-pattern {
-    position: absolute;
-    right: -100px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 500px;
-    height: 500px;
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
-    border-radius: 50%;
+.hero-section > .section-header {
+    margin-bottom: 60px;
 }
 
 .hero-content {
@@ -57,8 +86,8 @@ body {
 }
 
 .product-image-slot {
-    width: 350px;
-    height: 450px;
+    width: 380px;
+    height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -72,42 +101,34 @@ body {
 }
 
 .hero-text {
-    max-width: 450px;
+    max-width: 420px;
 }
 
 .badge {
     display: inline-block;
-    padding: 8px 20px;
+    padding: 14px 32px;
     background: linear-gradient(135deg, #d4af37 0%, #f0d875 100%);
     color: #fff;
-    font-size: 12px;
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: 2px;
-    border-radius: 20px;
-    margin-bottom: 24px;
+    letter-spacing: 3px;
+    border-radius: 30px;
+    margin-bottom: 32px;
     text-transform: uppercase;
 }
 
-.hero-title {
-    font-size: 52px;
-    color: #1a1a1a;
-    font-weight: 700;
-    margin-bottom: 8px;
-    letter-spacing: 4px;
-}
-
 .hero-subtitle-en {
-    font-size: 18px;
+    font-size: 27px;
     color: #d4af37;
-    letter-spacing: 6px;
+    letter-spacing: 8px;
     margin-bottom: 16px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .hero-subtitle {
-    font-size: 18px;
+    font-size: 24px;
     color: #666;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
     line-height: 1.6;
 }
 
@@ -118,20 +139,25 @@ body {
 }
 
 .tag {
-    padding: 10px 20px;
+    padding: 16px 32px;
     background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 25px;
-    font-size: 13px;
+    border: 2px solid #e8e8e8;
+    border-radius: 34px;
+    font-size: 19px;
     color: #333;
     font-weight: 500;
+    transition: all 0.3s;
+}
+
+.tag:hover {
+    border-color: #d4af37;
+    color: #d4af37;
 }
 
 /* ========== 第二屏：越级体验 ========== */
 .alcohol-section {
     display: flex;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-    min-height: 400px;
+    min-height: 420px;
 }
 
 .alcohol-visual {
@@ -143,85 +169,57 @@ body {
 }
 
 .big-number {
-    font-size: 180px;
+    font-size: 200px;
     font-weight: 900;
     color: #fff;
     line-height: 1;
-    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 14px 41px rgba(0, 0, 0, 0.2);
 }
 
 .percent {
-    font-size: 48px;
+    font-size: 65px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    margin-left: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-left: 11px;
     align-self: flex-start;
-    margin-top: 40px;
+    margin-top: 54px;
 }
 
 .alcohol-content {
     width: 55%;
     padding: 60px;
+    background: #fafafa;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
-.section-title {
-    font-size: 32px;
-    color: #fff;
-    margin-bottom: 24px;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.section-text {
-    font-size: 18px;
-    color: #aaa;
-    line-height: 2;
-    margin-bottom: 30px;
-}
-
 .highlight-box {
-    margin-top: 5px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 24px;
-    background: rgba(212, 175, 55, 0.15);
-    border-left: 4px solid #d4af37;
-    border-radius: 0 8px 8px 0;
+    gap: 22px;
+    padding: 24px 32px;
+    background: #fff;
+    border-left: 5px solid #d4af37;
+    border-radius: 0 16px 16px 0;
+    margin-bottom: 22px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
 .highlight-icon {
-    font-size: 24px;
+    font-size: 38px;
 }
 
 .highlight-text {
-    font-size: 16px;
-    color: #d4af37;
-    font-weight: 600;
+    font-size: 22px;
+    color: #444;
+    font-weight: 500;
 }
 
 /* ========== 第三屏：甄选产区 ========== */
 .origin-section {
     padding: 80px 60px;
-    background: #fafafa;
-    text-align: center;
-}
-
-.section-title-center {
-    font-size: 36px;
-    color: #1a1a1a;
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.section-subtitle {
-    font-size: 16px;
-    color: #d4af37;
-    letter-spacing: 4px;
-    margin-bottom: 50px;
+    background: #fff;
 }
 
 .origin-cards {
@@ -233,30 +231,31 @@ body {
 .origin-card {
     width: 380px;
     padding: 50px 40px;
-    background: #fff;
+    background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+    text-align: center;
     transition: transform 0.3s;
 }
 
 .origin-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
 }
 
 .origin-icon {
-    font-size: 50px;
-    margin-bottom: 24px;
+    font-size: 76px;
+    margin-bottom: 32px;
 }
 
 .origin-card h3 {
-    font-size: 22px;
+    font-size: 30px;
     color: #1a1a1a;
-    margin-bottom: 16px;
+    margin-bottom: 22px;
     font-weight: 600;
 }
 
 .origin-card p {
-    font-size: 15px;
+    font-size: 20px;
     color: #888;
     line-height: 1.8;
 }
@@ -287,10 +286,13 @@ body {
     justify-content: center;
 }
 
-.flavor-content .section-title {
-    color: #1a1a1a;
-    font-size: 28px;
+.flavor-content .section-header {
+    text-align: left;
     margin-bottom: 30px;
+}
+
+.flavor-content .gold-line {
+    margin: 0;
 }
 
 .flavor-notes {
@@ -305,41 +307,40 @@ body {
 }
 
 .note-label {
-    padding: 6px 16px;
+    padding: 11px 24px;
     background: #d4af37;
     color: #fff;
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
-    border-radius: 20px;
+    border-radius: 24px;
     flex-shrink: 0;
 }
 
 .note-text {
-    font-size: 16px;
+    font-size: 22px;
     color: #555;
     line-height: 1.6;
-    padding-top: 4px;
+    padding-top: 8px;
 }
 
 .flavor-tip {
-    font-size: 14px;
+    font-size: 19px;
     color: #999;
     font-style: italic;
     border-top: 1px solid #eee;
-    padding-top: 20px;
+    padding-top: 27px;
 }
 
 /* ========== 第五屏：百搭餐桌 ========== */
 .pairing-section {
     padding: 80px 60px;
     background: linear-gradient(180deg, #fff 0%, #f9f6f0 100%);
-    text-align: center;
 }
 
 .pairing-grid {
     display: flex;
     justify-content: center;
-    gap: 40px;
+    gap: 50px;
     margin: 50px 0 40px;
 }
 
@@ -347,11 +348,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .pairing-emoji {
-    font-size: 60px;
+    font-size: 86px;
     transition: transform 0.3s;
 }
 
@@ -360,32 +361,36 @@ body {
 }
 
 .pairing-name {
-    font-size: 16px;
+    font-size: 22px;
     color: #333;
     font-weight: 500;
 }
 
 .pairing-desc {
-    font-size: 16px;
+    text-align: center;
+    font-size: 22px;
     color: #999;
 }
 
 /* ========== 第六屏：NFC智能互动 ========== */
 .nfc-section {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
     padding: 80px 60px;
+}
+
+.nfc-content {
     text-align: center;
 }
 
-.nfc-content .section-title {
-    margin-bottom: 20px;
+.nfc-section .section-title {
+    color: #fff;
 }
 
 .nfc-text {
-    font-size: 18px;
+    font-size: 24px;
     color: #999;
     line-height: 2;
-    margin-bottom: 40px;
+    margin-bottom: 68px;
 }
 
 .nfc-demo {
@@ -395,12 +400,25 @@ body {
     gap: 30px;
 }
 
+.nfc-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
 .nfc-icon {
-    font-size: 60px;
+    font-size: 76px;
+}
+
+.nfc-label {
+    font-size: 19px;
+    color: #d4af37;
+    font-weight: 500;
 }
 
 .nfc-arrow {
-    font-size: 36px;
+    font-size: 43px;
     color: #d4af37;
 }
 
@@ -413,7 +431,7 @@ body {
 .specs-table {
     width: 100%;
     max-width: 700px;
-    margin: 40px auto 0;
+    margin: 0 auto;
     border-collapse: collapse;
 }
 
@@ -422,8 +440,8 @@ body {
 }
 
 .specs-table td {
-    padding: 18px 20px;
-    font-size: 15px;
+    padding: 24px 27px;
+    font-size: 20px;
 }
 
 .specs-table td:first-child {
@@ -443,16 +461,26 @@ body {
     text-align: center;
 }
 
+.footer-logo {
+    font-size: 42px;
+    color: #d4af37;
+    font-weight: 700;
+    letter-spacing: 10px;
+    margin-bottom: 20px;
+}
+
 .footer-text {
     font-size: 16px;
     color: #999;
     letter-spacing: 6px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .footer-brand {
-    font-size: 28px;
+    font-size: 18px;
     color: #d4af37;
-    font-weight: 700;
-    letter-spacing: 6px;
+    font-weight: 600;
+    letter-spacing: 4px;
 }
+</CodeContent>
+<parameter name="Complexity">5
