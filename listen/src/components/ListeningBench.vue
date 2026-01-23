@@ -16,7 +16,15 @@
     </div>
 
     <div class="sentence-list">
-      <el-card v-for="(s, index) in sentences" :key="s.id" class="sentence-card" :class="{ 'is-active': activeId === s.id }">
+      <el-card 
+        v-for="(s, index) in sentences" 
+        :key="s.id" 
+        class="sentence-card" 
+        :class="[
+          { 'is-active': activeId === s.id },
+          getSpeakerClass(s.speaker)
+        ]"
+      >
         <div class="card-left">
           <div class="index-badge">{{ index + 1 }}</div>
           <el-button type="primary" circle @click="playSentence(s)">
@@ -25,6 +33,9 @@
         </div>
         
         <div class="card-content">
+          <div v-if="s.speaker" class="speaker-label" :class="getSpeakerClass(s.speaker)">
+            {{ s.speaker }}
+          </div>
           <div v-if="revealedIds.has(s.id)" class="sentence-text">
             {{ s.text }}
           </div>
@@ -111,6 +122,15 @@ const playSentence = (s) => {
   }
   
   window.speechSynthesis.speak(utterance)
+}
+
+const getSpeakerClass = (speaker) => {
+  if (!speaker) return ''
+  const lowerSpeaker = speaker.toLowerCase()
+  if (lowerSpeaker.includes('a') || lowerSpeaker.includes('1')) {
+    return 'speaker-a'
+  }
+  return 'speaker-b'
 }
 </script>
 
@@ -208,5 +228,33 @@ const playSentence = (s) => {
 .card-actions {
   display: flex;
   gap: 10px;
+}
+
+/* Speaker role styles */
+.speaker-label {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.speaker-label.speaker-a {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+}
+
+.speaker-label.speaker-b {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+}
+
+.sentence-card.speaker-a {
+  border-left: 4px solid #2196f3;
+}
+
+.sentence-card.speaker-b {
+  border-left: 4px solid #4caf50;
 }
 </style>

@@ -11,6 +11,10 @@
             <el-icon><Upload /></el-icon>
             Import Audio
           </el-button>
+          <el-button type="success" @click="showPdfImport = true" plain>
+            <el-icon><Document /></el-icon>
+            Import PDF/Text
+          </el-button>
         </div>
       </div>
     </el-header>
@@ -19,8 +23,11 @@
       <div class="content-wrapper">
         <ListeningBench v-if="sentences.length > 0" :sentences="sentences" />
         <div v-else class="empty-state">
-          <el-empty description="No audio imported yet">
-            <el-button type="primary" @click="showUpload = true">Get Started</el-button>
+          <el-empty description="No content imported yet">
+            <div class="empty-buttons">
+              <el-button type="primary" @click="showUpload = true">Import Audio</el-button>
+              <el-button type="success" @click="showPdfImport = true">Import PDF/Text</el-button>
+            </div>
           </el-empty>
         </div>
       </div>
@@ -34,20 +41,33 @@
     >
       <AudioProcessor @processed="handleProcessed" />
     </el-dialog>
+
+    <el-dialog
+      v-model="showPdfImport"
+      title="Import PDF/Text Dialogue"
+      width="600px"
+      append-to-body
+    >
+      <PdfDialogueProcessor @processed="handleProcessed" />
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { Document } from '@element-plus/icons-vue'
 import AudioProcessor from './components/AudioProcessor.vue'
 import ListeningBench from './components/ListeningBench.vue'
+import PdfDialogueProcessor from './components/PdfDialogueProcessor.vue'
 
 const showUpload = ref(false)
+const showPdfImport = ref(false)
 const sentences = ref([])
 
 const handleProcessed = (data) => {
   sentences.value = data
   showUpload.value = false
+  showPdfImport.value = false
 }
 </script>
 
