@@ -141,11 +141,13 @@ const resetFile = () => {
   timeRange.value = [0, 0]
 }
 
-// Transformers.js Config
-env.allowLocalModels = true;
-env.allowRemoteModels = true; 
-env.localModelPath = '/models/'; 
+// Transformers.js Config - Enable remote model loading
+env.allowLocalModels = false;  // Disable local models, use remote
+env.allowRemoteModels = true;
 env.useBrowserCache = true;
+// Use CDN for model loading
+env.remoteHost = 'https://huggingface.co';
+env.remotePathTemplate = '{model}/resolve/{revision}/';
 
 let transcriber = null
 const filesProgress = ref({})
@@ -158,16 +160,18 @@ const totalLoadProgress = computed(() => {
 
 const initTranscriber = async () => {
   if (transcriber) return transcriber
-  statusText.value = 'Preparing AI Engine...'
+  statusText.value = 'Preparing AI Engine (downloading model, first time may be slow)...'
   progress.value = 0
   filesProgress.value = {}
   
   try {
-    transcriber = await pipeline('automatic-speech-recognition', 'whisper-tiny.en', {
+    // Use Xenova's whisper-tiny.en model from Hugging Face
+    transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
       progress_callback: (p) => {
         if (p.status === 'progress') {
           filesProgress.value[p.file] = p.progress
           progress.value = totalLoadProgress.value
+          statusText.value = `Downloading model: ${Math.round(p.progress)}%`
         } else if (p.status === 'ready') {
           statusText.value = 'AI Engine Ready.'
           progress.value = 100
@@ -177,7 +181,7 @@ const initTranscriber = async () => {
     return transcriber
   } catch (err) {
     console.error('Pipeline error:', err)
-    throw new Error('Failed to load AI model. Please ensure files are in public/models/.')
+    throw new Error(`AI model loading failed: ${err.message}. Please check network connection to huggingface.co`)
   }
 }
 

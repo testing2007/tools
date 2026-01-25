@@ -8,7 +8,6 @@
         :auto-upload="false"
         :on-change="handleVideoChange"
         accept="video/*"
-        :disabled="extracting"
       >
         <el-icon class="el-icon--upload"><VideoCamera /></el-icon>
         <div class="el-upload__text">
@@ -33,53 +32,29 @@
         <source :src="videoUrl" />
       </video>
 
-      <!-- Loading/Extraction Progress -->
-      <div class="extraction-status" v-if="extracting">
-        <el-progress :percentage="extractProgress" :status="extractProgress === 100 ? 'success' : ''" />
-        <p>{{ extractStatus }}</p>
-        <el-button type="warning" size="small" @click="skipExtraction" style="margin-top: 10px;">
-          跳过检测，手动上传字幕
-        </el-button>
-      </div>
-
-      <!-- Extracted Subtitle Tracks -->
-      <div class="subtitle-tracks" v-if="!extracting && subtitleTracks.length > 0">
-        <el-alert type="success" :closable="false" style="margin-bottom: 15px;">
-          检测到 {{ subtitleTracks.length }} 个字幕轨道
-        </el-alert>
-        <el-select v-model="selectedTrackIndex" placeholder="选择字幕轨道" style="width: 100%;">
-          <el-option
-            v-for="(track, idx) in subtitleTracks"
-            :key="idx"
-            :label="track.label"
-            :value="idx"
-          />
-        </el-select>
-      </div>
-
-      <!-- Manual Subtitle Upload (always available after extraction attempt) -->
-      <div class="subtitle-upload" v-if="!extracting && extractionDone">
-        <el-divider v-if="subtitleTracks.length === 0">上传字幕文件</el-divider>
-        <el-alert v-if="subtitleTracks.length === 0" type="info" :closable="false" style="margin-bottom: 15px;">
-          该视频没有内嵌字幕，请上传 SRT 或 VTT 字幕文件
-        </el-alert>
+      <!-- Subtitle Upload Section -->
+      <div class="subtitle-upload-section">
+        <el-divider>上传字幕文件</el-divider>
         <el-upload
           class="srt-upload"
           action="#"
           :auto-upload="false"
           :on-change="handleSubtitleFile"
           accept=".srt,.vtt"
+          :show-file-list="false"
         >
-          <el-button type="primary" :plain="subtitleTracks.length > 0">
-            {{ subtitleTracks.length > 0 ? '或使用其他字幕文件' : '上传字幕文件 (SRT/VTT)' }}
+          <el-button type="primary" size="large">
+            <el-icon><Document /></el-icon>
+            选择字幕文件 (SRT/VTT)
           </el-button>
         </el-upload>
+        <p class="upload-tip">请上传与视频匹配的 SRT 或 VTT 字幕文件</p>
       </div>
 
       <!-- Subtitle Preview Count -->
       <div v-if="subtitles.length > 0" class="subtitle-preview">
-        <el-alert type="success" :closable="false" style="margin-top: 15px;">
-          已解析 {{ subtitles.length }} 条英文字幕
+        <el-alert type="success" :closable="false">
+          已解析 {{ subtitles.length }} 条英文字幕（来自 {{ subtitleFileName }}）
         </el-alert>
       </div>
 
@@ -95,24 +70,18 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted, watch } from 'vue'
-import { VideoCamera } from '@element-plus/icons-vue'
+import { ref, onUnmounted } from 'vue'
+import { VideoCamera, Document } from '@element-plus/icons-vue'
 
 const emit = defineEmits(['processed'])
 
 const videoFile = ref(null)
 const videoUrl = ref('')
 const videoEl = ref(null)
-
-const extracting = ref(false)
-const extractionDone = ref(false)
-const extractProgress = ref(0)
-const extractStatus = ref('')
 const processing = ref(false)
 
-const subtitleTracks = ref([])
-const selectedTrackIndex = ref(null)
 const subtitles = ref([])
+const subtitleFileName = ref('')
 const rawSubtitleContent = ref('')
 
 const handleVideoChange = async (file) => {
@@ -120,126 +89,9 @@ const handleVideoChange = async (file) => {
   
   videoFile.value = file
   videoUrl.value = URL.createObjectURL(file.raw)
-  extractionDone.value = false
-  subtitleTracks.value = []
   subtitles.value = []
-  selectedTrackIndex.value = null
+  subtitleFileName.value = ''
   rawSubtitleContent.value = ''
-
-  // Try to extract subtitles
-  await tryExtractSubtitles(file.raw)
-}
-
-const tryExtractSubtitles = async (file) => {
-  extracting.value = true
-  extractProgress.value = 0
-  extractStatus.value = '正在加载字幕提取引擎...'
-
-  try {
-    // Dynamic import ffmpeg only when needed
-    const { FFmpeg } = await import('@ffmpeg/ffmpeg')
-    const { fetchFile, toBlobURL } = await import('@ffmpeg/util')
-    
-    extractProgress.value = 10
-    
-    const ffmpeg = new FFmpeg()
-    
-    ffmpeg.on('progress', ({ progress }) => {
-      extractProgress.value = Math.min(20 + Math.round(progress * 60), 80)
-    })
-
-    // Load FFmpeg with timeout
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
-    
-    const loadPromise = ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    })
-    
-    // 30 second timeout for loading
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('加载超时')), 30000)
-    )
-    
-    await Promise.race([loadPromise, timeoutPromise])
-    
-    extractProgress.value = 25
-    extractStatus.value = '正在读取视频文件...'
-    
-    // Write video file
-    const inputName = 'input' + getFileExtension(file.name)
-    await ffmpeg.writeFile(inputName, await fetchFile(file))
-    
-    extractProgress.value = 50
-    extractStatus.value = '正在提取字幕轨道...'
-
-    // Try to extract subtitle tracks
-    const tracks = []
-    for (let i = 0; i < 3; i++) {
-      const outputName = `sub_${i}.srt`
-      
-      try {
-        await ffmpeg.exec([
-          '-i', inputName,
-          '-map', `0:s:${i}`,
-          '-c:s', 'srt',
-          outputName
-        ])
-        
-        const data = await ffmpeg.readFile(outputName)
-        const content = new TextDecoder().decode(data)
-        
-        if (content && content.trim().length > 10) {
-          const parsed = parseSRT(content)
-          if (parsed.length > 0) {
-            tracks.push({
-              index: i,
-              label: `字幕轨 ${i + 1} (${parsed.length}条)`,
-              content: content,
-              subtitles: parsed
-            })
-          }
-        }
-        
-        await ffmpeg.deleteFile(outputName)
-      } catch (e) {
-        break
-      }
-    }
-
-    await ffmpeg.deleteFile(inputName)
-
-    extractProgress.value = 100
-    subtitleTracks.value = tracks
-    extractionDone.value = true
-
-    if (tracks.length > 0) {
-      extractStatus.value = `成功提取 ${tracks.length} 个字幕轨道`
-      selectedTrackIndex.value = 0
-    } else {
-      extractStatus.value = '未找到内嵌字幕'
-    }
-
-  } catch (err) {
-    console.error('Subtitle extraction error:', err)
-    extractStatus.value = '字幕提取失败，请手动上传字幕文件'
-    extractionDone.value = true
-  } finally {
-    setTimeout(() => {
-      extracting.value = false
-    }, 300)
-  }
-}
-
-const skipExtraction = () => {
-  extracting.value = false
-  extractionDone.value = true
-  subtitleTracks.value = []
-}
-
-const getFileExtension = (filename) => {
-  const ext = filename.split('.').pop()
-  return ext ? `.${ext.toLowerCase()}` : '.mp4'
 }
 
 // Parse SRT format
@@ -341,25 +193,10 @@ const handleSubtitleFile = async (file) => {
 
   if (parsed.length > 0) {
     rawSubtitleContent.value = content
-    subtitleTracks.value = [{
-      index: 0,
-      label: `${file.name} (${parsed.length}条)`,
-      content: content,
-      subtitles: parsed
-    }]
-    selectedTrackIndex.value = 0
+    subtitles.value = parsed
+    subtitleFileName.value = file.name
   }
 }
-
-// Watch track selection
-watch(selectedTrackIndex, (idx) => {
-  if (idx !== null && subtitleTracks.value[idx]) {
-    subtitles.value = subtitleTracks.value[idx].subtitles
-    rawSubtitleContent.value = subtitleTracks.value[idx].content
-  } else {
-    subtitles.value = []
-  }
-})
 
 const confirmImport = () => {
   if (subtitles.value.length === 0) return
@@ -382,10 +219,8 @@ const resetAll = () => {
   }
   videoFile.value = null
   videoUrl.value = ''
-  extractionDone.value = false
-  subtitleTracks.value = []
   subtitles.value = []
-  selectedTrackIndex.value = null
+  subtitleFileName.value = ''
   rawSubtitleContent.value = ''
 }
 
@@ -418,25 +253,23 @@ onUnmounted(() => {
   border-radius: 8px;
 }
 
-.extraction-status {
+.subtitle-upload-section {
   margin-top: 15px;
   text-align: center;
 }
 
-.extraction-status p {
-  margin-top: 10px;
-  color: #606266;
-  font-size: 14px;
-}
-
-.subtitle-tracks,
-.subtitle-upload,
-.subtitle-preview {
-  margin-top: 15px;
-}
-
 .srt-upload {
   display: inline-block;
+}
+
+.upload-tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.subtitle-preview {
+  margin-top: 15px;
 }
 
 .action-buttons {

@@ -2,7 +2,9 @@
 
 ## 服务器信息
 - **服务器地址**: 101.35.11.122
-- **部署目录**: /lisener
+- **前端目录**: /ldtrade/tools/listen
+- **后端目录**: /ldtrade/tools/listen-api
+- **访问地址**: http://101.35.11.122/tools/listen/
 
 ---
 
@@ -13,66 +15,101 @@ cd d:\workspace\tools\listen
 npm run build
 ```
 
-打包后文件位于 `dist/` 目录。
-
 ---
 
-## 2. 上传到服务器
-
-### 方法 A: 使用 SCP (推荐)
+## 2. 上传前端文件
 
 ```bash
-# Windows PowerShell
-scp -r ./dist/* root@101.35.11.122:/ldtrade/listen/
-
-# 或指定端口
-scp -P 22 -r ./dist/* root@101.35.11.122:/ldtrade/listen/
+# 密码 K~4@
+scp -r ./dist/* root@101.35.11.122:/ldtrade/tools/listen/
 ```
-
-### 方法 B: 使用 SFTP 工具
-
-1. 使用 WinSCP / FileZilla 连接服务器
-2. 将 `dist/` 目录下所有文件上传到服务器 `/ldtrade/listen/` 目录
 
 ---
 
-## 3. 服务器端配置 (Nginx)
+## 3. 上传后端文件
 
-确保 Nginx 配置正确：
+```bash
+# 密码 K~4@
+scp -r ./backend/* root@101.35.11.122:/ldtrade/tools/listen-api/
+```
 
-```nginx
-server {
-    listen 80;
-    server_name 101.35.11.122;
+---
 
-    location /listen/ {
-        alias /ldtrade/listen/;
-        index index.html;
-    }
+## 4. 服务器端配置
+
+### 4.1 创建目录
+```bash
+mkdir -p /ldtrade/tools/listen
+mkdir -p /ldtrade/tools/listen-api/uploads
+```
+
+### 4.2 安装后端依赖
+```bash
+cd /ldtrade/tools/listen-api
+pip3 install -r requirements.txt
+```
+
+### 4.3 修改数据库密码
+编辑 `/ldtrade/tools/listen-api/database.py`，修改 MySQL 密码：
+```python
+DB_CONFIG = {
+    'password': '你的实际密码',
+    ...
 }
 ```
 
-重载 Nginx：
+### 4.4 启动后端服务
 ```bash
-sudo nginx -t && sudo nginx -s reload
+cd /ldtrade/tools/listen-api
+nohup python3 main.py > app.log 2>&1 &
+```
+
+### 4.5 Nginx 配置
+```nginx
+# 前端静态文件
+location /tools/listen/ {
+    alias /ldtrade/tools/listen/;
+    index index.html;
+    try_files $uri $uri/ /tools/listen/index.html;
+    
+    # HTML 不缓存
+    location ~* \.html$ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+}
+
+# 后端 API
+location /tools/listen-api/ {
+    proxy_pass http://127.0.0.1:8001/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    client_max_body_size 500M;  # 支持大文件上传
+}
+```
+
+```bash
+nginx -t && nginx -s reload
 ```
 
 ---
 
-## 4. 访问测试
+## 5. 访问测试
 
-浏览器打开: http://101.35.11.122/listen/
+- 前端: http://101.35.11.122/tools/listen/
+- API: http://101.35.11.122/tools/listen-api/
 
 ---
 
-## 注意事项
+## 常用命令
 
-1. **确保目录存在**: 服务器上需先创建 `/listen/` 目录
-   ```bash
-   sudo mkdir -p /listen
-   sudo chmod 755 /listen
-   ```
+### 查看后端日志
+```bash
+tail -f /ldtrade/tools/listen-api/listen.log
+```
 
-2. **PDF Worker 文件**: 确保 `pdf.worker.min.mjs` 文件已正确上传
-
-3. **清除浏览器缓存**: 部署后如有问题，先清除浏览器缓存再测试
+### 重启后端
+```bash
+pkill -f "python3 main.py"
+cd /ldtrade/tools/listen-api
+nohup python3 main.py > listen.log 2>&1 &
+```

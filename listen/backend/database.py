@@ -1,0 +1,96 @@
+import pymysql
+from contextlib import contextmanager
+
+# MySQL Configuration
+DB_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 3306,
+    'user': 'root',
+    'password': 'Kuwo1234@',  # 修改为实际密码
+    'database': 'listen_db',
+    'charset': 'utf8mb4'
+}
+
+def init_database():
+    """Create database and table if not exists"""
+    # Connect without database first
+    conn = pymysql.connect(
+        host=DB_CONFIG['host'],
+        port=DB_CONFIG['port'],
+        user=DB_CONFIG['user'],
+        password=DB_CONFIG['password'],
+        charset=DB_CONFIG['charset']
+    )
+    
+    try:
+        with conn.cursor() as cursor:
+            # Create database
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
+            cursor.execute(f"USE {DB_CONFIG['database']}")
+            
+            # Create videos table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS videos (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    title VARCHAR(255) NOT NULL,
+                    video_filename VARCHAR(255) NOT NULL,
+                    subtitle_filename VARCHAR(255),
+                    duration INT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            conn.commit()
+            print("Database initialized successfully")
+    finally:
+        conn.close()
+
+@contextmanager
+def get_db_connection():
+    """Get database connection context manager"""
+    conn = pymysql.connect(**DB_CONFIG)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def get_videos():
+    """Get all videos"""
+    with get_db_connection() as conn:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, title, video_filename, subtitle_filename, duration, created_at 
+                FROM videos ORDER BY created_at DESC
+            """)
+            return cursor.fetchall()
+
+def get_video(video_id: int):
+    """Get single video by id"""
+    with get_db_connection() as conn:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, title, video_filename, subtitle_filename, duration, created_at 
+                FROM videos WHERE id = %s
+            """, (video_id,))
+            return cursor.fetchone()
+
+def create_video(title: str, video_filename: str, subtitle_filename: str = None, duration: int = 0):
+    """Create new video record"""
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO videos (title, video_filename, subtitle_filename, duration)
+                VALUES (%s, %s, %s, %s)
+            """, (title, video_filename, subtitle_filename, duration))
+            conn.commit()
+            return cursor.lastrowid
+
+def delete_video(video_id: int):
+    """Delete video record"""
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM videos WHERE id = %s", (video_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+if __name__ == "__main__":
+    init_database()

@@ -7,6 +7,8 @@
           ref="videoEl"
           class="main-video"
           controls
+          playsinline
+          webkit-playsinline
           @timeupdate="onTimeUpdate"
           @play="isPlaying = true"
           @pause="isPlaying = false"
