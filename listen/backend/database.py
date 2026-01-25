@@ -1,19 +1,50 @@
+import os
+import platform
 import pymysql
 from contextlib import contextmanager
 
-# MySQL Configuration
-DB_CONFIG = {
+# =============================================
+# MySQL Configuration - Multi-Environment
+# =============================================
+
+# Windows 配置
+WINDOWS_CONFIG = {
     'host': '127.0.0.1',
     'port': 3306,
     'user': 'root',
-    'password': 'Kuwo1234@',  # 修改为实际密码
+    'password': 'Kuwo1234',  # Windows MySQL 密码
     'database': 'listen_db',
     'charset': 'utf8mb4'
 }
 
+# Linux (CentOS) 配置
+LINUX_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 3306,
+    'user': 'root',
+    'password': 'Kuwo1234@',  # Linux MySQL 密码
+    'database': 'listen_db',
+    'charset': 'utf8mb4'
+}
+
+# 自动检测操作系统
+def get_db_config():
+    system = platform.system().lower()
+    if system == 'windows':
+        print(f"[Database] Using Windows config")
+        return WINDOWS_CONFIG
+    else:
+        print(f"[Database] Using Linux config")
+        return LINUX_CONFIG
+
+DB_CONFIG = get_db_config()
+
+# =============================================
+# Database Functions
+# =============================================
+
 def init_database():
     """Create database and table if not exists"""
-    # Connect without database first
     conn = pymysql.connect(
         host=DB_CONFIG['host'],
         port=DB_CONFIG['port'],
@@ -24,11 +55,9 @@ def init_database():
     
     try:
         with conn.cursor() as cursor:
-            # Create database
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
             cursor.execute(f"USE {DB_CONFIG['database']}")
             
-            # Create videos table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS videos (
                     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -40,7 +69,7 @@ def init_database():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
             conn.commit()
-            print("Database initialized successfully")
+            print("[Database] Initialized successfully")
     finally:
         conn.close()
 

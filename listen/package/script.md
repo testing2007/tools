@@ -113,3 +113,52 @@ pkill -f "python3 main.py"
 cd /ldtrade/tools/listen-api
 nohup python3 main.py > listen.log 2>&1 &
 ```
+
+---
+
+## Windows 本地部署
+
+### 1. 安装依赖
+```powershell
+cd d:\workspace\tools\listen\backend
+pip install -r requirements.txt
+```
+
+### 2. 配置数据库密码
+编辑 `database.py`，修改 MySQL 密码：
+```python
+DB_CONFIG = {
+    'host': '127.0.0.1',
+    'port': 3306,
+    'user': 'root',
+    'password': '你的密码',
+    'database': 'listen_db',
+    'charset': 'utf8mb4'
+}
+```
+
+### 3. 启动服务
+**方式一：双击运行**
+```
+直接双击 start.bat
+```
+
+**方式二：命令行**
+```powershell
+cd d:\workspace\tools\listen\backend
+python main.py
+```
+
+### 4. Vite 开发模式
+前端开发时，Vite 会自动代理 API 请求：
+```powershell
+cd d:\workspace\tools\listen
+npm run dev
+```
+
+访问 http://localhost:5174/tools/listen/
+
+### Windows 访问地址
+- 前端: http://localhost:5174/tools/listen/
+- API: http://localhost:8001/
+

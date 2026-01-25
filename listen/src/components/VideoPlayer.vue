@@ -1,8 +1,8 @@
 <template>
-  <div class="video-player-container">
+  <div class="video-player-container" ref="containerEl">
     <!-- Video Section -->
     <div class="video-section">
-      <div class="video-wrapper">
+      <div class="video-wrapper" ref="videoWrapperEl">
         <video
           ref="videoEl"
           class="main-video"
@@ -13,9 +13,10 @@
           @play="isPlaying = true"
           @pause="isPlaying = false"
           @loadedmetadata="onVideoLoaded"
+          @fullscreenchange="onFullscreenChange"
+          @webkitfullscreenchange="onFullscreenChange"
         >
           <source :src="videoUrl" />
-          <!-- Dynamic subtitle track -->
           <track
             v-if="subtitleTrackUrl"
             ref="subtitleTrack"
@@ -27,55 +28,92 @@
           />
         </video>
         <!-- Blur mask overlay for hard-coded subtitles -->
-        <div v-if="showBlurMask" class="subtitle-blur-mask"></div>
+        <div 
+          v-if="showBlurMask" 
+          class="subtitle-blur-mask"
+          :style="{ bottom: maskBottom + 'px', height: maskHeight + 'px' }"
+        ></div>
       </div>
 
+      <!-- Video Controls -->
       <div class="video-controls">
-        <el-button-group>
-          <el-button size="small" @click="skipTime(-5)">
-            <el-icon><DArrowLeft /></el-icon> -5s
-          </el-button>
-          <el-button size="small" @click="togglePlay">
-            <el-icon>
-              <VideoPause v-if="isPlaying" />
-              <VideoPlay v-else />
-            </el-icon>
-          </el-button>
-          <el-button size="small" @click="skipTime(5)">
-            +5s <el-icon><DArrowRight /></el-icon>
-          </el-button>
-        </el-button-group>
+        <div class="control-left">
+          <el-button-group>
+            <el-button size="small" @click="skipTime(-5)">
+              <el-icon><DArrowLeft /></el-icon>
+              <span class="hide-mobile">-5s</span>
+            </el-button>
+            <el-button size="small" @click="togglePlay">
+              <el-icon>
+                <VideoPause v-if="isPlaying" />
+                <VideoPlay v-else />
+              </el-icon>
+            </el-button>
+            <el-button size="small" @click="skipTime(5)">
+              <span class="hide-mobile">+5s</span>
+              <el-icon><DArrowRight /></el-icon>
+            </el-button>
+          </el-button-group>
+        </div>
 
         <div class="control-right">
+          <!-- Playback Mode Toggle -->
+          <el-tooltip :content="singleSentenceMode ? '单句模式' : '连播模式'" placement="top">
+            <el-button 
+              :type="singleSentenceMode ? 'warning' : 'default'" 
+              size="small"
+              @click="singleSentenceMode = !singleSentenceMode"
+            >
+              <el-icon><component :is="singleSentenceMode ? 'Aim' : 'Refresh'" /></el-icon>
+              <span class="hide-mobile">{{ singleSentenceMode ? '单句' : '连播' }}</span>
+            </el-button>
+          </el-tooltip>
+
           <!-- Blur Mask Toggle -->
-          <el-tooltip content="模糊遮罩 (隐藏硬字幕)" placement="top">
+          <el-tooltip content="遮罩开关" placement="top">
             <el-switch
               v-model="showBlurMask"
-              active-text="遮罩"
+              active-text=""
               inactive-text=""
-              style="margin-right: 15px;"
+              size="small"
+              style="margin: 0 10px;"
             />
           </el-tooltip>
 
-          <!-- Video Subtitle Toggle -->
-          <el-tooltip content="视频字幕开关" placement="top">
-            <el-switch
-              v-model="showVideoSubtitle"
-              active-text="字幕"
-              inactive-text=""
-              style="margin-right: 15px;"
-              @change="toggleVideoSubtitle"
-            />
-          </el-tooltip>
+          <!-- Mask Settings -->
+          <el-popover placement="top" :width="250" trigger="click" v-if="showBlurMask" v-model:visible="showMaskSettings">
+            <template #reference>
+              <el-button size="small" circle>
+                <el-icon><Setting /></el-icon>
+              </el-button>
+            </template>
+            <div class="mask-settings">
+              <p>遮罩位置调节</p>
+              <div class="setting-row">
+                <span>距底部:</span>
+                <el-slider v-model="maskBottom" :min="0" :max="150" :step="5" />
+                <span>{{ maskBottom }}px</span>
+              </div>
+              <div class="setting-row">
+                <span>高度:</span>
+                <el-slider v-model="maskHeight" :min="40" :max="200" :step="10" />
+                <span>{{ maskHeight }}px</span>
+              </div>
+              <el-button type="primary" size="small" @click="saveMaskSettings" style="width: 100%; margin-top: 10px;">
+                保存设置
+              </el-button>
+            </div>
+          </el-popover>
 
           <!-- Subtitle Panel Toggle -->
           <el-button
             :type="showSubtitles ? 'primary' : 'default'"
             size="small"
             @click="showSubtitles = !showSubtitles"
+            style="margin-left: 10px;"
           >
             <el-icon><List /></el-icon>
-            {{ showSubtitles ? '隐藏列表' : '字幕列表' }}
+            <span class="hide-mobile">{{ showSubtitles ? '隐藏' : '字幕' }}</span>
           </el-button>
         </div>
       </div>
@@ -134,6 +172,15 @@
         </div>
       </div>
     </transition>
+
+    <!-- Fullscreen Blur Mask (for native fullscreen) -->
+    <teleport to="body">
+      <div 
+        v-if="showBlurMask && isFullscreen" 
+        class="fullscreen-blur-mask"
+        :style="{ bottom: maskBottom + 'px', height: maskHeight + 'px' }"
+      ></div>
+    </teleport>
   </div>
 </template>
 
@@ -141,7 +188,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { 
   VideoPlay, VideoPause, DArrowLeft, DArrowRight, 
-  List, Document, View, Hide 
+  List, Document, View, Hide, Setting, Aim, Refresh
 } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -159,17 +206,27 @@ const props = defineProps({
   }
 })
 
+const containerEl = ref(null)
+const videoWrapperEl = ref(null)
 const videoEl = ref(null)
 const subtitleListEl = ref(null)
 const subtitleTrack = ref(null)
 const isPlaying = ref(false)
+const isFullscreen = ref(false)
 const currentTime = ref(0)
 const showSubtitles = ref(false)
-const showVideoSubtitle = ref(false)  // Video subtitle OFF by default
-const showBlurMask = ref(true)  // Blur mask ON by default to hide hard-coded subtitles
+const showVideoSubtitle = ref(false)
+const showBlurMask = ref(true)
 const autoReveal = ref(false)
 const revealedIds = ref(new Set())
 const subtitleTrackUrl = ref('')
+const singleSentenceMode = ref(false)  // Single sentence mode
+const currentPlayingSubId = ref(null)  // Track which subtitle is being played
+
+// Mask settings with localStorage persistence
+const showMaskSettings = ref(false)
+const maskBottom = ref(parseInt(localStorage.getItem('mask_bottom') || '45'))  // Above video controls
+const maskHeight = ref(parseInt(localStorage.getItem('mask_height') || '70'))
 
 const currentSubtitleId = computed(() => {
   const time = currentTime.value
@@ -184,7 +241,6 @@ const formatTime = (seconds) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-// Convert SRT content to VTT format for <track> element
 const convertSRTtoVTT = (srtContent) => {
   if (!srtContent) return ''
   
@@ -195,13 +251,11 @@ const convertSRTtoVTT = (srtContent) => {
     const lines = block.split('\n')
     if (lines.length < 2) continue
     
-    // Find time line
     let timeLineIdx = 0
     if (!/-->/.test(lines[0])) timeLineIdx = 1
     if (timeLineIdx >= lines.length) continue
     
     const timeLine = lines[timeLineIdx]
-    // Convert comma to dot for VTT format
     const vttTimeLine = timeLine.replace(/,/g, '.')
     
     const text = lines.slice(timeLineIdx + 1).join('\n')
@@ -225,7 +279,6 @@ const createSubtitleTrack = () => {
 }
 
 const onVideoLoaded = () => {
-  // Initialize text track state
   toggleVideoSubtitle(showVideoSubtitle.value)
 }
 
@@ -243,7 +296,24 @@ const toggleVideoSubtitle = (show) => {
 const onTimeUpdate = () => {
   if (videoEl.value) {
     currentTime.value = videoEl.value.currentTime
+    
+    // Single sentence mode: pause at end of current subtitle
+    if (singleSentenceMode.value && currentPlayingSubId.value) {
+      const sub = props.subtitles.find(s => s.id === currentPlayingSubId.value)
+      if (sub && currentTime.value >= sub.endTime) {
+        videoEl.value.pause()
+        currentPlayingSubId.value = null
+      }
+    }
   }
+}
+
+const onFullscreenChange = () => {
+  isFullscreen.value = !!(
+    document.fullscreenElement || 
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement
+  )
 }
 
 const togglePlay = () => {
@@ -262,9 +332,28 @@ const skipTime = (seconds) => {
 }
 
 const seekToSubtitle = (sub) => {
-  if (!videoEl.value) return
-  videoEl.value.currentTime = sub.startTime
-  videoEl.value.play()
+  if (!videoEl.value || !sub) return
+  
+  
+  const startTime = parseFloat(sub.startTime) || 0
+  console.log('[VideoPlayer] Seeking to subtitle:', sub.id, 'time:', startTime)
+  
+  // Set the target subtitle for single sentence mode
+  if (singleSentenceMode.value) {
+    currentPlayingSubId.value = sub.id
+  } else {
+    currentPlayingSubId.value = null
+  }
+  
+  // Direct seek and play
+  videoEl.value.currentTime = startTime
+  
+  // Small delay to ensure seek completes
+  setTimeout(() => {
+    if (videoEl.value) {
+      videoEl.value.play().catch(e => console.log('Play error:', e))
+    }
+  }, 100)
 }
 
 const toggleReveal = (id) => {
@@ -273,8 +362,13 @@ const toggleReveal = (id) => {
   } else {
     revealedIds.value.add(id)
   }
-  // Force reactivity
   revealedIds.value = new Set(revealedIds.value)
+}
+
+const saveMaskSettings = () => {
+  localStorage.setItem('mask_bottom', maskBottom.value.toString())
+  localStorage.setItem('mask_height', maskHeight.value.toString())
+  showMaskSettings.value = false  // Close popover
 }
 
 // Auto-scroll to current subtitle
@@ -288,14 +382,19 @@ watch(currentSubtitleId, async (id) => {
   }
 })
 
+// Listen for fullscreen changes
 onMounted(() => {
   createSubtitleTrack()
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange)
 })
 
 onUnmounted(() => {
   if (subtitleTrackUrl.value) {
     URL.revokeObjectURL(subtitleTrackUrl.value)
   }
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+  document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
 })
 </script>
 
@@ -329,45 +428,86 @@ onUnmounted(() => {
 /* Blur mask to hide hard-coded subtitles */
 .subtitle-blur-mask {
   position: absolute;
-  bottom: 40px;  /* Above video controls */
   left: 0;
   right: 0;
-  height: 80px;  /* Height of blur area */
   background: linear-gradient(to bottom, 
     rgba(0, 0, 0, 0) 0%, 
-    rgba(0, 0, 0, 0.7) 30%,
-    rgba(0, 0, 0, 0.9) 100%
+    rgba(0, 0, 0, 0.8) 40%,
+    rgba(0, 0, 0, 1) 100%
   );
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: none;  /* Allow clicking through */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
   z-index: 10;
 }
 
-/* Style video subtitles */
-.main-video::cue {
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 18px;
-  padding: 5px 10px;
-  border-radius: 4px;
+/* Fullscreen blur mask */
+.fullscreen-blur-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 0) 0%, 
+    rgba(0, 0, 0, 0.8) 40%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  z-index: 2147483647;
 }
 
 .video-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
-  padding: 10px 15px;
-  background: rgba(255, 255, 255, 0.9);
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.control-right {
+.control-left, .control-right {
   display: flex;
   align-items: center;
+  gap: 5px;
+}
+
+.mask-settings {
+  padding: 10px;
+}
+
+.mask-settings p {
+  margin: 0 0 10px 0;
+  font-weight: bold;
+  color: #303133;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.setting-row span:first-child {
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.setting-row .el-slider {
+  flex: 1;
+}
+
+.setting-row span:last-child {
+  width: 50px;
+  text-align: right;
+  color: #909399;
+  font-size: 12px;
 }
 
 /* Subtitle Panel */
@@ -483,15 +623,137 @@ onUnmounted(() => {
   transform: translateX(20px);
 }
 
-/* Responsive */
-@media (max-width: 900px) {
+/* Mobile Styles */
+@media (max-width: 768px) {
   .video-player-container {
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .video-section {
+    width: 100%;
+  }
+  
+  .video-wrapper {
+    border-radius: 8px;
   }
 
   .subtitle-panel {
     width: 100%;
-    max-height: 50vh;
+    max-height: 40vh;
+    border-radius: 8px;
+  }
+  
+  .panel-header {
+    padding: 10px 15px;
+  }
+  
+  .panel-header h3 {
+    font-size: 14px;
+  }
+  
+  .subtitle-list {
+    padding: 8px;
+  }
+  
+  .subtitle-item {
+    padding: 10px 12px;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  
+  .sub-left {
+    min-width: 40px;
+  }
+  
+  .sub-index {
+    font-size: 11px;
+  }
+  
+  .sub-time {
+    font-size: 10px;
+  }
+  
+  .sub-content {
+    font-size: 13px;
+  }
+  
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  /* Compact video controls for mobile */
+  .video-controls {
+    padding: 6px 8px;
+    margin-top: 8px;
+    gap: 5px;
+    border-radius: 8px;
+  }
+  
+  .control-left,
+  .control-right {
+    gap: 4px;
+  }
+  
+  .control-left .el-button,
+  .control-right .el-button {
+    padding: 6px 10px;
+    min-width: 32px;
+  }
+  
+  .control-right .el-switch {
+    margin: 0 5px !important;
+  }
+  
+  .control-right .el-button[style*="margin-left"] {
+    margin-left: 5px !important;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .video-controls {
+    padding: 5px 6px;
+  }
+  
+  .control-left .el-button,
+  .control-right .el-button {
+    padding: 5px 8px;
+    min-width: 28px;
+  }
+  
+  .subtitle-panel {
+    max-height: 35vh;
+  }
+  
+  .subtitle-item {
+    padding: 8px 10px;
+  }
+}
+
+/* Landscape mode - maximize video */
+@media (orientation: landscape) and (max-height: 500px) {
+  .video-player-container {
+    flex-direction: row;
+  }
+  
+  .video-section {
+    flex: 2;
+  }
+  
+  .subtitle-panel {
+    width: 280px;
+    max-height: 100%;
+  }
+  
+  .subtitle-blur-mask {
+    height: 50px !important;
+    bottom: 25px !important;
+  }
+  
+  .video-controls {
+    padding: 4px 8px;
+    margin-top: 5px;
   }
 }
 </style>

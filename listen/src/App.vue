@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-header class="app-header">
+    <!-- <el-header class="app-header">
       <div class="header-content">
         <div class="logo" @click="goHome" style="cursor: pointer;">
           <el-icon :size="24"><Microphone /></el-icon>
@@ -21,7 +21,7 @@
           </el-button>
         </div>
       </div>
-    </el-header>
+    </el-header> -->
 
     <el-main class="main-content">
       <div :class="videoData ? 'content-wrapper-wide' : 'content-wrapper'">
@@ -49,8 +49,8 @@
       </div>
     </el-main>
 
-    <!-- Mobile Bottom Nav -->
-    <div class="mobile-nav mobile-only">
+    <!-- Mobile Bottom Nav - only show on home page -->
+    <div class="mobile-nav mobile-only" v-if="!videoData && sentences.length === 0">
       <div class="nav-item" @click="showUpload = true">
         <el-icon><Microphone /></el-icon>
         <span>音频</span>
@@ -214,7 +214,7 @@ const goHome = () => {
   background: white;
   display: flex;
   justify-content: space-around;
-  padding: 10px 0;
+  padding: 6px 0;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
   z-index: 200;
 }
@@ -223,10 +223,10 @@ const goHome = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 20px;
+  gap: 2px;
+  padding: 6px 15px;
   color: #909399;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
 }
 
@@ -235,7 +235,7 @@ const goHome = () => {
 }
 
 .nav-item .el-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 /* Responsive */
@@ -260,15 +260,59 @@ const goHome = () => {
     display: none;
   }
   
+  .app-header {
+    height: 44px;
+    min-height: 44px;
+  }
+  
+  .header-content {
+    padding: 0 12px;
+  }
+  
+  .logo {
+    font-size: 16px;
+  }
+  
   .main-content {
-    padding: 15px;
-    padding-bottom: 90px;
+    padding: 10px;
+    padding-bottom: 60px;  /* Compact bottom nav */
   }
   
   .player-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .player-header .el-button {
+    padding: 6px 10px;
+  }
+  
+  .current-title {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+  .main-content {
+    padding: 8px;
+    padding-bottom: 55px;
+  }
+  
+  .mobile-nav {
+    padding: 4px 0;
+  }
+  
+  .nav-item {
+    padding: 4px 10px;
+    font-size: 9px;
+  }
+  
+  .nav-item .el-icon {
+    font-size: 16px;
   }
 }
 </style>
