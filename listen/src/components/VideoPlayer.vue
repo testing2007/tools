@@ -10,7 +10,7 @@
           playsinline
           webkit-playsinline
           @timeupdate="onTimeUpdate"
-          @play="isPlaying = true"
+          @play="onPlay"
           @pause="isPlaying = false"
           @loadedmetadata="onVideoLoaded"
           @fullscreenchange="onFullscreenChange"
@@ -32,6 +32,28 @@
           v-if="showBlurMask" 
           class="subtitle-blur-mask"
           :style="{ bottom: maskBottom + 'px', height: maskHeight + 'px' }"
+        ></div>
+        
+        <!-- Mobile overlay header (tap to show/hide) -->
+        <transition name="fade">
+          <div 
+            v-if="showOverlayHeader && showOverlayHeaderVisible" 
+            class="overlay-header"
+            @click.stop
+          >
+            <el-button size="small" @click="emit('back')" plain>
+              <el-icon><ArrowLeft /></el-icon>
+              返回
+            </el-button>
+            <span class="overlay-title">{{ title }}</span>
+          </div>
+        </transition>
+        
+        <!-- Invisible tap area for showing overlay -->
+        <div 
+          v-if="showOverlayHeader"
+          class="tap-area"
+          @click="showOverlayHeaderVisible = !showOverlayHeaderVisible"
         ></div>
       </div>
 
@@ -135,7 +157,7 @@
             :key="sub.id"
             class="subtitle-item"
             :class="{
-              'is-active': currentSubtitleId === sub.id,
+              'is-active': singleSentenceMode ? (currentPlayingSubId === sub.id) : (currentSubtitleId === sub.id),
               'is-revealed': autoReveal || revealedIds.has(sub.id)
             }"
             @click="seekToSubtitle(sub)"
@@ -188,7 +210,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { 
   VideoPlay, VideoPause, DArrowLeft, DArrowRight, 
-  List, Document, View, Hide, Setting, Aim, Refresh
+  List, Document, View, Hide, Setting, Aim, Refresh, ArrowLeft
 } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -203,8 +225,18 @@ const props = defineProps({
   subtitleContent: {
     type: String,
     default: ''
+  },
+  title: {
+    type: String,
+    default: ''
+  },
+  showOverlayHeader: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['back'])
 
 const containerEl = ref(null)
 const videoWrapperEl = ref(null)
@@ -222,6 +254,7 @@ const revealedIds = ref(new Set())
 const subtitleTrackUrl = ref('')
 const singleSentenceMode = ref(false)  // Single sentence mode
 const currentPlayingSubId = ref(null)  // Track which subtitle is being played
+const showOverlayHeaderVisible = ref(false)  // For mobile overlay header tap-to-show
 
 // Mask settings with localStorage persistence
 const showMaskSettings = ref(false)
@@ -298,11 +331,12 @@ const onTimeUpdate = () => {
     currentTime.value = videoEl.value.currentTime
     
     // Single sentence mode: pause at end of current subtitle
+    // Keep currentPlayingSubId so the highlight remains
     if (singleSentenceMode.value && currentPlayingSubId.value) {
       const sub = props.subtitles.find(s => s.id === currentPlayingSubId.value)
       if (sub && currentTime.value >= sub.endTime) {
         videoEl.value.pause()
-        currentPlayingSubId.value = null
+        // Do NOT clear currentPlayingSubId - keep highlight for replay
       }
     }
   }
@@ -321,8 +355,43 @@ const togglePlay = () => {
   if (isPlaying.value) {
     videoEl.value.pause()
   } else {
+    // In single sentence mode, if we have a selected subtitle and video is paused at/past its end,
+    // seek back to the start of that subtitle for replay
+    if (singleSentenceMode.value && currentPlayingSubId.value) {
+      const sub = props.subtitles.find(s => s.id === currentPlayingSubId.value)
+      if (sub && videoEl.value.currentTime >= sub.endTime) {
+        videoEl.value.currentTime = sub.startTime
+      }
+    }
+    isOurPlayAction.value = true  // Mark that this is our button, not native controls
     videoEl.value.play()
   }
+}
+
+// Track if play was triggered by our button (true) or native controls (false)
+const isOurPlayAction = ref(false)
+
+const onPlay = () => {
+  isPlaying.value = true
+  
+  // For native controls: follow current mode setting
+  if (!isOurPlayAction.value && singleSentenceMode.value) {
+    // In single sentence mode, set currentPlayingSubId to current subtitle based on time
+    // This enables proper pause at subtitle end and blue highlight
+    const currentSub = props.subtitles.find(s => 
+      videoEl.value.currentTime >= s.startTime && videoEl.value.currentTime <= s.endTime
+    )
+    if (currentSub) {
+      currentPlayingSubId.value = currentSub.id
+    } else {
+      // If between subtitles, find the next subtitle
+      const nextSub = props.subtitles.find(s => videoEl.value.currentTime < s.startTime)
+      if (nextSub) {
+        currentPlayingSubId.value = nextSub.id
+      }
+    }
+  }
+  isOurPlayAction.value = false  // Reset for next play action
 }
 
 const skipTime = (seconds) => {
@@ -334,7 +403,6 @@ const skipTime = (seconds) => {
 const seekToSubtitle = (sub) => {
   if (!videoEl.value || !sub) return
   
-  
   const startTime = parseFloat(sub.startTime) || 0
   console.log('[VideoPlayer] Seeking to subtitle:', sub.id, 'time:', startTime)
   
@@ -345,15 +413,15 @@ const seekToSubtitle = (sub) => {
     currentPlayingSubId.value = null
   }
   
-  // Direct seek and play
-  videoEl.value.currentTime = startTime
+  // Use seeked event to ensure seek completes before playing
+  const onSeeked = () => {
+    videoEl.value.removeEventListener('seeked', onSeeked)
+    isOurPlayAction.value = true  // Mark as our action to prevent onPlay from overwriting
+    videoEl.value.play().catch(e => console.log('Play error:', e))
+  }
   
-  // Small delay to ensure seek completes
-  setTimeout(() => {
-    if (videoEl.value) {
-      videoEl.value.play().catch(e => console.log('Play error:', e))
-    }
-  }, 100)
+  videoEl.value.addEventListener('seeked', onSeeked)
+  videoEl.value.currentTime = startTime
 }
 
 const toggleReveal = (id) => {
@@ -371,14 +439,40 @@ const saveMaskSettings = () => {
   showMaskSettings.value = false  // Close popover
 }
 
-// Auto-scroll to current subtitle
-watch(currentSubtitleId, async (id) => {
-  if (!id || !subtitleListEl.value) return
-  
-  await nextTick()
-  const activeEl = subtitleListEl.value.querySelector('.is-active')
-  if (activeEl) {
-    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+// Auto-scroll to current subtitle (disabled to prevent jumping)
+// Users can manually scroll through the list
+// watch(currentSubtitleId, async (id) => {
+//   if (!id || !subtitleListEl.value) return
+//   await nextTick()
+//   const activeEl = subtitleListEl.value.querySelector('.is-active')
+//   if (activeEl) {
+//     activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+//   }
+// })
+
+// When switching to single sentence mode, immediately activate current subtitle
+watch(singleSentenceMode, (newVal) => {
+  if (newVal && currentSubtitleId.value) {
+    // Immediately set the current playing subtitle to the one being played
+    currentPlayingSubId.value = currentSubtitleId.value
+  } else if (!newVal) {
+    // When switching to continuous mode:
+    // 1. Clear the single sentence lock
+    const lastPlayedId = currentPlayingSubId.value
+    currentPlayingSubId.value = null
+    
+    // 2. If video is paused and we have a last played subtitle, seek to next and play
+    if (videoEl.value && videoEl.value.paused && lastPlayedId) {
+      const currentIndex = props.subtitles.findIndex(s => s.id === lastPlayedId)
+      const nextSub = props.subtitles[currentIndex + 1]
+      
+      if (nextSub) {
+        // Seek to next subtitle and play
+        videoEl.value.currentTime = nextSub.startTime
+        videoEl.value.play().catch(e => console.log('Play error:', e))
+      }
+      // If no next subtitle (last one), just stay where we are
+    }
   }
 })
 
@@ -403,13 +497,17 @@ onUnmounted(() => {
   display: flex;
   gap: 20px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  flex: 1;
+  min-height: 0;  /* Important for flex child to shrink */
 }
 
 .video-section {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .video-wrapper {
@@ -418,10 +516,12 @@ onUnmounted(() => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  max-height: calc(100vh - 180px);  /* Leave room for header and controls */
 }
 
 .main-video {
   width: 100%;
+  max-height: calc(100vh - 180px);  /* Match wrapper constraint */
   display: block;
 }
 
@@ -469,6 +569,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;  /* Prevent controls from being hidden */
 }
 
 .control-left, .control-right {
@@ -512,14 +613,15 @@ onUnmounted(() => {
 
 /* Subtitle Panel */
 .subtitle-panel {
-  width: 380px;
+  width: 320px;
   flex-shrink: 0;
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  max-height: 70vh;
+  max-height: calc(100vh - 120px);  /* Enable scrollbar by constraining height */
+  overflow: hidden;
 }
 
 .panel-header {
@@ -755,5 +857,94 @@ onUnmounted(() => {
     padding: 4px 8px;
     margin-top: 5px;
   }
+}
+
+/* Mobile portrait mode - vertical layout with maximized subtitle panel */
+@media (max-width: 768px) and (orientation: portrait) {
+  .video-player-container {
+    flex-direction: column;
+    gap: 5px;
+    height: 100%;
+  }
+  
+  .video-section {
+    flex: none;  /* Don't grow - let subtitle panel take remaining space */
+  }
+  
+  .video-wrapper {
+    max-height: 28vh;
+    border-radius: 8px;
+  }
+  
+  .main-video {
+    max-height: 28vh;
+  }
+  
+  .video-controls {
+    margin-top: 5px;
+    padding: 4px 8px;
+  }
+  
+  .subtitle-panel {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    max-height: none !important;
+    border-radius: 8px;
+  }
+  
+  .subtitle-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .panel-header {
+    padding: 10px 15px;
+    flex-shrink: 0;
+  }
+}
+
+/* Overlay header styles */
+.overlay-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 15px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
+}
+
+.overlay-title {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.tap-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  z-index: 50;
+  cursor: pointer;
+}
+
+/* Fade transition for overlay */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

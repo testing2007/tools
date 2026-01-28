@@ -14,6 +14,10 @@ export default defineConfig({
         target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/tools\/listen-api/, '')
+      },
+      '/tools/listen/uploads': {
+        target: 'http://localhost',  // nginx on port 80
+        changeOrigin: true
       }
     }
   }

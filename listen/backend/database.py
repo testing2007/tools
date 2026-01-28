@@ -64,8 +64,10 @@ def init_database():
                     title VARCHAR(255) NOT NULL,
                     video_filename VARCHAR(255) NOT NULL,
                     subtitle_filename VARCHAR(255),
+                    source_url VARCHAR(512),
                     duration INT DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_source_url (source_url(255))
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
             conn.commit()
@@ -102,16 +104,26 @@ def get_video(video_id: int):
             """, (video_id,))
             return cursor.fetchone()
 
-def create_video(title: str, video_filename: str, subtitle_filename: str = None, duration: int = 0):
+def create_video(title: str, video_filename: str, subtitle_filename: str = None, duration: int = 0, source_url: str = None):
     """Create new video record"""
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO videos (title, video_filename, subtitle_filename, duration)
-                VALUES (%s, %s, %s, %s)
-            """, (title, video_filename, subtitle_filename, duration))
+                INSERT INTO videos (title, video_filename, subtitle_filename, duration, source_url)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (title, video_filename, subtitle_filename, duration, source_url))
             conn.commit()
             return cursor.lastrowid
+
+def get_video_by_source_url(source_url: str):
+    """Get video by source URL to check for duplicates"""
+    with get_db_connection() as conn:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, title, video_filename, subtitle_filename, source_url, duration, created_at 
+                FROM videos WHERE source_url = %s
+            """, (source_url,))
+            return cursor.fetchone()
 
 def delete_video(video_id: int):
     """Delete video record"""

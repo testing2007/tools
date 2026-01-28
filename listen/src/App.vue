@@ -1,6 +1,7 @@
 <template>
   <el-container class="layout-container">
-    <!-- <el-header class="app-header">
+    <!-- Hide header on mobile when playing video -->
+    <el-header class="app-header" v-if="!isMobile || !videoData">
       <div class="header-content">
         <div class="logo" @click="goHome" style="cursor: pointer;">
           <el-icon :size="24"><Microphone /></el-icon>
@@ -19,15 +20,20 @@
             <el-icon><VideoCamera /></el-icon>
             Import Video
           </el-button>
+          <el-button type="danger" @click="showYoutubeImport = true" plain>
+            <el-icon><VideoPlay /></el-icon>
+            YouTube
+          </el-button>
         </div>
       </div>
-    </el-header> -->
+    </el-header>
 
-    <el-main class="main-content">
+    <el-main class="main-content" :class="{ 'mobile-video-mode': isMobile && videoData }">
       <div :class="videoData ? 'content-wrapper-wide' : 'content-wrapper'">
         <!-- Video Player Mode -->
         <div v-if="videoData" class="player-container">
-          <div class="player-header">
+          <!-- Desktop only: show header above video -->
+          <div class="player-header desktop-only">
             <el-button @click="goHome" size="small" plain>
               <el-icon><ArrowLeft /></el-icon>
               返回列表
@@ -38,6 +44,9 @@
             :video-url="videoData.videoUrl"
             :subtitles="videoData.subtitles"
             :subtitle-content="videoData.subtitleContent || ''"
+            :title="videoData.title"
+            :show-overlay-header="isMobile"
+            @back="goHome"
           />
         </div>
 
@@ -59,9 +68,13 @@
         <el-icon><Document /></el-icon>
         <span>PDF</span>
       </div>
+      <div class="nav-item" @click="showYoutubeImport = true">
+        <el-icon><VideoPlay /></el-icon>
+        <span>YouTube</span>
+      </div>
       <div class="nav-item active" @click="goHome">
         <el-icon><Film /></el-icon>
-        <span>视频</span>
+        <span>列表</span>
       </div>
     </div>
 
@@ -82,7 +95,6 @@
     >
       <PdfDialogueProcessor @processed="handleProcessed" />
     </el-dialog>
-
     <el-dialog
       v-model="showVideoImport"
       title="Import Video with Subtitles"
@@ -91,22 +103,33 @@
     >
       <VideoProcessor @processed="handleVideoProcessed" />
     </el-dialog>
+
+    <el-dialog
+      v-model="showYoutubeImport"
+      title="Fetch from YouTube"
+      :width="isMobile ? '95%' : '600px'"
+      append-to-body
+    >
+      <YoutubeProcessor @processed="handleVideoProcessed" />
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Document, VideoCamera, ArrowLeft, Film } from '@element-plus/icons-vue'
+import { Document, VideoCamera, ArrowLeft, Film, VideoPlay, Microphone, Upload } from '@element-plus/icons-vue'
 import AudioProcessor from './components/AudioProcessor.vue'
 import ListeningBench from './components/ListeningBench.vue'
 import PdfDialogueProcessor from './components/PdfDialogueProcessor.vue'
 import VideoProcessor from './components/VideoProcessor.vue'
+import YoutubeProcessor from './components/YoutubeProcessor.vue'
 import VideoPlayer from './components/VideoPlayer.vue'
 import VideoLibrary from './components/VideoLibrary.vue'
 
 const showUpload = ref(false)
 const showPdfImport = ref(false)
 const showVideoImport = ref(false)
+const showYoutubeImport = ref(false)
 const sentences = ref([])
 const videoData = ref(null)
 
@@ -138,7 +161,8 @@ const goHome = () => {
 
 <style scoped>
 .layout-container {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
@@ -156,8 +180,6 @@ const goHome = () => {
 
 .header-content {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -174,8 +196,9 @@ const goHome = () => {
 }
 
 .main-content {
-  padding: 20px;
-  padding-bottom: 80px; /* Space for mobile nav */
+  padding: 10px 20px;
+  overflow: hidden;
+  height: calc(100vh - 60px);  /* Subtract header height */
 }
 
 .content-wrapper {
@@ -184,19 +207,23 @@ const goHome = () => {
 }
 
 .content-wrapper-wide {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  /* Full width for video player */
 }
 
 .player-container {
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .player-header {
   display: flex;
   align-items: center;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .current-title {
@@ -292,6 +319,20 @@ const goHome = () => {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
+  }
+  
+  /* Mobile video mode - full height */
+  .mobile-video-mode {
+    padding: 0 !important;
+    height: 100vh !important;
+  }
+  
+  .mobile-video-mode .content-wrapper-wide {
+    height: 100%;
+  }
+  
+  .mobile-video-mode .player-container {
+    height: 100%;
   }
 }
 

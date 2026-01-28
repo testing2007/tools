@@ -4,3 +4,8 @@ python-multipart==0.0.6
 pymysql==1.1.0
 aiofiles==23.2.1
 cryptography==42.0.0
+yt-dlp>=2024.10.22
+openai-whisper==20250625
+moviepy==1.0.3
+setuptools
+numpy<2.0.0
