@@ -38,5 +38,5 @@ echo.
 echo Starting server on http://localhost:8001
 echo Press Ctrl+C to stop
 echo.
-
+set YOUTUBE_PROXY=socks5://127.0.0.1:10808
 python main.py
