@@ -17,8 +17,8 @@ from pydantic import BaseModel
 import database
 import youtube_service
 
-# Config
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+# Config - temp_media is in project root (outside backend folder) for cleaner deployment
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp_media")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Nginx static folder (Windows only) - files are synced here and deleted from UPLOAD_DIR
@@ -252,6 +252,32 @@ async def start_youtube_process(request: YoutubeRequest, background_tasks: Backg
 async def get_youtube_status(task_id: str):
     """Get status of a YouTube task"""
     return youtube_service.get_task_status(task_id)
+
+# Audio URL processing endpoints
+import audio_url_service
+
+class AudioUrlRequest(BaseModel):
+    url: str
+    title: Optional[str] = None
+
+@app.post("/videos/audio-url")
+async def start_audio_url_process(request: AudioUrlRequest, background_tasks: BackgroundTasks):
+    """Start audio URL download and transcription task"""
+    task_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        audio_url_service.process_audio_url,
+        task_id,
+        request.url,
+        request.title,
+        UPLOAD_DIR,
+        database
+    )
+    return {"task_id": task_id}
+
+@app.get("/videos/audio-url/status/{task_id}")
+async def get_audio_url_status(task_id: str):
+    """Get status of an audio URL task"""
+    return audio_url_service.get_task_status(task_id)
 
 if __name__ == "__main__":
     import uvicorn

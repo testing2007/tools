@@ -224,7 +224,7 @@ async def process_youtube_video(task_id: str, url: str, upload_dir: str, databas
             "stepDescriptions": ["解析成功", "下载完成", f"转录完成 (生成 {segment_count} 条字幕)"]
         })
         
-        # 7. Sync to Nginx folder (Windows only) - keep source files for backend serving
+        # 7. Sync to Nginx folder (Windows only) and cleanup temp files
         if NGINX_UPLOADS_DIR and os.path.exists(NGINX_UPLOADS_DIR):
             try:
                 # Copy video and subtitle to nginx folder
@@ -235,9 +235,23 @@ async def process_youtube_video(task_id: str, url: str, upload_dir: str, databas
                 shutil.copy2(subtitle_path, nginx_subtitle_path)
                 print(f"[Sync] Copied files to nginx folder: {NGINX_UPLOADS_DIR}")
                 
-                # Note: Not deleting source files so backend can serve them via /uploads
+                # Delete temp files after successful copy
+                try:
+                    os.remove(video_path)
+                    os.remove(subtitle_path)
+                    print(f"[Cleanup] Removed temp files from: {upload_dir}")
+                except Exception as cleanup_error:
+                    print(f"[Cleanup] Warning: Failed to remove temp files: {cleanup_error}")
             except Exception as sync_error:
                 print(f"[Sync] Warning: Failed to sync files: {sync_error}")
+        
+        # 8. Cleanup audio temp file (always, even if no nginx copy)
+        if os.path.exists(audio_path):
+            try:
+                os.remove(audio_path)
+                print(f"[Cleanup] Removed audio temp file: {audio_path}")
+            except Exception as cleanup_error:
+                print(f"[Cleanup] Warning: Failed to remove audio file: {cleanup_error}")
 
     except Exception as e:
         import traceback

@@ -1,7 +1,7 @@
 <template>
   <div class="video-player-container" ref="containerEl">
     <!-- Video Section -->
-    <div class="video-section">
+    <div class="video-section" :class="{ 'has-scroll': showLyricsView || showSubtitleOverlay }">
       <div class="video-wrapper" ref="videoWrapperEl">
         <video
           ref="videoEl"
@@ -56,6 +56,27 @@
           @click="showOverlayHeaderVisible = !showOverlayHeaderVisible"
         ></div>
       </div>
+
+      <!-- Subtitle Overlay (above progress bar) -->
+      <transition name="fade">
+        <div 
+          v-if="showSubtitleOverlay" 
+          class="subtitle-overlay" 
+          @click="replayCurrentSentence"
+          :class="{ 'can-click': !!currentSubtitleText }"
+        >
+          <span v-if="subtitleOverlayTextVisible && currentSubtitleText" class="subtitle-text">{{ currentSubtitleText }}</span>
+          <span v-else-if="!subtitleOverlayTextVisible" class="subtitle-text subtitle-hidden">••••••••••••••••••••</span>
+          <span v-else class="subtitle-text subtitle-empty">...</span>
+          <el-button 
+            class="overlay-toggle-btn"
+            :icon="subtitleOverlayTextVisible ? View : Hide"
+            circle
+            size="small"
+            @click.stop="subtitleOverlayTextVisible = !subtitleOverlayTextVisible"
+          />
+        </div>
+      </transition>
 
       <!-- Video Controls -->
       <div class="video-controls">
@@ -127,6 +148,31 @@
             </div>
           </el-popover>
 
+          <!-- Subtitle Overlay Toggle (CC button) -->
+          <el-tooltip content="字幕叠加" placement="top">
+            <el-button
+              :type="showSubtitleOverlay ? 'success' : 'default'"
+              size="small"
+              @click="showSubtitleOverlay = !showSubtitleOverlay"
+              style="margin-left: 10px;"
+            >
+              <span style="font-weight: bold;">CC</span>
+            </el-button>
+          </el-tooltip>
+
+          <!-- Lyrics View Toggle -->
+          <el-tooltip content="下方精读" placement="top">
+            <el-button
+              :type="showLyricsView ? 'warning' : 'default'"
+              size="small"
+              @click="showLyricsView = !showLyricsView"
+              style="margin-left: 10px;"
+            >
+              <el-icon><Document /></el-icon>
+              <span class="hide-mobile">精读</span>
+            </el-button>
+          </el-tooltip>
+
           <!-- Subtitle Panel Toggle -->
           <el-button
             :type="showSubtitles ? 'primary' : 'default'"
@@ -139,58 +185,103 @@
           </el-button>
         </div>
       </div>
+
+      <!-- Lyrics-style Full Text View (Below controls) -->
+      <transition name="fade">
+        <div v-if="showLyricsView" class="lyrics-view-container">
+          <div class="lyrics-list" ref="lyricsListEl">
+            <div 
+              v-for="sub in subtitles" 
+              :key="'lyrics-'+sub.id"
+              class="lyrics-line"
+              :class="{ 'is-active': currentSubtitleId === sub.id }"
+              @click="seekToSubtitle(sub)"
+            >
+              {{ sub.text }}
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
 
     <!-- Subtitle Panel (collapsible) -->
     <transition name="slide">
       <div v-show="showSubtitles" class="subtitle-panel">
         <div class="panel-header">
-          <h3><el-icon><Document /></el-icon> 字幕列表</h3>
+          <h3><el-icon><Document /></el-icon> 字幕</h3>
           <div class="panel-actions">
+            <el-radio-group v-model="subtitleViewMode" size="small" style="margin-right: 10px;">
+              <el-radio-button label="list">列表</el-radio-button>
+              <el-radio-button label="full">精读</el-radio-button>
+            </el-radio-group>
             <el-checkbox v-model="autoReveal" size="small">显示全部</el-checkbox>
           </div>
         </div>
 
-        <div class="subtitle-list" ref="subtitleListEl">
-          <div
-            v-for="(sub, index) in subtitles"
-            :key="sub.id"
-            class="subtitle-item"
-            :class="{
-              'is-active': singleSentenceMode ? (currentPlayingSubId === sub.id) : (currentSubtitleId === sub.id),
-              'is-revealed': autoReveal || revealedIds.has(sub.id)
-            }"
-            @click="seekToSubtitle(sub)"
-          >
-            <div class="sub-left">
-              <span class="sub-index">{{ index + 1 }}</span>
-              <span class="sub-time">{{ formatTime(sub.startTime) }}</span>
-            </div>
+        <div class="subtitle-list" ref="subtitleListEl" :class="subtitleViewMode">
+          <!-- List View Mode (Default) -->
+          <template v-if="subtitleViewMode === 'list'">
+            <div
+              v-for="(sub, index) in subtitles"
+              :key="sub.id"
+              class="subtitle-item"
+              :class="{
+                'is-active': singleSentenceMode ? (currentPlayingSubId === sub.id) : (currentSubtitleId === sub.id),
+                'is-revealed': autoReveal || revealedIds.has(sub.id)
+              }"
+              @click="seekToSubtitle(sub)"
+            >
+              <div class="sub-left">
+                <span class="sub-index">{{ index + 1 }}</span>
+                <span class="sub-time">{{ formatTime(sub.startTime) }}</span>
+              </div>
 
-            <div class="sub-content">
+              <div class="sub-content">
+                <template v-if="autoReveal || revealedIds.has(sub.id)">
+                  {{ sub.text }}
+                </template>
+                <template v-else>
+                  <span class="blur-text">•••••••••••••••••••••</span>
+                </template>
+              </div>
+
+              <div class="sub-actions" @click.stop>
+                <el-button
+                  v-if="!autoReveal"
+                  :type="revealedIds.has(sub.id) ? 'info' : 'success'"
+                  size="small"
+                  circle
+                  @click="toggleReveal(sub.id)"
+                >
+                  <el-icon>
+                    <View v-if="!revealedIds.has(sub.id)" />
+                    <Hide v-else />
+                  </el-icon>
+                </el-button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Full View Mode (Simple List of lines) -->
+          <template v-else>
+            <div 
+              v-for="(sub, index) in subtitles" 
+              :key="'full-'+sub.id"
+              class="full-view-line"
+              :class="{
+                'is-active': singleSentenceMode ? (currentPlayingSubId === sub.id) : (currentSubtitleId === sub.id),
+                'is-revealed': autoReveal || revealedIds.has(sub.id)
+              }"
+              @click="seekToSubtitle(sub)"
+            >
               <template v-if="autoReveal || revealedIds.has(sub.id)">
-                {{ sub.text }}
+                <span class="line-text">{{ sub.text }}</span>
               </template>
               <template v-else>
-                <span class="blur-text">•••••••••••••••••••••</span>
+                <span class="blur-text">••••••••••••••••••••••••••••••••••••</span>
               </template>
             </div>
-
-            <div class="sub-actions" @click.stop>
-              <el-button
-                v-if="!autoReveal"
-                :type="revealedIds.has(sub.id) ? 'info' : 'success'"
-                size="small"
-                circle
-                @click="toggleReveal(sub.id)"
-              >
-                <el-icon>
-                  <View v-if="!revealedIds.has(sub.id)" />
-                  <Hide v-else />
-                </el-icon>
-              </el-button>
-            </div>
-          </div>
+          </template>
         </div>
       </div>
     </transition>
@@ -255,6 +346,11 @@ const subtitleTrackUrl = ref('')
 const singleSentenceMode = ref(false)  // Single sentence mode
 const currentPlayingSubId = ref(null)  // Track which subtitle is being played
 const showOverlayHeaderVisible = ref(false)  // For mobile overlay header tap-to-show
+const showSubtitleOverlay = ref(false)  // Subtitle overlay above progress bar (default off)
+const subtitleOverlayTextVisible = ref(true)  // Whether to show text in subtitle overlay
+const subtitleViewMode = ref('list')  // 'list' or 'full' view modes
+const showLyricsView = ref(true)  // Show full text below video
+const lyricsListEl = ref(null)    // Ref for the lyrics container
 
 // Mask settings with localStorage persistence
 const showMaskSettings = ref(false)
@@ -266,6 +362,23 @@ const currentSubtitleId = computed(() => {
   const sub = props.subtitles.find(s => time >= s.startTime && time <= s.endTime)
   return sub ? sub.id : null
 })
+
+// Current subtitle text for overlay display
+const currentSubtitleText = computed(() => {
+  const time = currentTime.value
+  const sub = props.subtitles.find(s => time >= s.startTime && time <= s.endTime)
+  return sub ? sub.text : ''
+})
+
+const replayCurrentSentence = () => {
+  if (!videoEl.value) return
+  const time = videoEl.value.currentTime
+  const sub = props.subtitles.find(s => time >= s.startTime && time <= s.endTime)
+  if (sub) {
+    videoEl.value.currentTime = sub.startTime
+    videoEl.value.play()
+  }
+}
 
 const formatTime = (seconds) => {
   if (isNaN(seconds)) return '00:00'
@@ -439,16 +552,19 @@ const saveMaskSettings = () => {
   showMaskSettings.value = false  // Close popover
 }
 
-// Auto-scroll to current subtitle (disabled to prevent jumping)
-// Users can manually scroll through the list
-// watch(currentSubtitleId, async (id) => {
-//   if (!id || !subtitleListEl.value) return
-//   await nextTick()
-//   const activeEl = subtitleListEl.value.querySelector('.is-active')
-//   if (activeEl) {
-//     activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-//   }
-// })
+// Auto-scroll logic for Lyrics View
+watch(currentSubtitleId, async (newId) => {
+  if (newId && showLyricsView.value && lyricsListEl.value) {
+    await nextTick()
+    const activeItem = lyricsListEl.value.querySelector('.lyrics-line.is-active')
+    if (activeItem) {
+      activeItem.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+    }
+  }
+})
 
 // When switching to single sentence mode, immediately activate current subtitle
 watch(singleSentenceMode, (newVal) => {
@@ -517,12 +633,30 @@ onUnmounted(() => {
   overflow: hidden;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   max-height: calc(100vh - 180px);  /* Leave room for header and controls */
+  transition: all 0.3s ease;
 }
 
 .main-video {
   width: 100%;
   max-height: calc(100vh - 180px);  /* Match wrapper constraint */
   display: block;
+}
+
+/* When lyrics view or CC overlay is active, allow scrolling and prevent shrinking */
+.video-section.has-scroll {
+  overflow-y: auto !important;
+  display: block !important; /* Switch from flex to block to allow scrolling */
+  padding-bottom: 20px;
+}
+
+.video-section.has-scroll .video-wrapper {
+  flex-shrink: 0;
+  max-height: none !important; /* Remove constraints */
+  min-height: 480px; /* Ensure video stays large enough */
+}
+
+.video-section.has-scroll .main-video {
+  max-height: 60vh; /* Limit video height so it doesn't take too much space */
 }
 
 /* Blur mask to hide hard-coded subtitles */
@@ -557,6 +691,63 @@ onUnmounted(() => {
   z-index: 2147483647;
 }
 
+/* Subtitle Overlay above progress bar */
+.subtitle-overlay {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 40px; /* Extra padding for the toggle button */
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  min-height: 50px;
+}
+
+.subtitle-overlay .subtitle-text {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  word-break: break-word;
+}
+
+.subtitle-overlay .subtitle-hidden {
+  opacity: 0.6;
+  letter-spacing: 2px;
+}
+
+.subtitle-overlay .subtitle-empty {
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.subtitle-overlay.can-click {
+  cursor: pointer;
+}
+
+.subtitle-overlay.can-click:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.overlay-toggle-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: #fff !important;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.overlay-toggle-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
 .video-controls {
   display: flex;
   justify-content: space-between;
@@ -570,6 +761,64 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;  /* Prevent controls from being hidden */
+}
+
+/* Lyrics View below controls */
+.lyrics-view-container {
+  margin-top: 15px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+  height: 400px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.lyrics-list {
+  height: 100%;
+  overflow-y: auto;
+  padding: 160px 0; /* Add padding to top/bottom to allow centering first/last lines */
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lyrics-list::-webkit-scrollbar {
+  width: 6px;
+}
+.lyrics-list::-webkit-scrollbar-thumb {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.lyrics-line {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #909399;
+  padding: 10px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.5;
+  filter: blur(0.5px);
+}
+
+.lyrics-line:hover {
+  color: #606266;
+  opacity: 0.8;
+  filter: blur(0);
+}
+
+.lyrics-line.is-active {
+  color: #409eff;
+  font-size: 24px;
+  font-weight: bold;
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1.05);
+  text-shadow: 0 2px 15px rgba(64, 158, 255, 0.15);
 }
 
 .control-left, .control-right {
@@ -710,7 +959,44 @@ onUnmounted(() => {
 }
 
 .sub-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
   flex-shrink: 0;
+}
+
+/* Full View Specific Styles */
+.subtitle-list.full {
+  padding: 15px;
+}
+
+.full-view-line {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+  line-height: 1.6;
+  font-size: 15px;
+  color: #303133;
+}
+
+.full-view-line:hover {
+  background: #f5f7fa;
+}
+
+.full-view-line.is-active {
+  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+}
+
+.full-view-line.is-active .line-text {
+  font-weight: 500;
+}
+
+.full-view-line .blur-text {
+  opacity: 0.5;
 }
 
 /* Transition */

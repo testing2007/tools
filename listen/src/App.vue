@@ -24,6 +24,10 @@
             <el-icon><VideoPlay /></el-icon>
             YouTube
           </el-button>
+          <el-button type="info" @click="showAudioUrlImport = true" plain>
+            <el-icon><Headset /></el-icon>
+            Podcast
+          </el-button>
         </div>
       </div>
     </el-header>
@@ -72,6 +76,10 @@
         <el-icon><VideoPlay /></el-icon>
         <span>YouTube</span>
       </div>
+      <div class="nav-item" @click="showAudioUrlImport = true">
+        <el-icon><Headset /></el-icon>
+        <span>Podcast</span>
+      </div>
       <div class="nav-item active" @click="goHome">
         <el-icon><Film /></el-icon>
         <span>列表</span>
@@ -112,17 +120,27 @@
     >
       <YoutubeProcessor @processed="handleVideoProcessed" />
     </el-dialog>
+
+    <el-dialog
+      v-model="showAudioUrlImport"
+      title="Import from Podcast/Audio URL"
+      :width="isMobile ? '95%' : '600px'"
+      append-to-body
+    >
+      <AudioUrlProcessor @processed="handleVideoProcessed" />
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Document, VideoCamera, ArrowLeft, Film, VideoPlay, Microphone, Upload } from '@element-plus/icons-vue'
+import { Document, VideoCamera, ArrowLeft, Film, VideoPlay, Microphone, Upload, Headset } from '@element-plus/icons-vue'
 import AudioProcessor from './components/AudioProcessor.vue'
 import ListeningBench from './components/ListeningBench.vue'
 import PdfDialogueProcessor from './components/PdfDialogueProcessor.vue'
 import VideoProcessor from './components/VideoProcessor.vue'
 import YoutubeProcessor from './components/YoutubeProcessor.vue'
+import AudioUrlProcessor from './components/AudioUrlProcessor.vue'
 import VideoPlayer from './components/VideoPlayer.vue'
 import VideoLibrary from './components/VideoLibrary.vue'
 
@@ -130,6 +148,7 @@ const showUpload = ref(false)
 const showPdfImport = ref(false)
 const showVideoImport = ref(false)
 const showYoutubeImport = ref(false)
+const showAudioUrlImport = ref(false)
 const sentences = ref([])
 const videoData = ref(null)
 
@@ -146,6 +165,8 @@ const handleVideoProcessed = (data) => {
   videoData.value = data
   sentences.value = []
   showVideoImport.value = false
+  showYoutubeImport.value = false
+  showAudioUrlImport.value = false
 }
 
 const handleVideoSelect = (data) => {
