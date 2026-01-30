@@ -64,35 +64,86 @@ async def process_youtube_video(task_id: str, url: str, upload_dir: str, databas
         video_path = os.path.join(upload_dir, video_filename)
         
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080]/best',
             'outtmpl': video_path,
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True,
             'nocheckcertificate': True,
-            'retries': 10,  # Retry up to 10 times on failure
-            'fragment_retries': 10,  # Retry fragments up to 10 times
-            'file_access_retries': 5,  # Retry file access errors
-            'extractor_retries': 5,  # Retry extractor errors
-            'socket_timeout': 30,  # 30 seconds timeout
-            'merge_output_format': 'mp4',  # Ensure output is mp4
+            'retries': 10,
+            'fragment_retries': 10,
+            'file_access_retries': 5,
+            'extractor_retries': 5,
+            'socket_timeout': 30,
+            'merge_output_format': 'mp4',
             'postprocessor_args': {
-                'merger': ['-movflags', '+faststart'],  # Enable seeking from any position
+                'merger': ['-movflags', '+faststart'],
             },
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-            }
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://www.youtube.com/',
+            },
+            # v2rayN proxy - default HTTP proxy port is 10809
+            'proxy': 'http://127.0.0.1:10809',
+            'geo_bypass': True,
+            'geo_bypass_country': 'US',
+            # Enable Node.js runtime for YouTube's JavaScript challenges
+            'js_runtimes': {'node': {}},
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['ios', 'android', 'web'],
+                }
+            },
         }
 
         loop = asyncio.get_event_loop()
         
         def download():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # Extract info first
-                info = ydl.extract_info(url, download=True)
-                return info
+            import subprocess
+            import json
+            
+            # Set proxy environment variables
+            env = os.environ.copy()
+            env['HTTP_PROXY'] = 'http://127.0.0.1:10809'
+            env['HTTPS_PROXY'] = 'http://127.0.0.1:10809'
+            env['ALL_PROXY'] = 'http://127.0.0.1:10809'
+            
+            # Build yt-dlp command
+            # Proxy is optional - set YOUTUBE_PROXY env var if needed (e.g., socks5://127.0.0.1:10808)
+            proxy = os.environ.get('YOUTUBE_PROXY', '')
+            
+            cmd = [
+                'yt-dlp',
+                '--js-runtimes', 'node',  # Use Node.js for YouTube JavaScript challenges
+                '-f', 'best',  # Use best available format
+                '--merge-output-format', 'mp4',
+                '--no-playlist',
+                '-o', video_path,
+                '--print-json',
+                url
+            ]
+            
+            # Add proxy if configured (insert right after 'yt-dlp')
+            if proxy:
+                cmd.insert(1, '--proxy')
+                cmd.insert(2, proxy)
+            
+            print(f"[YouTube] Running command: {' '.join(cmd)}")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+            
+            if result.returncode != 0:
+                print(f"[YouTube] Error: {result.stderr}")
+                raise Exception(f"yt-dlp failed: {result.stderr}")
+            
+            # Parse the JSON output (last line)
+            output_lines = result.stdout.strip().split('\n')
+            json_line = output_lines[-1]
+            info = json.loads(json_line)
+            return info
 
         # This will download the file to video_path
         info = await loop.run_in_executor(None, download)

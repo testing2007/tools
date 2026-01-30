@@ -8,6 +8,10 @@ cd /d %~dp0
 echo Installing dependencies...
 pip install -r requirements.txt
 
+echo.
+echo Setting up YouTube proxy for v2rayN...
+set YOUTUBE_PROXY=socks5://127.0.0.1:10808
+
 @REM echo.
 @REM echo Checking Whisper model...
 @REM set WHISPER_CACHE=%USERPROFILE%\.cache\whisper

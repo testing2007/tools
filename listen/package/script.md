@@ -146,6 +146,17 @@ location /tools/listen/ {
     }
 }
 
+# 上传的视频和字幕文件 (新增)
+location /tools/listen/uploads/ {
+    alias /ldtrade/tools/listen/uploads/;
+    
+    # 允许跨域访问（如果需要）
+    add_header Access-Control-Allow-Origin *;
+    
+    # 视频文件支持 Range 请求（进度条 Seek 必须）
+    add_header Accept-Ranges bytes;
+}
+
 # 后端 API
 location /tools/listen-api/ {
     proxy_pass http://127.0.0.1:8001/;
