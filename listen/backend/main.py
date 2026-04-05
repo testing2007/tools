@@ -360,6 +360,34 @@ async def start_audio_url_process(request: AudioUrlRequest, background_tasks: Ba
     )
     return {"task_id": task_id}
 
+@app.post("/videos/audio-upload")
+async def start_audio_upload_process(
+    background_tasks: BackgroundTasks,
+    title: Optional[str] = Form(None),
+    file: UploadFile = File(...)
+):
+    """Start uploaded audio/video processing and transcription task"""
+    task_id = str(uuid.uuid4())
+    audio_ext = os.path.splitext(file.filename)[1]
+    
+    audio_filename = f"{uuid.uuid4().hex}{audio_ext}"
+    audio_path = os.path.join(UPLOAD_DIR, audio_filename)
+    
+    # Save the file immediately
+    async with aiofiles.open(audio_path, 'wb') as f:
+        content = await file.read()
+        await f.write(content)
+        
+    background_tasks.add_task(
+        audio_url_service.process_uploaded_audio,
+        task_id,
+        audio_filename,
+        title if title else file.filename,
+        UPLOAD_DIR,
+        database
+    )
+    return {"task_id": task_id}
+
 @app.get("/videos/audio-url/status/{task_id}")
 async def get_audio_url_status(task_id: str):
     """Get status of an audio URL task"""

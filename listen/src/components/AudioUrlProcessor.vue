@@ -1,19 +1,48 @@
 <template>
   <div class="audio-url-processor">
     <div v-if="!taskInfo" class="input-section">
-      <el-input
-        v-model="url"
-        placeholder="粘贴音频链接 (例如: https://example.com/podcast.mp3)"
-        clearable
-        size="large"
-      >
-        <template #prefix>
-          <el-icon><Link /></el-icon>
-        </template>
-      </el-input>
+      <el-tabs v-model="importMode" class="import-tabs">
+        <el-tab-pane label="URL 链接" name="url">
+          <div class="tab-content">
+            <el-input
+              v-model="url"
+              placeholder="粘贴音频链接 (例如: https://example.com/podcast.mp3)"
+              clearable
+              size="large"
+            >
+              <template #prefix>
+                <el-icon><Link /></el-icon>
+              </template>
+            </el-input>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="本地文件" name="upload">
+          <div class="tab-content">
+            <el-upload
+              class="upload-demo"
+              drag
+              action="#"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              accept="audio/*,video/*"
+              :show-file-list="false"
+            >
+              <el-icon class="el-icon--upload"><Document /></el-icon>
+              <div class="el-upload__text">
+                拖拽音频/视频文件到这里或 <em>点击上传</em>
+              </div>
+            </el-upload>
+            <div class="file-info" v-if="selectedFile">
+              已选择文件: {{ selectedFile.name }}
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+
       <el-input
         v-model="title"
-        placeholder="标题 (可选，留空将自动从链接提取)"
+        placeholder="标题 (可选，留空将自动从资源提取)"
         clearable
         size="large"
       >
@@ -23,12 +52,12 @@
       </el-input>
       <div class="action-buttons">
         <el-button type="primary" :loading="loading" @click="startProcess" size="large">
-          下载并转录
+          提取并转录
         </el-button>
       </div>
       <div class="info-tip">
         <el-icon><InfoFilled /></el-icon>
-        <span>支持 mp3, m4a, wav, ogg, aac 等音频格式，后台将使用 AI 提取英文字幕</span>
+        <span>支持 mp3, m4a, wav, ogg, aac, mp4 等格式，后台将使用 AI 提取英文字幕</span>
       </div>
     </div>
 
@@ -57,10 +86,12 @@
 
 <script setup>
 import { ref, onUnmounted } from 'vue'
-import { Link, InfoFilled, EditPen } from '@element-plus/icons-vue'
+import { Link, InfoFilled, EditPen, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['processed'])
+const importMode = ref('url')
+const selectedFile = ref(null)
 const url = ref('')
 const title = ref('')
 const loading = ref(false)
@@ -73,19 +104,41 @@ const API_BASE = import.meta.env.PROD
   ? '/tools/listen-api' 
   : 'http://localhost:8001'
 
+const handleFileChange = (file) => {
+  if (!file) return
+  selectedFile.value = file.raw
+}
+
 const startProcess = async () => {
-  if (!url.value) {
-    ElMessage.warning('请输入有效的音频链接')
+  if (importMode.value === 'url' && !url.value) {
+    ElMessage.warning('请输入有效的链接')
+    return
+  }
+  if (importMode.value === 'upload' && !selectedFile.value) {
+    ElMessage.warning('请选择需要上传的文件')
     return
   }
 
   loading.value = true
   try {
-    const response = await fetch(`${API_BASE}/videos/audio-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url.value, title: title.value || null })
-    })
+    let response;
+    if (importMode.value === 'url') {
+      response = await fetch(`${API_BASE}/videos/audio-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.value, title: title.value || null })
+      })
+    } else {
+      const formData = new FormData()
+      formData.append('file', selectedFile.value)
+      if (title.value) {
+        formData.append('title', title.value)
+      }
+      response = await fetch(`${API_BASE}/videos/audio-upload`, {
+        method: 'POST',
+        body: formData
+      })
+    }
 
     if (!response.ok) {
         const errorData = await response.json()
@@ -95,9 +148,9 @@ const startProcess = async () => {
     const data = await response.json()
     taskInfo.value = {
       id: data.task_id,
-      title: title.value || '正在处理音频...',
+      title: title.value || (importMode.value === 'url' ? '正在处理链接...' : '正在处理文件...'),
       status: 'processing',
-      stepDescriptions: ['准备下载音频...', '等待开始...', '等待开始...'],
+      stepDescriptions: [importMode.value === 'url' ? '准备下载音频...' : '正在上传文件...', '等待开始...', '等待开始...'],
       error: ''
     }
     loading.value = false
@@ -212,6 +265,7 @@ const resetAll = () => {
   loading.value = false
   url.value = ''
   title.value = ''
+  selectedFile.value = null
 }
 
 onUnmounted(() => {
@@ -274,5 +328,24 @@ onUnmounted(() => {
 :deep(.el-step__description) {
     font-size: 13px;
     margin-top: 4px;
+}
+
+.import-tabs {
+  margin-bottom: 5px;
+}
+
+.tab-content {
+  padding: 10px 0;
+}
+
+.file-info {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #409eff;
+  text-align: center;
+}
+
+:deep(.el-upload-dragger) {
+  padding: 20px;
 }
 </style>

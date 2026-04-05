@@ -111,6 +111,48 @@ async def process_audio_url(task_id: str, url: str, title: str, upload_dir: str,
             "stepDescriptions": ["下载完成", "正在转录音频...", "等待开始..."]
         })
 
+        await _process_audio_core(task_id, unique_id, audio_ext, audio_path, audio_filename, title, url, upload_dir, database, "下载完成")
+
+    except Exception as e:
+        print(f"[AudioURL] Error processing audio: {e}")
+        import traceback
+        traceback.print_exc()
+        audio_tasks[task_id].update({
+            "status": "error",
+            "error": str(e),
+            "stepDescriptions": ["处理失败", str(e), ""]
+        })
+
+async def process_uploaded_audio(task_id: str, audio_filename: str, title: str, upload_dir: str, database):
+    """
+    Background task to transcribe an uploaded audio file
+    """
+    audio_tasks[task_id] = {
+        "status": "processing",
+        "title": title or "Processing uploaded audio...",
+        "progress": "",
+        "stepDescriptions": ["文件处理中", "正在转录音频...", "等待开始..."]
+    }
+
+    try:
+        audio_path = os.path.join(upload_dir, audio_filename)
+        audio_ext = os.path.splitext(audio_filename)[1].lower()
+        unique_id = os.path.splitext(audio_filename)[0]
+
+        await _process_audio_core(task_id, unique_id, audio_ext, audio_path, audio_filename, title, "", upload_dir, database, "上传完成")
+
+    except Exception as e:
+        print(f"[AudioURL Upload] Error processing audio: {e}")
+        import traceback
+        traceback.print_exc()
+        audio_tasks[task_id].update({
+            "status": "error",
+            "error": str(e),
+            "stepDescriptions": ["处理失败", str(e), ""]
+        })
+
+async def _process_audio_core(task_id: str, unique_id: str, audio_ext: str, audio_path: str, audio_filename: str, title: str, source_url: str, upload_dir: str, database, completed_step1_msg: str):
+    try:
         # 4. Convert to MP3 if needed (for Whisper compatibility)
         mp3_path = audio_path
         if audio_ext != '.mp3':
@@ -162,12 +204,11 @@ async def process_audio_url(task_id: str, url: str, title: str, upload_dir: str,
         audio_tasks[task_id]["stepDescriptions"][2] = "正在保存到数据库..."
 
         # 8. Save to Database
-        # For audio-only, we use the audio file as "video_filename"
         video_id = database.create_video(
             title=title,
             video_filename=audio_filename,
             subtitle_filename=subtitle_filename,
-            source_url=url
+            source_url=source_url
         )
 
         # 9. Copy to nginx folder if configured (Windows only)
@@ -192,11 +233,10 @@ async def process_audio_url(task_id: str, url: str, title: str, upload_dir: str,
         audio_tasks[task_id].update({
             "status": "completed",
             "video_id": video_id,
-            "stepDescriptions": ["下载完成", "转录完成", f"成功提取 {segment_count} 条字幕"]
+            "stepDescriptions": [completed_step1_msg, "转录完成", f"成功提取 {segment_count} 条字幕"]
         })
-
     except Exception as e:
-        print(f"[AudioURL] Error processing audio: {e}")
+        print(f"[AudioURL Core] Error processing audio: {e}")
         import traceback
         traceback.print_exc()
         audio_tasks[task_id].update({
