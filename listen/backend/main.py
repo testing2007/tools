@@ -232,6 +232,92 @@ async def delete_video(video_id: int):
     
     return {"message": "Video deleted successfully"}
 
+
+# Translation endpoints
+import deepseek_service
+import json
+
+@app.get("/videos/{video_id}/translation")
+async def get_translation(video_id: int):
+    """Get or generate translation for a video's subtitles"""
+    video = database.get_video(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Check if translation already exists
+    if video.get('translation_filename'):
+        translation_path = os.path.join(UPLOAD_DIR, "translations", video['translation_filename'])
+        
+        # Fallback to nginx folder if not found
+        if not os.path.exists(translation_path) and NGINX_UPLOADS_DIR:
+            translation_path = os.path.join(NGINX_UPLOADS_DIR, "translations", video['translation_filename'])
+        
+        if os.path.exists(translation_path):
+            async with aiofiles.open(translation_path, 'r', encoding='utf-8') as f:
+                content = await f.read()
+                return {"translation": json.loads(content), "cached": True}
+    
+    # No translation exists - need subtitles to translate
+    if not video.get('subtitle_filename'):
+        raise HTTPException(status_code=400, detail="No subtitles available for this video")
+    
+    # Read subtitle content
+    subtitle_path = os.path.join(UPLOAD_DIR, video['subtitle_filename'])
+    if not os.path.exists(subtitle_path) and NGINX_UPLOADS_DIR:
+        subtitle_path = os.path.join(NGINX_UPLOADS_DIR, video['subtitle_filename'])
+    
+    if not os.path.exists(subtitle_path):
+        raise HTTPException(status_code=404, detail="Subtitle file not found")
+    
+    async with aiofiles.open(subtitle_path, 'r', encoding='utf-8') as f:
+        subtitle_content = await f.read()
+    
+    # Parse VTT format (simple parsing)
+    lines = subtitle_content.strip().split('\n')
+    subtitles = []
+    current_text = []
+    
+    for line in lines:
+        line = line.strip()
+        if line.startswith('WEBVTT') or '-->' in line or line.isdigit() or not line:
+            if current_text:
+                subtitles.append({'text': ' '.join(current_text)})
+                current_text = []
+        else:
+            current_text.append(line)
+    
+    if current_text:
+        subtitles.append({'text': ' '.join(current_text)})
+    
+    # Translate using DeepSeek
+    try:
+        translated = deepseek_service.translate_subtitle_batch(subtitles, video['title'])
+        
+        # Save translation
+        translation_filename = deepseek_service.save_translation(video_id, translated, UPLOAD_DIR)
+        
+        # Update database
+        database.update_video_translation(video_id, translation_filename)
+        
+        return {"translation": translated, "cached": False}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+@app.post("/videos/{video_id}/translate")
+async def force_translate(video_id: int):
+    """Force regenerate translation for a video"""
+    # Delete existing translation if any
+    video = database.get_video(video_id)
+    if video and video.get('translation_filename'):
+        translation_path = os.path.join(UPLOAD_DIR, "translations", video['translation_filename'])
+        if os.path.exists(translation_path):
+            os.remove(translation_path)
+    
+    # Call get_translation which will regenerate
+    return await get_translation(video_id)
+
 class YoutubeRequest(BaseModel):
     url: str
 

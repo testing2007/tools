@@ -1,3 +1,6 @@
+@REM 启动 command prompt 命令行而不是 power shell 来完成服务器启动， windows 执行命令 start.bat
+
+
 @echo off
 echo ====================================
 echo Listen API - Windows
@@ -38,5 +41,6 @@ echo.
 echo Starting server on http://localhost:8001
 echo Press Ctrl+C to stop
 echo.
-set YOUTUBE_PROXY=socks5://127.0.0.1:10808
+@REM set YOUTUBE_PROXY=socks5://127.0.0.1:10808
+
 python main.py

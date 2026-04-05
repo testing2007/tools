@@ -1,0 +1,15 @@
+{
+  "name": "developcustomer",
+  "version": "1.0.0",
+  "description": "scraping customer needs info from facebook automatically",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

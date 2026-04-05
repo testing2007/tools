@@ -1,0 +1,139 @@
+{
+  "cookies": [
+    {
+      "name": "_GRECAPTCHA",
+      "value": "09AKhCRwiz7IcX_25McytwsmegW-5CN5n1Hux9_1jYSxOJNStRpXWp8sQ7Q6RPGRDaUlGusBvrWKbL9oYVIkVAqiE",
+      "domain": "www.google.com",
+      "path": "/recaptcha",
+      "expires": 1789304712.567621,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "datr",
+      "value": "6lC5aVPy0_cALSNnvPZPYx-L",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1808312555.350957,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "sb",
+      "value": "M1G5aXfh31uUvi1sn_hOnR7S",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1808312730.310793,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "wd",
+      "value": "1280x800",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1774357486,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "c_user",
+      "value": "100006593493415",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1805288829.068333,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "fr",
+      "value": "10Y2LJVQYi63bkODH.AWe5dKg-jfxrGPD3L6ArpUDwgpHZPRsoslOISwFHbXeaGUE1F8s.BpuVH8..AAA.0.0.BpuVH8.AWcR9S2wyu7Ln4vYAIl7STKokTA",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1781528829.068514,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "xs",
+      "value": "17%3AECc7nB1FnJQeXg%3A2%3A1773752725%3A-1%3A-1%3A%3AAcyOSHdF4d1TtwrXz_EzVPJlje2c7UWvlP6OzFYv6A",
+      "domain": ".facebook.com",
+      "path": "/",
+      "expires": 1805288829.068609,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://www.facebook.com",
+      "localStorage": [
+        {
+          "name": "screen_time_period_logging_facebook",
+          "value": "{\"actorId\":\"100006593493415\",\"currentIntervalLastTick\":1773752829,\"currentIntervalStart\":1773752824,\"initRemoteAgg\":{\"timestamp\":1773752173,\"today_s\":4154},\"intervals\":[],\"lastCallbackAttempt\":1773752824,\"localStorageId\":\"55414119\",\"syncedL24HS\":null,\"syncedTodayS\":null}"
+        },
+        {
+          "name": "last_headload_time",
+          "value": "1773752824714"
+        },
+        {
+          "name": "hb_timestamp",
+          "value": "1773752730509"
+        },
+        {
+          "name": "bdz_playback_state",
+          "value": "{\"session_key\":\"mmgc8dj8\",\"buffer_length\":60}"
+        },
+        {
+          "name": "mw_encrypted_backups_restore_upsell_first_impression_time_key",
+          "value": "1773752824441"
+        },
+        {
+          "name": "ares_last_signal_flush",
+          "value": "1772888826500"
+        },
+        {
+          "name": "signal_flush_timestamp",
+          "value": "1773752700568"
+        },
+        {
+          "name": "Session",
+          "value": "31f1qv:1773752864926"
+        },
+        {
+          "name": "banzai:last_storage_flush",
+          "value": "1773752617868.2"
+        }
+      ]
+    },
+    {
+      "origin": "https://www.fbsbx.com",
+      "localStorage": [
+        {
+          "name": "_grecaptcha",
+          "value": "09AKhCRwiNJaDm7kh4NI3fHEAxSOzkVVde8kwcmrlmF60gpLyDs51XOSer7NLIxkybjYc1etHsVffrWBw3VoQHyeKJiCCCzA2D2jHW9owQge_8dxMUgx4Dyu_b4ufA7gt4"
+        }
+      ]
+    },
+    {
+      "origin": "https://www.google.com",
+      "localStorage": [
+        {
+          "name": "rc::a",
+          "value": "dmdtM2ZlZzRpM2g2"
+        },
+        {
+          "name": "rc::f",
+          "value": "0aAKe0Xz1C3Sj7KrirNAoU-B9JdfhZHrn8LVmRdpXMCeOTcP9OwSvkM2WmK7NZxYZaBjZyRsY"
+        }
+      ]
+    }
+  ]
+}

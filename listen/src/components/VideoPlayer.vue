@@ -183,6 +183,19 @@
             <el-icon><List /></el-icon>
             <span class="hide-mobile">{{ showSubtitles ? '隐藏' : '字幕' }}</span>
           </el-button>
+
+          <!-- Translation Toggle -->
+          <el-tooltip :content="showTranslation ? '隐藏翻译' : '显示翻译'" placement="top">
+            <el-button
+              :type="showTranslation ? 'success' : 'default'"
+              size="small"
+              @click="toggleTranslation"
+              style="margin-left: 10px;"
+              :loading="translationLoading"
+            >
+              <span style="font-weight: bold;">翻译</span>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
 
@@ -197,7 +210,8 @@
               :class="{ 'is-active': currentSubtitleId === sub.id }"
               @click="seekToSubtitle(sub)"
             >
-              {{ sub.text }}
+              <div class="lyrics-text-en">{{ sub.text }}</div>
+              <div v-if="showTranslation && getTranslation(sub.id)" class="lyrics-text-zh">{{ getTranslation(sub.id) }}</div>
             </div>
           </div>
         </div>
@@ -275,7 +289,10 @@
               @click="seekToSubtitle(sub)"
             >
               <template v-if="autoReveal || revealedIds.has(sub.id)">
-                <span class="line-text">{{ sub.text }}</span>
+                <div class="line-content">
+                  <span class="line-text">{{ sub.text }}</span>
+                  <span v-if="showTranslation && getTranslation(sub.id)" class="line-translation">{{ getTranslation(sub.id) }}</span>
+                </div>
               </template>
               <template v-else>
                 <span class="blur-text">••••••••••••••••••••••••••••••••••••</span>
@@ -356,6 +373,11 @@ const lyricsListEl = ref(null)    // Ref for the lyrics container
 const showMaskSettings = ref(false)
 const maskBottom = ref(parseInt(localStorage.getItem('mask_bottom') || '45'))  // Above video controls
 const maskHeight = ref(parseInt(localStorage.getItem('mask_height') || '70'))
+
+// Translation state
+const showTranslation = ref(false)
+const translationLoading = ref(false)
+const translationData = ref(null)  // Stores { translation: [{text, translation}], cached: true/false }
 
 const currentSubtitleId = computed(() => {
   const time = currentTime.value
@@ -550,6 +572,52 @@ const saveMaskSettings = () => {
   localStorage.setItem('mask_bottom', maskBottom.value.toString())
   localStorage.setItem('mask_height', maskHeight.value.toString())
   showMaskSettings.value = false  // Close popover
+}
+
+// Translation functions
+const toggleTranslation = async () => {
+  if (!showTranslation.value) {
+    // Show translation - fetch if not already loaded
+    if (!translationData.value) {
+      await fetchTranslation()
+    }
+    showTranslation.value = true
+  } else {
+    // Hide translation
+    showTranslation.value = false
+  }
+}
+
+const fetchTranslation = async () => {
+  translationLoading.value = true
+  try {
+    // Extract video ID from videoUrl (assuming URL format: /uploads/{video_id}_xxx.mp4 or /videos/{id}/stream)
+    const videoIdMatch = props.videoUrl.match(/\/videos\/(\d+)\//) || props.videoUrl.match(/\/(\d+)_/)
+    if (!videoIdMatch) {
+      console.error('[Translation] Could not extract video ID from URL:', props.videoUrl)
+      throw new Error('Unable to determine video ID')
+    }
+    const videoId = videoIdMatch[1]
+    
+    const response = await fetch(`http://localhost:8001/videos/${videoId}/translation`)
+    if (!response.ok) {
+      throw new Error(`Translation API failed: ${response.statusText}`)
+    }
+    
+    translationData.value = await response.json()
+    console.log('[Translation] Loaded translation:', translationData.value.cached ? 'from cache' : 'newly generated')
+  } catch (error) {
+    console.error('[Translation] Error:', error)
+    alert(`翻译加载失败: ${error.message}`)
+  } finally {
+    translationLoading.value = false
+  }
+}
+
+const getTranslation = (subtitleId) => {
+  if (!translationData.value?.translation) return null
+  const subtitle = translationData.value.translation.find(s => s.text === props.subtitles.find(ps => ps.id === subtitleId)?.text)
+  return subtitle?.translation || null
 }
 
 // Auto-scroll logic for Lyrics View
@@ -1189,6 +1257,26 @@ onUnmounted(() => {
     flex-shrink: 0;
   }
 }
+
+/* Translation styling */
+.lyrics-text-zh, .line-translation {
+  display: block;
+  font-size: 0.9em;
+  color: #888;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.lyrics-line .lyrics-text-en,
+.full-view-line .line-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.line-content {
+  width: 100%;
+}
+
 
 /* Overlay header styles */
 .overlay-header {

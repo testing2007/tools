@@ -89,7 +89,7 @@ def get_videos():
     with get_db_connection() as conn:
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute("""
-                SELECT id, title, video_filename, subtitle_filename, duration, created_at 
+                SELECT id, title, video_filename, subtitle_filename, translation_filename, duration, created_at 
                 FROM videos ORDER BY created_at DESC
             """)
             return cursor.fetchall()
@@ -99,7 +99,7 @@ def get_video(video_id: int):
     with get_db_connection() as conn:
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute("""
-                SELECT id, title, video_filename, subtitle_filename, duration, created_at 
+                SELECT id, title, video_filename, subtitle_filename, translation_filename, duration, created_at 
                 FROM videos WHERE id = %s
             """, (video_id,))
             return cursor.fetchone()
@@ -120,7 +120,7 @@ def get_video_by_source_url(source_url: str):
     with get_db_connection() as conn:
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute("""
-                SELECT id, title, video_filename, subtitle_filename, source_url, duration, created_at 
+                SELECT id, title, video_filename, subtitle_filename, translation_filename, source_url, duration, created_at 
                 FROM videos WHERE source_url = %s
             """, (source_url,))
             return cursor.fetchone()
@@ -130,6 +130,18 @@ def delete_video(video_id: int):
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM videos WHERE id = %s", (video_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+def update_video_translation(video_id: int, translation_filename: str):
+    """Update translation_filename for a video"""
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                UPDATE videos 
+                SET translation_filename = %s 
+                WHERE id = %s
+            """, (translation_filename, video_id))
             conn.commit()
             return cursor.rowcount > 0
 
