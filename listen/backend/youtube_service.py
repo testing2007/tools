@@ -3,7 +3,7 @@ import uuid
 import shutil
 import platform
 import yt_dlp
-import whisper
+from faster_whisper import WhisperModel
 import subprocess
 import re
 import asyncio
@@ -176,26 +176,34 @@ async def process_youtube_video(task_id: str, url: str, upload_dir: str, databas
             raise Exception("Failed to extract audio from video")
 
         # 3. Whisper Transcription
-        def transcribe():
-            # Use 'base' model for decent speed/accuracy on CPU
-            model = whisper.load_model("base")
-            return model.transcribe(audio_path)
-
-        result = await loop.run_in_executor(None, transcribe)
+        tasks[task_id]["stepDescriptions"][2] = "正在准备 Whisper 模型..."
         
-        # 4. Filter and Generate SRT
-        srt_content = ""
-        segment_count = 0
-        for i, segment in enumerate(result.get('segments', [])):
-            start = format_timestamp(segment['start'])
-            end = format_timestamp(segment['end'])
-            text = segment['text'].strip()
+        def transcribe_and_build():
+            # Use 'base' model for decent speed/accuracy on CPU
+            model = WhisperModel("base", compute_type="default")
+            segments, info = model.transcribe(audio_path, vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500))
+            total_duration = info.duration
             
-            # Filter Chinese - only allow English/ASCII (and common punctuation)
-            # Rule: if text contains Chinese characters, skip it
-            if text and not re.search(r'[\u4e00-\u9fa5]', text):
-                segment_count += 1
-                srt_content += f"{segment_count}\n{start} --> {end}\n{text}\n\n"
+            content = ""
+            count = 0
+            for i, segment in enumerate(segments):
+                if total_duration > 0:
+                    progress_percent = int((segment.end / total_duration) * 100)
+                    tasks[task_id]["stepDescriptions"][2] = f"正在进行 AI 转录 ({min(progress_percent, 99)}%)..."
+                    
+                start = format_timestamp(segment.start)
+                end = format_timestamp(segment.end)
+                text = segment.text.strip()
+                
+                # Filter Chinese - only allow English/ASCII (and common punctuation)
+                if text and not re.search(r'[\u4e00-\u9fa5]', text):
+                    count += 1
+                    content += f"{count}\n{start} --> {end}\n{text}\n\n"
+                    
+            tasks[task_id]["stepDescriptions"][2] = "正在进行 AI 转录 (100%)..."
+            return content, count
+
+        srt_content, segment_count = await loop.run_in_executor(None, transcribe_and_build)
 
         # 5. Save Subtitle
         subtitle_filename = f"{unique_id}.srt"

@@ -5,7 +5,7 @@ import subprocess
 import re
 import aiohttp
 import platform
-import whisper
+from faster_whisper import WhisperModel
 from typing import Dict, Any
 
 # Nginx static folder for serving files (Windows local dev)
@@ -172,28 +172,37 @@ async def _process_audio_core(task_id: str, unique_id: str, audio_ext: str, audi
                 mp3_path = audio_path
 
         # 5. Whisper Transcription
-        audio_tasks[task_id]["stepDescriptions"][1] = "正在使用Whisper转录..."
+        audio_tasks[task_id]["stepDescriptions"][1] = "正在准备 Whisper 模型..."
         
         loop = asyncio.get_event_loop()
         
-        def transcribe():
-            model = whisper.load_model("base")
-            return model.transcribe(mp3_path)
-
-        result = await loop.run_in_executor(None, transcribe)
-        
-        # 6. Filter and Generate SRT
-        srt_content = ""
-        segment_count = 0
-        for i, segment in enumerate(result.get('segments', [])):
-            start = format_timestamp(segment['start'])
-            end = format_timestamp(segment['end'])
-            text = segment['text'].strip()
+        def transcribe_and_build():
+            model = WhisperModel("base", compute_type="default")
+            # vad_filter removes silence and speeds up processing
+            segments, info = model.transcribe(mp3_path, vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500))
+            total_duration = info.duration
             
-            # Filter Chinese - only allow English/ASCII
-            if text and not re.search(r'[\u4e00-\u9fa5]', text):
-                segment_count += 1
-                srt_content += f"{segment_count}\n{start} --> {end}\n{text}\n\n"
+            content = ""
+            count = 0
+            for i, segment in enumerate(segments):
+                if total_duration > 0:
+                    progress_percent = int((segment.end / total_duration) * 100)
+                    # Safe thread update of dictionary
+                    audio_tasks[task_id]["stepDescriptions"][1] = f"正在使用Whisper转录 ({min(progress_percent, 99)}%)..."
+                
+                start = format_timestamp(segment.start)
+                end = format_timestamp(segment.end)
+                text = segment.text.strip()
+                
+                # Filter Chinese - only allow English/ASCII
+                if text and not re.search(r'[\u4e00-\u9fa5]', text):
+                    count += 1
+                    content += f"{count}\n{start} --> {end}\n{text}\n\n"
+            
+            audio_tasks[task_id]["stepDescriptions"][1] = "正在使用Whisper转录 (100%)..."
+            return content, count
+
+        srt_content, segment_count = await loop.run_in_executor(None, transcribe_and_build)
 
         # 7. Save Subtitle
         subtitle_filename = f"{unique_id}.srt"
