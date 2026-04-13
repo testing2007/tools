@@ -620,11 +620,23 @@ const getTranslation = (subtitleId) => {
   return subtitle?.translation || null
 }
 
-// Auto-scroll logic for Lyrics View
+// Auto-scroll logic for Lyrics View and Subtitle Panel
 watch(currentSubtitleId, async (newId) => {
-  if (newId && showLyricsView.value && lyricsListEl.value) {
-    await nextTick()
+  if (!newId) return;
+  await nextTick()
+  
+  if (showLyricsView.value && lyricsListEl.value) {
     const activeItem = lyricsListEl.value.querySelector('.lyrics-line.is-active')
+    if (activeItem) {
+      activeItem.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+    }
+  }
+  
+  if (showSubtitles.value && subtitleListEl.value) {
+    const activeItem = subtitleListEl.value.querySelector('.is-active')
     if (activeItem) {
       activeItem.scrollIntoView({
         behavior: 'smooth',
@@ -683,6 +695,7 @@ onUnmounted(() => {
   width: 100%;
   flex: 1;
   min-height: 0;  /* Important for flex child to shrink */
+  overflow: hidden; /* Added to constrain children */
 }
 
 .video-section {
@@ -713,8 +726,8 @@ onUnmounted(() => {
 /* When lyrics view or CC overlay is active, allow scrolling and prevent shrinking */
 .video-section.has-scroll {
   overflow-y: auto !important;
-  display: block !important; /* Switch from flex to block to allow scrolling */
-  padding-bottom: 20px;
+  display: flex !important; 
+  flex-direction: column;
 }
 
 .video-section.has-scroll .video-wrapper {
@@ -854,11 +867,11 @@ onUnmounted(() => {
 }
 
 .lyrics-list::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 .lyrics-list::-webkit-scrollbar-thumb {
   background: #f0f0f0;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .lyrics-line {
@@ -937,7 +950,7 @@ onUnmounted(() => {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 120px);  /* Enable scrollbar by constraining height */
+  max-height: calc(100vh - 120px);
   overflow: hidden;
 }
 
@@ -962,6 +975,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .subtitle-item {
@@ -1084,19 +1098,33 @@ onUnmounted(() => {
   .video-player-container {
     flex-direction: column;
     gap: 10px;
+    height: 100%;
+    overflow: hidden;
   }
 
   .video-section {
     width: 100%;
+    flex: none; /* Shrink to content so subtitle panel can snap right beneath */
+    min-height: 0;
   }
   
-  .video-wrapper {
-    border-radius: 8px;
+  .video-section.has-scroll {
+    flex: 1; /* Expand only when lyrics are visible */
+  }
+  
+  .video-section.has-scroll .video-wrapper {
+    min-height: 0;
+  }
+  
+  .lyrics-view-container {
+    height: 30vh;
   }
 
   .subtitle-panel {
     width: 100%;
-    max-height: 40vh;
+    flex: 1;
+    min-height: 0;
+    max-height: none !important;
     border-radius: 8px;
   }
   
@@ -1219,24 +1247,40 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 5px;
     height: 100%;
+    overflow: hidden;
   }
   
   .video-section {
-    flex: none;  /* Don't grow - let subtitle panel take remaining space */
+    flex: none;  /* Shrink to content so it attaches to video */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .video-section.has-scroll {
+    flex: 1; /* Expand only when lyrics are visible */
   }
   
   .video-wrapper {
-    max-height: 28vh;
+    max-height: 35vh; /* Responsive height */
     border-radius: 8px;
+    flex-shrink: 0;
   }
   
   .main-video {
-    max-height: 28vh;
+    max-height: 100%;
   }
   
   .video-controls {
     margin-top: 5px;
     padding: 4px 8px;
+    flex-shrink: 0;
+  }
+  
+  .lyrics-view-container {
+    flex: 1;
+    min-height: 0;
+    height: auto;
   }
   
   .subtitle-panel {
