@@ -1,320 +1,395 @@
 // ================================================================
-// index.js  v4  ——  Custom Touch Physics Engine
+// index.js  v7.1 — 数据驱动 + N 组通用物理引擎
 //
-// 架构：完全自定义触摸物理，替代 scroll-view 原生滚动
+// 【数据流】
+//   productConfig.js → onLoad 初始化 data.groups / animMap / groupY / groupEase
+//   WXML 通过 wx:for 动态渲染所有组和图片（无硬编码）
 //
-// 核心机制：
-//  1. 【轨道坐标系】
-//     trackY = 0                → 显示 Slide 0
-//     trackY = -1 * windowH    → 显示 Slide 1
-//     trackY = -N * windowH    → 显示 Slide N
+// 【物理引擎】（通用，支持 N 个组）
+//   onGStart/Move/End 通过 data-gidx 区分当前操作的是哪个组
 //
-//  2. 【组边界阻力（Spring Resistance）】
-//     当触摸试图越过组边界（slide 2→3 或 3→4）时：
-//       · 施加 RESISTANCE_FACTOR 阻力（手指位移 * 0.25 = 实际移动量）
-//       · 过渡屏的底部进度条显示当前"闯关进度"
+//   组内正常拖动（newGY ∈ [innerMin, 0]）：
+//     → 只更新 groupY[gidx]，outerY 保持在 -gidx*wH
 //
-//  3. 【弹簧弹回（Spring Back）】
-//     释放手指时：
-//       · 力量不足 → cubic-bezier(0.34, 1.56, 0.64, 1) 超调弹回
-//         （内容先继续向目标方向移动约 10%，再弹回，形成弹簧感）
-//       · 力量足够 → cubic-bezier(0.22, 1, 0.36, 1) 平滑穿越
+//   拖动超过底部 / 顶部边界：
+//     → groupY 夹住，outerY 向相邻组方向产生弹簧位移（×RESISTANCE 阻力）
 //
-//  4. 【浮层动画三态状态机】
-//     向前滑（新 slide 入场）:  新 slide → 'visible'，旧 slide → 'initial'
-//     向回滑（逆向）         :  新 slide → 'visible'，旧 slide → 'exiting'（逆向退场）
-//     退场动画结束后          :  'exiting' → 'initial' 静默重置
+//   松手判断：
+//     · 位移/速度超过阈值 → EASE_SWITCH 切换到相邻组
+//     · 未超阈值          → EASE_SPRING（超调曲线）弹回当前组
+//
+//   组内惯性：
+//     · 无弹簧位移时，松手后用 vel*220ms 估算目标，EASE_FLING 滑过去
+//
+// 【动画】
+//   IntersectionObserver 相对 .viewport 观察每张图片进出视口
+//   animMap[imgId] 驱动 CSS 三态（initial / visible / exiting）
+//   setData 使用点路径（'animMap.img0'）做最小粒度更新
+//
+// 【多组黑屏解决】
+//   所有组始终在 DOM 中（无 wx:if），靠 outerY 决定哪组可见
+//   切换时目标组已预渲染，无需等待加载
 // ================================================================
 
-// ── 物理常量 ──
-const RESISTANCE_FACTOR  = 0.25;  // 组边界阻力系数：0=完全不动，1=无阻力
-const DIST_THRESH_NORMAL = 50;    // 普通 slide 切换：最小位移(px)
-const DIST_THRESH_BORDER = 100;   // 组边界切换：最小位移(px)，更高门槛
-const VEL_THRESH_NORMAL  = 0.35;  // 普通 slide：最小速度(px/ms)
-const VEL_THRESH_BORDER  = 0.6;   // 组边界：最小速度(px/ms)，更高门槛
+// ================================================================
+// 商品数据配置（内联，与渲染逻辑分区，后期对接 API 时只需替换此处）
+//
+// 结构：groups[] → images[] → overlays[]
+//   type:   'tag' | 'card' | 'main'
+//   dir:    'left' | 'right' | 'bottom'
+//   anchor: 'top-left' | 'top-right' | 'mid-left' | 'mid-right' | 'bot-center'
+// ================================================================
+const PRODUCT_CONFIG = {
+  groups: [
+    // ── 第 1 组：组内自由滑动，到达底部后需弹簧力才能进入第 2 组 ──
+    {
+      images: [
+        {
+          id: 'img0', src: '/assets/01.jpg',
+          overlays: [{ type: 'tag', dir: 'left', anchor: 'top-left', icon: '✨', label: '全新登场' }],
+        },
+        {
+          id: 'img1', src: '/assets/02.jpg',
+          overlays: [{ type: 'card', dir: 'right', anchor: 'mid-right', eyebrow: '精选功能', title: '震撼视觉', desc: '超越以往的美学方案，带来极致体验' }],
+        },
+        {
+          id: 'img2', src: '/assets/03.jpg',
+          overlays: [{ type: 'tag', dir: 'bottom', anchor: 'bot-center', icon: '🚀', label: '性能狂飙' }],
+        },
+      ],
+    },
+    // ── 第 2 组 ──
+    {
+      images: [
+        {
+          id: 'img3', src: '/assets/04.jpg',
+          overlays: [{ type: 'card', dir: 'left', anchor: 'mid-left', eyebrow: '核心优势', title: '坚若磐石', desc: '创新材料架构，经久耐用' }],
+        },
+        {
+          id: 'img4', src: '/assets/05.jpg',
+          overlays: [{ type: 'tag', dir: 'right', anchor: 'top-right', icon: '🔋', label: '持久续航' }],
+        },
+        {
+          id: 'img5', src: '/assets/06.jpg',
+          overlays: [{ type: 'main', dir: 'bottom', anchor: 'bot-center', eyebrow: '立即了解', title: '立即体验', desc: '感受更多不凡之处', btnText: '探索产品' }],
+        },
+      ],
+    },
+    // 新增第 3 组只需在此追加一项：{ images: [{ id, src, overlays }] }
+  ],
+};
 
-// ── 动画曲线 ──
-const EASE_SPRING_BACK = 'transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)'; // 弹簧弹回（有超调）
-const EASE_CROSS_BORDER= 'transform 0.52s cubic-bezier(0.22, 1, 0.36, 1)';    // 越过组边界（流畅重量感）
-const EASE_NORMAL_SNAP = 'transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // 普通换页
-const EASE_NONE        = 'none';
 
-// ── Slide 数据索引 ──
-const TRANSITION_IDX = 3;  // 组过渡屏在 slides 数组中的位置
-const TOTAL_SLIDES   = 7;  // 0~6
-const IMAGE_INDICES  = new Set([0, 1, 2, 4, 5, 6]);
+// ── 弹簧物理常量 ──
+const RESISTANCE  = 0.28;   // 组边界阻力（0=完全不动，1=无阻力）
+const DIST_THRESH = 80;     // 切换组所需最小位移 (px)
+const VEL_THRESH  = 0.40;   // 切换组所需最小速度 (px/ms)
 
-// 是否为组边界穿越（此时触发阻力 + 高门槛）
-function isGroupBoundaryCrossing(currentSlide, deltaY) {
-  // deltaY < 0 → finger moved UP → content going to higher-index slides (forward)
-  // deltaY > 0 → finger moved DOWN → content going to lower-index slides (backward)
-  const goingForward  = deltaY < 0;
-  const goingBackward = deltaY > 0;
-  return (
-    (currentSlide === 2 && goingForward)  ||   // 2→3 进入过渡屏
-    (currentSlide === TRANSITION_IDX)     ||   // 过渡屏两侧均有阻力
-    (currentSlide === 4 && goingBackward)      // 4→3 从 Group2 退回过渡屏
-  );
-}
-
-// 两个 slide 之间是否跨越了组边界（用于决定动画曲线）
-function isCrossingGroupBorder(from, to) {
-  return (
-    (from <= 2 && to >= TRANSITION_IDX) ||
-    (from >= TRANSITION_IDX && to <= 2) ||
-    (from <= TRANSITION_IDX && to >= 4) ||
-    (from >= 4 && to <= TRANSITION_IDX)
-  );
-}
+// ── CSS 过渡曲线 ──
+const EASE_SPRING = 'transform 0.55s cubic-bezier(0.34,1.56,0.64,1)'; // 弹回（含超调）
+const EASE_SWITCH = 'transform 0.48s cubic-bezier(0.22,1,0.36,1)';    // 切组（流畅）
+const EASE_FLING  = 'transform 0.50s cubic-bezier(0,0,0.2,1)';        // 惯性减速
+const EASE_NONE   = 'none';                                            // 跟手，无过渡
 
 Page({
   data: {
-    slides: [
-      // ════ GROUP 1 ════
-      {
-        type: 'image', src: '../../assets/01.jpg',
-        overlayType: 'tag', pos: 'top-left', dir: 'left',
-        icon: '✨', label: '全新登场',
-        state: 'initial', badge: '01 / 06',
-      },
-      {
-        type: 'image', src: '../../assets/02.jpg',
-        overlayType: 'card', pos: 'mid-right', dir: 'right',
-        cardTitle: '震撼视觉', cardDesc: '超越以往的美学方案，带来极致体验',
-        state: 'initial', badge: '02 / 06',
-      },
-      {
-        type: 'image', src: '../../assets/03.jpg',
-        overlayType: 'tag', pos: 'bot-center', dir: 'bottom',
-        icon: '🚀', label: '性能狂飙',
-        state: 'initial', badge: '03 / 06',
-      },
+    // ── 来自 productConfig 的数据 ──
+    groups:     [],   // 从配置加载后填充
 
-      // ════ 组间过渡屏 ════
-      {
-        type: 'transition',
-        eyebrow: 'CHAPTER · 02',
-        title: '非凡工艺',
-        desc: '每一处细节，都是我们的承诺',
-      },
+    // ── 外层轨道（组切换） ──
+    outerY:     0,
+    outerEase:  EASE_NONE,
 
-      // ════ GROUP 2 ════
-      {
-        type: 'image', src: '../../assets/04.jpg',
-        overlayType: 'card', pos: 'mid-left', dir: 'left',
-        cardTitle: '坚若磐石', cardDesc: '创新材料架构，经久耐用',
-        state: 'initial', badge: '04 / 06',
-      },
-      {
-        type: 'image', src: '../../assets/05.jpg',
-        overlayType: 'tag', pos: 'top-right', dir: 'right',
-        icon: '🔋', label: '持久续航',
-        state: 'initial', badge: '05 / 06',
-      },
-      {
-        type: 'image', src: '../../assets/06.jpg',
-        overlayType: 'main-card', pos: 'bot-center', dir: 'bottom',
-        cardTitle: '立即体验', cardDesc: '感受更多不凡之处',
-        state: 'initial', badge: '06 / 06',
-      },
-    ],
+    // ── 各组内容偏移（按 gidx 索引的数组） ──
+    groupY:     [],   // 每项 0 = 顶部，负值 = 已向下滚
+    groupEase:  [],   // 每项的 CSS 过渡曲线
 
-    trackY:           0,        // 轨道当前 Y 坐标
-    trackTransition:  EASE_NONE,// 当前动画曲线（拖动时=none，弹回时=spring等）
-    currentSlide:     0,        // 当前停靠的 slide 下标 (0~6)
-    transitionPressure: 0,      // 过渡屏进度条（0~100），显示越过门槛的进度
-    groupLabelVisible: false,
-    groupLabels: ['春夏系列', '秋冬系列'],
+    // ── 状态 ──
+    currentGroup: 0,
+    springProg:   0,    // 弹簧进度 0~100
+    springDir:    'next', // 'next'=向下一组, 'prev'=向上一组
+
+    // ── 图片动画状态（key=imgId, value='initial'|'visible'|'exiting'） ──
+    animMap:    {},
   },
 
-  // ── 私有变量（不放 data，避免触发不必要的 setData）──
-  _wH:              0,    // 缓存 windowHeight
-  _touchStartY:     0,    // 触摸开始时的 clientY
-  _touchStartTime:  0,    // 触摸开始时的时间戳
-  _touchStartTrackY:0,    // 触摸开始时的 trackY
-  _currentSlide:    0,    // 当前 slide（与 data.currentSlide 同步，用于逻辑计算）
-  _labelTimer:      null, // 顶部标签定时器
+  // ── 私有属性（不走 setData，避免无效渲染） ──
+  _wH:             0,    // 屏幕高度 (px)
+  _currentGroup:   0,    // 与 data.currentGroup 同步
+  _groupMaxScroll: [],   // 各组最大内滚距离（测量后填充）
 
+  // 当次触摸记录
+  _activeGidx:       0,
+  _touchStartY:      0,
+  _touchStartTime:   0,
+  _touchStartGroupY: 0,
+
+  _observers: [],   // IntersectionObserver 实例，onUnload 时统一 disconnect
+
+  // ================================================================
+  //  onLoad：从配置初始化所有数据
   // ================================================================
   onLoad() {
     const sys = wx.getSystemInfoSync();
     this._wH = sys.windowHeight;
+
+    const groups  = PRODUCT_CONFIG.groups;
+    const nGroups = groups.length;
+
+    // 初始化 animMap：所有图片状态为 'initial'
+    const animMap = {};
+    groups.forEach(g => g.images.forEach(img => { animMap[img.id] = 'initial'; }));
+
+    // 初始化各组内滚偏移和过渡为默认值
+    this._groupMaxScroll = new Array(nGroups).fill(0);
+
+    this.setData({
+      groups,
+      groupY:    new Array(nGroups).fill(0),
+      groupEase: new Array(nGroups).fill(EASE_NONE),
+      animMap,
+    });
   },
 
+  // ================================================================
+  //  onReady：DOM 已就绪，启动测量和观察
+  // ================================================================
   onReady() {
-    // 初始激活第一张图片的浮层动画
-    this._activateSlide(0, -1, 'forward');
+    // 图片使用 widthFix，高度由原始比例决定，等 800ms 布局稳定后测量
+    setTimeout(() => this._measureLayout(), 800);
+
+    // 首组第一张图立即触发飞入动画
+    const firstId = this.data.groups[0]?.images[0]?.id;
+    if (firstId) setTimeout(() => this._setAnim(firstId, 'visible'), 400);
+
+    // 启动 IntersectionObserver
+    this._setupObservers();
   },
 
   onUnload() {
-    if (this._labelTimer) clearTimeout(this._labelTimer);
+    this._observers.forEach(o => o.disconnect());
   },
 
   // ================================================================
-  // 触摸开始：记录初始状态，关闭轨道 transition
+  //  _measureLayout：查询各组内容实际渲染高度
+  //  id="gc-{gidx}" 对应 WXML 中的 group-content
   // ================================================================
-  onTouchStart(e) {
+  _measureLayout() {
+    const q = this.createSelectorQuery();
+    this.data.groups.forEach((_, i) => q.select(`#gc-${i}`).boundingClientRect());
+    q.exec(rects => {
+      if (rects.some(r => !r)) {
+        // 尚未渲染完毕，延迟重试
+        setTimeout(() => this._measureLayout(), 400);
+        return;
+      }
+      rects.forEach((r, i) => {
+        // maxScroll：内容超出视口的部分（等于组内可滚动距离）
+        this._groupMaxScroll[i] = Math.max(0, r.height - this._wH);
+      });
+    });
+  },
+
+  // ================================================================
+  //  _setupObservers：对每张图片设置 IntersectionObserver
+  //
+  //  两层 CSS transform（outerY + groupY）都会影响图片的视觉位置。
+  //  在 WeChat Mini Program 中，IntersectionObserver 相对 .viewport
+  //  能正确感知经过 transform 后的实际视觉交叉状态。
+  //
+  //  intersectionRatio >= 0.3 → 进入视口 → 'visible'（飞入）
+  //  离开视口时判断方向：
+  //    top > wH/2 → 图片在屏幕下方 → 用户往回滑 → 'exiting'（逆向退场）
+  //    top < wH/2 → 图片在屏幕上方 → 已被滚过 → 'initial'（静默重置）
+  // ================================================================
+  _setupObservers() {
+    this.data.groups.forEach(g => {
+      g.images.forEach(img => {
+        const obs = wx.createIntersectionObserver(this, { thresholds: [0, 0.3] });
+        obs.relativeTo('.viewport').observe('#' + img.id, res => {
+          if (res.intersectionRatio >= 0.3) {
+            this._setAnim(img.id, 'visible');
+          } else if (this.data.animMap[img.id] === 'visible') {
+            const fromBelow = res.boundingClientRect.top > this._wH * 0.5;
+            this._setAnim(img.id, fromBelow ? 'exiting' : 'initial');
+            if (fromBelow) {
+              // exiting 动画结束后重置为 initial（供下次重用）
+              const id = img.id;
+              setTimeout(() => {
+                if (this.data.animMap[id] === 'exiting') this._setAnim(id, 'initial');
+              }, 700);
+            }
+          }
+        });
+        this._observers.push(obs);
+      });
+    });
+  },
+
+  // 使用点路径做最小粒度 setData（只更新单个 key，不替换整个 animMap）
+  _setAnim(id, state) {
+    if (this.data.animMap[id] !== state) {
+      this.setData({ [`animMap.${id}`]: state });
+    }
+  },
+
+  // ================================================================
+  //  通用触摸处理（onGStart / onGMove / onGEnd）
+  //  所有组共用同一套逻辑，通过 data-gidx 区分当前操作的组
+  // ================================================================
+
+  // ── TouchStart：记录初始状态，停止所有进行中的过渡 ──
+  onGStart(e) {
+    const gidx = e.currentTarget.dataset.gidx;
+    this._activeGidx       = gidx;
     this._touchStartY      = e.touches[0].clientY;
     this._touchStartTime   = Date.now();
-    this._touchStartTrackY = this.data.trackY;
+    this._touchStartGroupY = this.data.groupY[gidx];
 
-    // 拖动期间关闭 CSS transition（让内容跟随手指实时移动）
-    if (this.data.trackTransition !== EASE_NONE) {
-      this.setData({ trackTransition: EASE_NONE });
-    }
+    // 停止进行中的 CSS 过渡，让内容立即跟手
+    const newGroupEase = [...this.data.groupEase];
+    newGroupEase[gidx] = EASE_NONE;
+    this.setData({ groupEase: newGroupEase, outerEase: EASE_NONE });
   },
 
-  // ================================================================
-  // 触摸移动：实时更新轨道位置，组边界施加阻力
-  // ================================================================
-  onTouchMove(e) {
-    const currentY = e.touches[0].clientY;
-    const rawDelta = currentY - this._touchStartY; // 正=向下拖，负=向上拖
+  // ── TouchMove：根据位置决定组内滚动还是弹簧位移 ──
+  onGMove(e) {
+    const gidx     = this._activeGidx;
+    const rawDelta = e.touches[0].clientY - this._touchStartY;
+    // rawDelta > 0: 手指向下（内容上移 = 看上方内容 = 往回）
+    // rawDelta < 0: 手指向上（内容下移 = 看下方内容 = 往前）
+    const newGY    = this._touchStartGroupY + rawDelta;
 
-    // 判断是否在组边界处（决定是否施加阻力）
-    const atBorder = isGroupBoundaryCrossing(this._currentSlide, rawDelta);
-    const appliedDelta = atBorder ? rawDelta * RESISTANCE_FACTOR : rawDelta;
+    const innerMax = 0;
+    const innerMin = -(this._groupMaxScroll[gidx] || 0); // ≤ 0
+    // 当内容比屏幕短时 innerMin=0，任何向前拖都立即进入弹簧区
 
-    let newTrackY = this._touchStartTrackY + appliedDelta;
+    const baseOuterY = -gidx * this._wH; // 当前组"标准"的 outerY
+    const nGroups    = this.data.groups.length;
+    const newGroupY  = [...this.data.groupY];
 
-    // 边界钳制（顶部/底部各允许 60px 的过拉）
-    const minY = -(TOTAL_SLIDES - 1) * this._wH - 60;
-    const maxY = 60;
-    newTrackY = Math.min(maxY, Math.max(minY, newTrackY));
-
-    // 更新轨道位置
-    this.setData({ trackY: newTrackY });
-
-    // 若停在过渡屏上，实时计算并显示"闯关进度条"
-    if (this._currentSlide === TRANSITION_IDX && atBorder) {
-      const dist = Math.abs(rawDelta);
-      const pressure = Math.min(100, Math.round(dist / DIST_THRESH_BORDER * 100));
-      if (pressure !== this.data.transitionPressure) {
-        this.setData({ transitionPressure: pressure });
+    if (newGY > innerMax) {
+      // ① 超过顶部边界
+      if (gidx > 0) {
+        // 向上弹簧：outerY 从 baseOuterY 向 -(gidx-1)*wH 位移
+        const overscroll = newGY; // 正值
+        const springY    = baseOuterY + overscroll * RESISTANCE;
+        const prog       = Math.min(100, Math.round(overscroll / DIST_THRESH * 100));
+        newGroupY[gidx]  = innerMax;
+        this.setData({ groupY: newGroupY, outerY: springY, springProg: prog, springDir: 'prev' });
+      } else {
+        // 第一组，无上一组，夹住
+        newGroupY[gidx] = innerMax;
+        this.setData({ groupY: newGroupY, outerY: baseOuterY, springProg: 0 });
       }
-    }
-  },
 
-  // ================================================================
-  // 触摸结束：计算速度，决定弹簧弹回还是换页
-  // ================================================================
-  onTouchEnd(e) {
-    const endY   = e.changedTouches[0].clientY;
-    const totalDelta = endY - this._touchStartY;   // 正=向下，负=向上
-    const dt         = Math.max(1, Date.now() - this._touchStartTime);
-    const velocity   = totalDelta / dt;            // px/ms，正=向下
+    } else if (newGY < innerMin) {
+      // ② 超过底部边界
+      if (gidx < nGroups - 1) {
+        // 向下弹簧：outerY 从 baseOuterY 向 -(gidx+1)*wH 位移
+        const overscroll = newGY - innerMin; // 负值
+        const springY    = baseOuterY + overscroll * RESISTANCE; // 向更负方向移动
+        const prog       = Math.min(100, Math.round(Math.abs(overscroll) / DIST_THRESH * 100));
+        newGroupY[gidx]  = innerMin;
+        this.setData({ groupY: newGroupY, outerY: springY, springProg: prog, springDir: 'next' });
+      } else {
+        // 最后一组，无下一组，夹住
+        newGroupY[gidx] = innerMin;
+        this.setData({ groupY: newGroupY, outerY: baseOuterY, springProg: 0 });
+      }
 
-    const atBorder = isGroupBoundaryCrossing(this._currentSlide, totalDelta);
-
-    // 组边界使用更高的切换门槛
-    const distThresh = atBorder ? DIST_THRESH_BORDER : DIST_THRESH_NORMAL;
-    const velThresh  = atBorder ? VEL_THRESH_BORDER  : VEL_THRESH_NORMAL;
-
-    let targetSlide = this._currentSlide;
-
-    if (totalDelta < -distThresh || velocity < -velThresh) {
-      // 向上滑动（充分）→ 进入下一 slide（更高索引）
-      targetSlide = Math.min(this._currentSlide + 1, TOTAL_SLIDES - 1);
-    } else if (totalDelta > distThresh || velocity > velThresh) {
-      // 向下滑动（充分）→ 回到上一 slide（更低索引）
-      targetSlide = Math.max(this._currentSlide - 1, 0);
-    }
-    // else：力量不足 → targetSlide 保持不变（弹回当前 slide）
-
-    const isSpringBack = (targetSlide === this._currentSlide);
-    this._snapToSlide(targetSlide, isSpringBack);
-
-    // 清除进度条
-    if (this.data.transitionPressure > 0) {
-      this.setData({ transitionPressure: 0 });
-    }
-  },
-
-  // ================================================================
-  // 吸附到目标 slide，并播放对应动画曲线
-  //   · isSpringBack=true  → 弹簧弹回（超调曲线）
-  //   · 穿越组边界         → 流畅重量感曲线
-  //   · 普通换页           → 快速吸附曲线
-  // ================================================================
-  _snapToSlide(targetSlide, isSpringBack) {
-    const oldSlide  = this._currentSlide;
-    const targetY   = -targetSlide * this._wH;
-    const direction = targetSlide > oldSlide ? 'forward' : 'backward';
-
-    let ease;
-    if (isSpringBack) {
-      ease = EASE_SPRING_BACK;
-    } else if (isCrossingGroupBorder(oldSlide, targetSlide)) {
-      ease = EASE_CROSS_BORDER;
     } else {
-      ease = EASE_NORMAL_SNAP;
+      // ③ 正常组内滚动
+      newGroupY[gidx] = newGY;
+      this.setData({ groupY: newGroupY, outerY: baseOuterY, springProg: 0 });
     }
+  },
+
+  // ── TouchEnd：判断弹回 / 切组 / 惯性 ──
+  onGEnd(e) {
+    const gidx       = this._activeGidx;
+    const delta      = e.changedTouches[0].clientY - this._touchStartY;
+    const dt         = Math.max(1, Date.now() - this._touchStartTime);
+    const vel        = delta / dt; // px/ms，正=向下，负=向上
+    const baseOuterY = -gidx * this._wH;
+    const nGroups    = this.data.groups.length;
+
+    this.setData({ springProg: 0 });
+
+    // outerDiff：outerY 与当前组标准位置的差值（非 0 说明在弹簧区）
+    const outerDiff = this.data.outerY - baseOuterY;
+
+    if (outerDiff < -8) {
+      // 在"向下一组"弹簧区（outerY 比标准更负）
+      const hasForce = delta < -DIST_THRESH || vel < -VEL_THRESH; // 手指向上且力量充足
+      if (hasForce && gidx < nGroups - 1) {
+        this._switchGroup(gidx, gidx + 1);
+      } else {
+        // 弹回：EASE_SPRING 超调曲线
+        this.setData({ outerY: baseOuterY, outerEase: EASE_SPRING });
+        setTimeout(() => this.setData({ outerEase: EASE_NONE }), 600);
+      }
+
+    } else if (outerDiff > 8) {
+      // 在"向上一组"弹簧区（outerY 比标准更正）
+      const hasForce = delta > DIST_THRESH || vel > VEL_THRESH; // 手指向下且力量充足
+      if (hasForce && gidx > 0) {
+        this._switchGroup(gidx, gidx - 1);
+      } else {
+        this.setData({ outerY: baseOuterY, outerEase: EASE_SPRING });
+        setTimeout(() => this.setData({ outerEase: EASE_NONE }), 600);
+      }
+
+    } else {
+      // 正常组内惯性：vel * 衰减时间 估算终点
+      const innerMin    = -(this._groupMaxScroll[gidx] || 0);
+      const flingTarget = this.data.groupY[gidx] + vel * 220; // 220ms 惯性估算
+      const clamped     = Math.max(innerMin, Math.min(0, flingTarget));
+
+      const newGroupY   = [...this.data.groupY];
+      const newGroupEase = [...this.data.groupEase];
+      newGroupY[gidx]   = clamped;
+      newGroupEase[gidx] = EASE_FLING;
+      this.setData({ groupY: newGroupY, groupEase: newGroupEase });
+
+      // 过渡结束后清除 ease（防止下次 JS 更新触发多余动画）
+      setTimeout(() => {
+        const resetEase = [...this.data.groupEase];
+        resetEase[gidx] = EASE_NONE;
+        this.setData({ groupEase: resetEase });
+      }, 550);
+    }
+  },
+
+  // ================================================================
+  //  _switchGroup：执行组切换动画
+  //
+  //  · 向后（to > from）：目标组 groupY 重置为 0（从顶部开始浏览）
+  //  · 向前（to < from）：目标组 groupY 保留（用户返回到离开时的位置）
+  //  · 两组始终在 DOM 中，无需等待渲染，彻底消除黑屏
+  // ================================================================
+  _switchGroup(from, to) {
+    const targetOuterY  = -to * this._wH;
+    const newGroupY     = [...this.data.groupY];
+    const newGroupEase  = [...this.data.groupEase];
+
+    if (to > from) {
+      // 向下进入新组：重置目标组到顶部，确保用户从头浏览
+      newGroupY[to]    = 0;
+      newGroupEase[to] = EASE_NONE;
+    }
+    // 向上返回旧组：保留 groupY（用户回到离开时的滚动位置）
 
     this.setData({
-      trackY: targetY,
-      trackTransition: ease,
-      currentSlide: targetSlide,
+      outerY:     targetOuterY,
+      outerEase:  EASE_SWITCH,
+      currentGroup: to,
+      groupY:     newGroupY,
+      groupEase:  newGroupEase,
     });
+    this._currentGroup = to;
 
-    this._currentSlide = targetSlide;
-
-    // 更新浮层动画状态（只在真正切换 slide 时）
-    if (!isSpringBack) {
-      this._activateSlide(targetSlide, oldSlide, direction);
-    }
-
-    // 更新顶部分组标签
-    if (!isSpringBack && targetSlide !== oldSlide && targetSlide !== TRANSITION_IDX) {
-      this._showGroupLabel();
-    }
-  },
-
-  // ================================================================
-  // 更新浮层动画三态状态机
-  //   · 新 slide 进入 → 'visible'（触发飞入动画）
-  //   · 旧 slide 向前退出 → 'initial'（静默重置）
-  //   · 旧 slide 向回退出 → 'exiting'（触发逆向退场动画），700ms后重置
-  // ================================================================
-  _activateSlide(newSlide, oldSlide, direction) {
-    const updates = {};
-
-    // 激活新 slide 的浮层
-    if (IMAGE_INDICES.has(newSlide)) {
-      updates[`slides[${newSlide}].state`] = 'visible';
-    }
-
-    // 退出旧 slide 的浮层
-    if (oldSlide >= 0 && IMAGE_INDICES.has(oldSlide) && oldSlide !== newSlide) {
-      // 向回滑时：旧 slide 逆向退出（exiting）
-      // 向前滑时：旧 slide 静默重置（initial）
-      const exitState = direction === 'backward' ? 'exiting' : 'initial';
-      updates[`slides[${oldSlide}].state`] = exitState;
-
-      if (exitState === 'exiting') {
-        // 退场动画（0.65s）结束后，静默重置为 initial，以便下次再次飞入
-        const capturedIdx = oldSlide;
-        setTimeout(() => {
-          if (this.data.slides[capturedIdx] &&
-              this.data.slides[capturedIdx].state === 'exiting') {
-            this.setData({ [`slides[${capturedIdx}].state`]: 'initial' });
-          }
-        }, 750);
-      }
-    }
-
-    if (Object.keys(updates).length > 0) {
-      this.setData(updates);
-    }
-  },
-
-  // ================================================================
-  // 顶部分组标签：短暂显示后淡出
-  // ================================================================
-  _showGroupLabel() {
-    if (this._labelTimer) clearTimeout(this._labelTimer);
-    this.setData({ groupLabelVisible: true });
-    this._labelTimer = setTimeout(() => {
-      this.setData({ groupLabelVisible: false });
-    }, 2000);
+    // 过渡结束后清除 outerEase
+    setTimeout(() => this.setData({ outerEase: EASE_NONE }), 520);
   },
 });

@@ -1,103 +1,131 @@
 <!--
-  商品详情页动画 Demo - v4 (Custom Touch Physics)
+  index.wxml  v7.1 — 数据驱动渲染
   
-  核心变更：
-  · 彻底放弃 scroll-view 滚动，改用自定义触摸物理引擎
-  · 通过 catchtouchmove 接管所有触摸事件
-  · viewport(overflow:hidden) + track(transform:translateY) 实现全局竖向滑动
-  · 组边界处：施加 0.25x 阻力 + 弹簧弹回（弹性 cubic-bezier 超调）
-  · 浮层动画：三态 CSS transition 状态机（initial→visible→exiting），完全可逆
+  · 所有内容从 data.groups 动态生成，无硬编码
+  · 三层 wx:for：groups → images → overlays
+  · 浮层类型（tag/card/main）用 wx:if 按 ov.type 分支渲染
+  · animMap[img.id] 动态查询每张图片的动画状态
+  · 新增一组只需改 productConfig.js，此文件无需动
 -->
 
-<!-- 外层视口：固定 100vh，隐藏溢出；接管所有触摸事件 -->
-<view
-  class="viewport"
-  catchtouchstart="onTouchStart"
-  catchtouchmove="onTouchMove"
-  catchtouchend="onTouchEnd"
->
-  <!-- 轨道：通过 transform:translateY 移动全部内容 -->
-  <view
-    class="track"
-    style="transform: translateY({{trackY}}px); transition: {{trackTransition}};"
+<view class="viewport">
+
+  <!-- 外层轨道：outerY 控制哪组在视口中 -->
+  <view class="outer-track"
+    style="transform:translateY({{outerY}}px); transition:{{outerEase}};"
   >
-    <block wx:for="{{slides}}" wx:key="index" wx:for-index="idx">
 
-      <!-- ════ 图片展示屏 ════ -->
-      <view wx:if="{{item.type === 'image'}}" class="slide slide-image">
-        <image class="slide-bg" src="{{item.src}}" mode="aspectFill"></image>
+    <!--
+      第一层 wx:for: 遍历所有组
+        · gidx = 组序号（0, 1, 2…）
+        · group = { images: [...] }
+        · catchtouchmove 在这里，JS 完全控制触摸
+        · data-gidx 传给事件处理器，让 onGStart/Move/End 知道哪个组在响应
+    -->
+    <view
+      wx:for="{{groups}}"
+      wx:key="index"
+      wx:for-index="gidx"
+      wx:for-item="group"
+      class="group-screen"
+      catchtouchstart="onGStart"
+      catchtouchmove="onGMove"
+      catchtouchend="onGEnd"
+      data-gidx="{{gidx}}"
+    >
+      <!-- 内层内容：groupY[gidx] 控制组内滚动偏移 -->
+      <view
+        class="group-content"
+        id="gc-{{gidx}}"
+        style="transform:translateY({{groupY[gidx]}}px); transition:{{groupEase[gidx]}};"
+      >
 
-        <!-- 底部渐变遮罩 -->
-        <view class="slide-gradient"></view>
+        <!--
+          第二层 wx:for: 遍历该组的所有图片
+            · img = { id, src, overlays: [...] }
+        -->
+        <view
+          wx:for="{{group.images}}"
+          wx:key="id"
+          wx:for-item="img"
+          wx:for-index="imgIdx"
+          class="img-row"
+          id="{{img.id}}"
+        >
+          <image class="w-img" src="{{img.src}}" mode="widthFix"></image>
 
-        <!-- 浮层锚点（只负责定位，不参与动画 transform） -->
-        <view class="pos-anchor pos-{{item.pos}}">
-          <!-- 浮层动画层（dir + state 三态 CSS transition 驱动） -->
-          <view class="float-overlay dir-{{item.dir}} state-{{item.state}}">
+          <!--
+            第三层 wx:for: 遍历该图片的所有浮层
+              · ov = { type, dir, anchor, ...type-specific fields }
+              · animMap[img.id] 动态查询该图片的动画状态（initial/visible/exiting）
+          -->
+          <view
+            wx:for="{{img.overlays}}"
+            wx:key="index"
+            wx:for-item="ov"
+            class="pos-anchor pos-{{ov.anchor}}"
+          >
+            <view class="fov dir-{{ov.dir}} state-{{animMap[img.id]}}">
 
-            <!-- 标签型 -->
-            <view wx:if="{{item.overlayType === 'tag'}}" class="f-tag">
-              <text class="f-tag-icon">{{item.icon}}</text>
-              <text class="f-tag-label">{{item.label}}</text>
-            </view>
-
-            <!-- 信息卡片型 -->
-            <view wx:elif="{{item.overlayType === 'card'}}" class="f-card">
-              <text class="f-card-eyebrow">精选功能</text>
-              <text class="f-card-title">{{item.cardTitle}}</text>
-              <text class="f-card-desc">{{item.cardDesc}}</text>
-            </view>
-
-            <!-- 底部大卡片型 -->
-            <view wx:elif="{{item.overlayType === 'main-card'}}" class="f-main">
-              <text class="f-main-eyebrow">立即了解</text>
-              <text class="f-main-title">{{item.cardTitle}}</text>
-              <text class="f-main-desc">{{item.cardDesc}}</text>
-              <view class="f-main-btn">
-                <text>探索产品</text>
-                <text class="f-main-arrow">→</text>
+              <!-- type = tag：小胶囊标签 -->
+              <view wx:if="{{ov.type === 'tag'}}" class="f-tag">
+                <text class="f-icon">{{ov.icon}}</text>
+                <text class="f-txt">{{ov.label}}</text>
               </view>
+
+              <!-- type = card：信息卡片 -->
+              <view wx:if="{{ov.type === 'card'}}" class="f-card">
+                <text class="f-eyebrow">{{ov.eyebrow}}</text>
+                <text class="f-title">{{ov.title}}</text>
+                <text class="f-desc">{{ov.desc}}</text>
+              </view>
+
+              <!-- type = main：大号主推卡片（含按钮） -->
+              <view wx:if="{{ov.type === 'main'}}" class="f-main">
+                <text class="f-eyebrow">{{ov.eyebrow}}</text>
+                <text class="f-title">{{ov.title}}</text>
+                <text class="f-desc">{{ov.desc}}</text>
+                <view class="f-btn">
+                  <text>{{ov.btnText}}</text>
+                  <text> →</text>
+                </view>
+              </view>
+
             </view>
-
           </view>
-        </view>
+          <!-- /overlays -->
 
-        <!-- 右下角序号 -->
-        <view class="slide-badge">{{item.badge}}</view>
+        </view>
+        <!-- /img-row -->
+
       </view>
+      <!-- /group-content -->
+    </view>
+    <!-- /group-screen -->
 
-      <!-- ════ 组过渡分隔屏 ════ -->
-      <view wx:elif="{{item.type === 'transition'}}" class="slide slide-transition">
-        <view class="tr-bg"></view>
-        <view class="tr-noise"></view>
-        <view class="tr-content">
-          <text class="tr-eyebrow">{{item.eyebrow}}</text>
-          <view class="tr-line"></view>
-          <text class="tr-title">{{item.title}}</text>
-          <text class="tr-desc">{{item.desc}}</text>
-        </view>
-        <view class="tr-hint">
-          <text class="tr-hint-text">继续探索</text>
-          <view class="tr-hint-arrow">↓</view>
-        </view>
-        <!-- 阻力提示：显示当前拖动进度 -->
-        <view class="tr-progress" wx:if="{{transitionPressure > 0}}">
-          <view class="tr-progress-bar" style="width: {{transitionPressure}}%;"></view>
-        </view>
-      </view>
-
-    </block>
   </view>
-</view>
+  <!-- /outer-track -->
 
-<!-- 右侧分组圆点指示器 -->
-<view class="group-dots">
-  <view class="g-dot {{currentSlide <= 2 ? 'g-dot-active' : ''}}"></view>
-  <view class="g-dot g-dot-mid {{currentSlide === 3 ? 'g-dot-trans' : ''}}"></view>
-  <view class="g-dot {{currentSlide >= 4 ? 'g-dot-active' : ''}}"></view>
-</view>
+  <!-- 弹簧进度提示（仅在弹簧区且进度 > 8% 时显示） -->
+  <view
+    wx:if="{{springProg > 8}}"
+    class="spring-tip {{currentGroup < groups.length - 1 && springDir === 'next' ? 'tip-bot' : 'tip-top'}}"
+  >
+    <text class="spring-tip-txt">{{springDir === 'next' ? '↑ 上滑进入下一组' : '↓ 下滑返回上一组'}}</text>
+    <view class="spring-tip-bar">
+      <view class="spring-tip-fill" style="width:{{springProg}}%;"></view>
+    </view>
+  </view>
 
-<!-- 顶部组名标签（切换时短暂显示） -->
-<view class="group-label {{groupLabelVisible ? 'group-label-show' : ''}}">
-  {{groupLabels[currentSlide >= 4 ? 1 : 0]}}
+</view>
+<!-- /viewport -->
+
+<!-- 右侧分组指示器：点数由 groups 长度决定，无需手动维护 -->
+<view class="dots">
+  <view
+    wx:for="{{groups}}"
+    wx:key="index"
+    wx:for-index="gidx"
+    class="dot {{currentGroup === gidx ? 'dot-on' : ''}}"
+  ></view>
 </view>
