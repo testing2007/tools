@@ -95,9 +95,39 @@ Page({
     const groups  = PRODUCT_CONFIG.groups;
     const nGroups = groups.length;
 
-    // 初始化 animMap：所有图片状态为 'initial'
+    const EASE_MAP = {
+      'spring': 'cubic-bezier(0.34,1.56,0.64,1)',
+      'ease': 'ease',
+      'ease-out': 'ease-out',
+      'linear': 'linear'
+    };
+
+    // 初始化 animMap：所有图片状态为 'initial'，并对数据做兼容与预处理
     const animMap = {};
-    groups.forEach(g => g.images.forEach(img => { animMap[img.id] = 'initial'; }));
+    groups.forEach(g => g.images.forEach(img => { 
+      animMap[img.id] = 'initial'; 
+      img.overlays.forEach(ov => {
+        // 向下兼容旧 JSON 数据
+        if (!ov.pos) ov.pos = { x: 5, y: 15 };
+        if (!ov.anim) {
+          // 根据旧 dir 猜测
+          let atype = 'slideX_right';
+          if (ov.dir === 'left') atype = 'slideX_right';
+          if (ov.dir === 'right') atype = 'slideX_left';
+          if (ov.dir === 'bottom') atype = 'slideY';
+          ov.anim = { type: atype, duration: 650, easing: 'spring', delay: 0 };
+        }
+        if (!ov.style) ov.style = { color: '#111111', fontSize: 28, fontWeight: '700', bgColor: 'rgba(255,255,255,0.93)', bgBlur: true, boxShadow: true };
+        if (ov.style.boxShadow === undefined) ov.style.boxShadow = true;
+        if (!ov.style.bgColor) ov.style.bgColor = 'transparent'; // 处理设为空/透明颜色的情况
+        
+        // 预计算 transition 注入到对象中供 WXML 渲染
+        const dura = ov.anim.duration || 650;
+        const dlay = ov.anim.delay || 0;
+        const ease = EASE_MAP[ov.anim.easing] || 'ease';
+        ov._transition = `transform ${dura}ms ${ease} ${dlay}ms, opacity ${dura}ms ease ${dlay}ms`;
+      });
+    }));
 
     this._groupMaxScroll = new Array(nGroups).fill(0);
 

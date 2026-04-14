@@ -12,8 +12,8 @@ module.exports = {
             {
               "type": "tag",
               "pos": {
-                "x": 3.3,
-                "y": 46.3
+                "x": 6.8,
+                "y": 27
               },
               "dir": "left",
               "anim": {
@@ -23,12 +23,11 @@ module.exports = {
                 "delay": 0
               },
               "style": {
-                "color": "#111111",
-                "fontSize": 37,
+                "color": "rgb(173, 56, 56)",
+                "fontSize": 34,
                 "fontWeight": "700",
                 "bgColor": null,
-                "bgBlur": true,
-                "boxShadow": false
+                "bgBlur": false
               },
               "icon": "✨",
               "label": "全新型号"
@@ -42,23 +41,22 @@ module.exports = {
             {
               "type": "card",
               "pos": {
-                "x": 45.4,
-                "y": 63.4
+                "x": 40,
+                "y": 30
               },
               "dir": "left",
               "anim": {
-                "type": "fade",
+                "type": "slideX_left",
                 "duration": 650,
                 "easing": "ease",
                 "delay": 100
               },
               "style": {
-                "color": "#111111",
-                "fontSize": 28,
+                "color": "rgb(70, 209, 70)",
+                "fontSize": 44,
                 "fontWeight": "700",
                 "bgColor": "rgba(255,255,255,0.93)",
-                "bgBlur": false,
-                "boxShadow": false
+                "bgBlur": true
               },
               "icon": "✨",
               "label": "新特性",

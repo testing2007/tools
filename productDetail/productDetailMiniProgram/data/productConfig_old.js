@@ -1,4 +1,7 @@
-{
+// 微信小程序 require() 不支持直接引入 .json，需用 module.exports 导出
+// 此文件由 productConfig (1).json 转换而来，运行时通过 require('../../data/productConfig') 加载
+
+module.exports = {
   "groups": [
     {
       "images": [
@@ -91,4 +94,4 @@
       ]
     }
   ]
-}
+};

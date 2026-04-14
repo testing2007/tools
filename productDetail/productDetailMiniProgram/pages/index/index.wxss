@@ -96,50 +96,54 @@ page { margin:0; padding:0; height:100vh; overflow:hidden; background:#000; }
   transition:width .08s linear;
 }
 
-/* ── 4. 浮层锚点 ── */
+/* ── 4. 浮层锚点定位 ── */
 
-.pos-anchor { position:absolute; z-index:20; }
-.pos-anchor.pos-top-left   { top:12%;    left:5%;  }
-.pos-anchor.pos-top-right  { top:12%;    right:5%; }
-.pos-anchor.pos-mid-right  { top:30%;    right:5%; }
-.pos-anchor.pos-mid-left   { top:30%;    left:5%;  }
-/* 底部居中：用 flex 居中，避免 translateX 与 .fov 的 translateX 动画叠加冲突 */
-.pos-anchor.pos-bot-center {
-  bottom:10%;
-  left:0; right:0;
-  display:flex;
-  justify-content:center;
-}
+.pos-anchor { position:absolute; z-index:20; } 
+/* 与可视化编辑器保持一致，直接使用 left 和 top 进行基于左上角的精确定位，去除了 transform-translate 偏移 */
 
 /* ── 5. 浮层动画：三态状态机 ── */
 /*
   initial  → 等待进入视口（起始藏匿位置）
-  visible  → 已进入视口（目标位置，飞入完成）
+  visible  → 已进入视口（目标位置，飞入/显示完成）
   exiting  → 用户往回滑，逆向退场
-  initial  → exiting 动画结束后重置（供下次重用）
+  注：过渡时间和曲线已经在 style 中被 js 动态覆盖
 */
 
 .fov {
-  transition:
-    transform .65s cubic-bezier(.16,1,.3,1),
-    opacity   .65s ease;
   will-change: transform, opacity;
+  transform-origin: center center;
 }
 
-/* 从左飞入；逆向时向右飞出 */
-.fov.dir-left.state-initial { transform:translateX(-400px); opacity:0; }
-.fov.dir-left.state-visible { transform:translateX(0);      opacity:1; }
-.fov.dir-left.state-exiting { transform:translateX(400px);  opacity:0; }
+/* 1. slideX_right：从左侧飞入；逆向时向右侧飞出 */
+.fov.anim-slideX_right.state-initial { transform:translateX(-400px); opacity:0; }
+.fov.anim-slideX_right.state-visible { transform:translateX(0);      opacity:1; }
+.fov.anim-slideX_right.state-exiting { transform:translateX(400px);  opacity:0; }
 
-/* 从右飞入；逆向时向左飞出 */
-.fov.dir-right.state-initial { transform:translateX(400px);  opacity:0; }
-.fov.dir-right.state-visible { transform:translateX(0);      opacity:1; }
-.fov.dir-right.state-exiting { transform:translateX(-400px); opacity:0; }
+/* 2. slideX_left：从右侧飞入；逆向时向左侧飞出 */
+.fov.anim-slideX_left.state-initial { transform:translateX(400px);  opacity:0; }
+.fov.anim-slideX_left.state-visible { transform:translateX(0);      opacity:1; }
+.fov.anim-slideX_left.state-exiting { transform:translateX(-400px); opacity:0; }
 
-/* 从下弹出；逆向时向上退出 */
-.fov.dir-bottom.state-initial { transform:translateY(280px);  opacity:0; }
-.fov.dir-bottom.state-visible { transform:translateY(0);      opacity:1; }
-.fov.dir-bottom.state-exiting { transform:translateY(-200px); opacity:0; }
+/* 3. slideY：从下方飞入；逆向时向下方飞出 (为防止出视口太远，Y位移适当缩小) */
+.fov.anim-slideY.state-initial { transform:translateY(250px);  opacity:0; }
+.fov.anim-slideY.state-visible { transform:translateY(0);      opacity:1; }
+.fov.anim-slideY.state-exiting { transform:translateY(-150px); opacity:0; }
+
+/* 4. fade：纯渐变显隐 */
+.fov.anim-fade.state-initial { transform:scale(1); opacity:0; }
+.fov.anim-fade.state-visible { transform:scale(1); opacity:1; }
+.fov.anim-fade.state-exiting { transform:scale(1); opacity:0; }
+
+/* 5. zoom：缩放弹出 */
+.fov.anim-zoom.state-initial { transform:scale(0.3); opacity:0; }
+.fov.anim-zoom.state-visible { transform:scale(1);   opacity:1; }
+.fov.anim-zoom.state-exiting { transform:scale(1.5); opacity:0; }
+
+/* 6. none：无动画，跟手跟随 */
+.fov.anim-none.state-initial { transform:none; opacity:0; }
+.fov.anim-none.state-visible { transform:none; opacity:1; }
+.fov.anim-none.state-exiting { transform:none; opacity:0; }
+
 
 /* ── 6. 浮层视觉样式 ── */
 
@@ -151,8 +155,8 @@ page { margin:0; padding:0; height:100vh; overflow:hidden; background:#000; }
   box-shadow:0 6rpx 32rpx rgba(0,0,0,.28);
   white-space:nowrap;
 }
-.f-icon { font-size:34rpx; }
-.f-txt  { font-size:28rpx; font-weight:700; color:#111; letter-spacing:2rpx; }
+.f-icon { font-size:1.2em; }
+.f-txt  { font-size:1em; font-weight:inherit; color:inherit; letter-spacing:2rpx; }
 
 .f-card {
   width:290rpx; padding:32rpx; border-radius:24rpx;
@@ -161,9 +165,9 @@ page { margin:0; padding:0; height:100vh; overflow:hidden; background:#000; }
   box-shadow:0 12rpx 50rpx rgba(0,0,0,.4);
   display:flex; flex-direction:column; gap:10rpx;
 }
-.f-eyebrow { font-size:19rpx; letter-spacing:5rpx; color:rgba(0,0,0,.3); }
-.f-title   { font-size:36rpx; font-weight:800; color:#111; }
-.f-desc    { font-size:24rpx; color:#666; line-height:1.65; }
+.f-eyebrow { font-size:0.6em; letter-spacing:5rpx; color:inherit; opacity: 0.6; } /* 改为 em 以响应内联覆盖 */
+.f-title   { font-size:1.2em; font-weight:inherit; color:inherit; }
+.f-desc    { font-size:0.85em; color:inherit; line-height:1.65; opacity: 0.9; }
 
 .f-main {
   width:620rpx; padding:44rpx; border-radius:32rpx;

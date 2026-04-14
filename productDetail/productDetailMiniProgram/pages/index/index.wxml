@@ -63,28 +63,35 @@
             wx:for="{{img.overlays}}"
             wx:key="index"
             wx:for-item="ov"
-            class="pos-anchor pos-{{ov.anchor}}"
+            class="pos-anchor"
+            style="left:{{ov.pos.x}}%; top:{{ov.pos.y}}%;"
           >
-            <view class="fov dir-{{ov.dir}} state-{{animMap[img.id]}}">
+            <view class="fov anim-{{ov.anim.type}} state-{{animMap[img.id]}}" style="transition: {{ov._transition}}">
 
               <!-- type = tag：小胶囊标签 -->
-              <view wx:if="{{ov.type === 'tag'}}" class="f-tag">
+              <view wx:if="{{ov.type === 'tag'}}" class="f-tag"
+                style="color:{{ov.style.color}}; font-size:{{ov.style.fontSize/2}}px; font-weight:{{ov.style.fontWeight}}; background-color:{{ov.style.bgColor}}; {{ov.style.bgBlur ? 'backdrop-filter:blur(10px);' : ''}} {{ov.style.boxShadow === false ? 'box-shadow:none;' : ''}}"
+              >
                 <text class="f-icon">{{ov.icon}}</text>
                 <text class="f-txt">{{ov.label}}</text>
               </view>
 
               <!-- type = card：信息卡片 -->
-              <view wx:if="{{ov.type === 'card'}}" class="f-card">
-                <text class="f-eyebrow">{{ov.eyebrow}}</text>
-                <text class="f-title">{{ov.title}}</text>
-                <text class="f-desc">{{ov.desc}}</text>
+              <view wx:if="{{ov.type === 'card'}}" class="f-card"
+                style="color:{{ov.style.color}}; background-color:{{ov.style.bgColor}}; {{ov.style.bgBlur ? 'backdrop-filter:blur(20px);' : ''}} {{ov.style.boxShadow === false ? 'box-shadow:none;' : ''}}"
+              >
+                <text class="f-eyebrow" style="font-size:{{ov.style.fontSize*0.3}}px">{{ov.eyebrow}}</text>
+                <text class="f-title" style="font-size:{{ov.style.fontSize*0.6}}px; font-weight:{{ov.style.fontWeight}}">{{ov.title}}</text>
+                <text class="f-desc" style="font-size:{{ov.style.fontSize*0.42}}px">{{ov.desc}}</text>
               </view>
 
               <!-- type = main：大号主推卡片（含按钮） -->
-              <view wx:if="{{ov.type === 'main'}}" class="f-main">
-                <text class="f-eyebrow">{{ov.eyebrow}}</text>
-                <text class="f-title">{{ov.title}}</text>
-                <text class="f-desc">{{ov.desc}}</text>
+              <view wx:if="{{ov.type === 'main'}}" class="f-main"
+                style="color:{{ov.style.color}}; background-color:{{ov.style.bgColor}}; {{ov.style.bgBlur ? 'backdrop-filter:blur(30px);' : ''}} {{ov.style.boxShadow === false ? 'box-shadow:none;' : ''}}"
+              >
+                <text class="f-eyebrow" style="font-size:{{ov.style.fontSize*0.3}}px">{{ov.eyebrow}}</text>
+                <text class="f-title" style="font-size:{{ov.style.fontSize*0.65}}px; font-weight:{{ov.style.fontWeight}}">{{ov.title}}</text>
+                <text class="f-desc" style="font-size:{{ov.style.fontSize*0.42}}px">{{ov.desc}}</text>
                 <view class="f-btn">
                   <text>{{ov.btnText}}</text>
                   <text> →</text>

@@ -5,11 +5,11 @@
       <el-header height="60px" class="header">
         <div class="logo">
           <el-icon><Monitor /></el-icon>
-          微信小程序详情页配置台
+          小程序详情页配置台 - 增强版
         </div>
         <div class="actions">
-          <el-button type="primary" @click="downloadJson">
-            <el-icon><Download /></el-icon> 导出 JSON (保存到本地)
+          <el-button type="primary" @click="downloadJs">
+            <el-icon><Download /></el-icon> 导出 JS 并保存
           </el-button>
         </div>
       </el-header>
@@ -18,7 +18,7 @@
         <!-- 左侧：表单配置区 -->
         <el-main class="left-panel">
           <div class="panel-header">
-            <h3>页面配置结构树</h3>
+            <h3>页面配置结构</h3>
             <el-button type="success" plain size="small" @click="addGroup">
               <el-icon><Plus /></el-icon> 新增内容组 (Group)
             </el-button>
@@ -34,7 +34,6 @@
                 <div class="collapse-title">
                   <el-tag size="small" effect="dark">组 {{ gIndex + 1 }}</el-tag>
                   <span class="img-count">包含 {{ group.images.length }} 张图片</span>
-                  <!-- 点击删除按钮时阻止折叠事件冒泡 -->
                   <el-button 
                     type="danger" 
                     link 
@@ -61,18 +60,21 @@
                   </template>
 
                   <!-- 图片基本信息 -->
-                  <el-form label-width="100px">
+                  <el-form label-width="110px">
                     <el-form-item label="标识符 (ID)">
-                      <el-input v-model="img.id" placeholder="唯一标识，用于动画 (如 img0)" />
+                      <el-input v-model="img.id" placeholder="唯一标识" />
                     </el-form-item>
-                    <el-form-item label="资源路径">
+                    <el-form-item label="小程序路径">
                       <el-input v-model="img.src" placeholder="填写路径如 /assets/01.jpg" />
+                    </el-form-item>
+                    <el-form-item label="编辑器本地预览">
+                      <input type="file" accept="image/*" @change="e => handleLocalImage(e, img)" style="font-size: 13px;" />
                     </el-form-item>
                   </el-form>
 
-                  <el-divider>所属浮层动画 ({{ img.overlays.length }})</el-divider>
+                  <el-divider>浮层与动画 ({{ img.overlays.length }})</el-divider>
 
-                  <!-- 图片上的浮层列表 -->
+                  <!-- 浮层列表 -->
                   <div 
                     v-for="(ov, oIndex) in img.overlays" 
                     :key="oIndex" 
@@ -83,70 +85,138 @@
                       <el-button type="danger" link @click="deleteOverlay(img, oIndex)"><el-icon><Delete /></el-icon></el-button>
                     </div>
 
-                    <el-form label-width="100px" size="small">
-                      <el-row :gutter="10">
-                        <el-col :span="8">
-                          <el-form-item label="浮层类型">
-                            <el-select v-model="ov.type" placeholder="选择类型" @change="handleTypeChange(ov)">
-                              <el-option label="小标签 (tag)" value="tag" />
-                              <el-option label="信息卡片 (card)" value="card" />
-                              <el-option label="主推卡片 (main)" value="main" />
-                            </el-select>
-                          </el-form-item>
-                        </el-col>
-                        <el-col :span="8">
-                          <el-form-item label="锚点位置">
-                            <el-select v-model="ov.anchor">
-                              <el-option label="左上方" value="top-left" />
-                              <el-option label="右上方" value="top-right" />
-                              <el-option label="左侧居中" value="mid-left" />
-                              <el-option label="右侧居中" value="mid-right" />
-                              <el-option label="底部居中" value="bot-center" />
-                            </el-select>
-                          </el-form-item>
-                        </el-col>
-                        <el-col :span="8">
-                          <el-form-item label="飞入方向">
-                            <el-select v-model="ov.dir">
-                              <el-option label="从左侧入" value="left" />
-                              <el-option label="从右侧入" value="right" />
-                              <el-option label="从底下入" value="bottom" />
-                            </el-select>
-                          </el-form-item>
-                        </el-col>
-                      </el-row>
+                    <el-tabs type="border-card" class="ov-tabs">
+                      <!-- 基础 -->
+                      <el-tab-pane label="内容基础">
+                        <el-form label-width="100px" size="small">
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="类型 (type)">
+                                <el-select v-model="ov.type" @change="handleTypeChange(ov)">
+                                  <el-option label="小标签 (tag)" value="tag" />
+                                  <el-option label="卡片 (card)" value="card" />
+                                  <el-option label="主推卡片 (main)" value="main" />
+                                </el-select>
+                              </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="坐标">
+                                <span style="display:flex;gap:4px">
+                                  X <el-input-number v-model="ov.pos.x" :min="0" :max="100" :precision="1" :controls="false" style="width:45%;"/>
+                                  Y <el-input-number v-model="ov.pos.y" :min="0" :max="100" :precision="1" :controls="false" style="width:45%;"/>
+                                </span>
+                              </el-form-item>
+                            </el-col>
+                          </el-row>
 
-                      <!-- 多态字段展示区 -->
-                      <div class="polymorphic-fields">
-                        <template v-if="ov.type === 'tag'">
-                          <el-form-item label="图标 (icon)"><el-input v-model="ov.icon" placeholder="比如: ✨" /></el-form-item>
-                          <el-form-item label="标签名 (label)"><el-input v-model="ov.label" placeholder="全新登场" /></el-form-item>
-                        </template>
+                          <!-- 多态字段 -->
+                          <div class="polymorphic-fields">
+                            <template v-if="ov.type === 'tag'">
+                              <el-form-item label="图标 (icon)"><el-input v-model="ov.icon" /></el-form-item>
+                              <el-form-item label="标签名 (label)"><el-input v-model="ov.label" /></el-form-item>
+                            </template>
+                            <template v-else-if="ov.type === 'card' || ov.type === 'main'">
+                              <el-form-item label="肩题 (eyebrow)"><el-input v-model="ov.eyebrow" /></el-form-item>
+                              <el-form-item label="标题 (title)"><el-input v-model="ov.title" /></el-form-item>
+                              <el-form-item label="描述 (desc)"><el-input type="textarea" v-model="ov.desc" :rows="2" /></el-form-item>
+                              <el-form-item v-if="ov.type === 'main'" label="按钮"><el-input v-model="ov.btnText" /></el-form-item>
+                            </template>
+                          </div>
+                        </el-form>
+                      </el-tab-pane>
 
-                        <template v-else-if="ov.type === 'card' || ov.type === 'main'">
-                          <el-form-item label="肩题 (eyebrow)"><el-input v-model="ov.eyebrow" placeholder="小字介绍" /></el-form-item>
-                          <el-form-item label="标题 (title)"><el-input v-model="ov.title" placeholder="大字标题" /></el-form-item>
-                          <el-form-item label="描述 (desc)">
-                            <el-input type="textarea" v-model="ov.desc" :rows="2" placeholder="长文案描述" />
-                          </el-form-item>
-                          <!-- type === 'main' 独有字段 -->
-                          <el-form-item v-if="ov.type === 'main'" label="按钮文案">
-                            <el-input v-model="ov.btnText" placeholder="探索产品" />
-                          </el-form-item>
-                        </template>
-                      </div>
-                    </el-form>
-                  </div> <!-- /overlay-box -->
+                      <!-- 动画 -->
+                      <el-tab-pane label="动画配置">
+                        <el-form label-width="100px" size="small">
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="入场动画">
+                                <el-select v-model="ov.anim.type">
+                                  <el-option label="Left→Right (slideX)" value="slideX_right" />
+                                  <el-option label="Right→Left (slideX_rev)" value="slideX_left" />
+                                  <el-option label="Bottom→Top (slideY)" value="slideY" />
+                                  <el-option label="Fade In (渐隐显)" value="fade" />
+                                  <el-option label="Zoom In (缩放)" value="zoom" />
+                                  <el-option label="无动画" value="none" />
+                                </el-select>
+                              </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="过渡曲线">
+                                <el-select v-model="ov.anim.easing">
+                                  <el-option label="平滑跟随 (ease)" value="ease" />
+                                  <el-option label="弹性超调 (spring)" value="spring" />
+                                  <el-option label="减速 (ease-out)" value="ease-out" />
+                                  <el-option label="匀速 (linear)" value="linear" />
+                                </el-select>
+                              </el-form-item>
+                            </el-col>
+                          </el-row>
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="时长(ms)"><el-input-number v-model="ov.anim.duration" :step="50" style="width:100%"/></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="延迟(ms)"><el-input-number v-model="ov.anim.delay" :step="50" style="width:100%"/></el-form-item>
+                            </el-col>
+                          </el-row>
+                        </el-form>
+                      </el-tab-pane>
 
-                  <!-- 新增浮层按钮 -->
+                      <!-- 样式 -->
+                      <el-tab-pane label="文字/背景样式">
+                        <el-form label-width="100px" size="small">
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="主文本色">
+                                <el-color-picker v-model="ov.style.color" show-alpha />
+                              </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="背景色">
+                                <el-color-picker v-model="ov.style.bgColor" show-alpha />
+                              </el-form-item>
+                            </el-col>
+                          </el-row>
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="字号(rpx)"><el-slider v-model="ov.style.fontSize" :min="18" :max="80" /></el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="字重">
+                                <el-select v-model="ov.style.fontWeight">
+                                  <el-option label="正常 (400)" value="400" />
+                                  <el-option label="加粗 (700)" value="700" />
+                                  <el-option label="特粗 (900)" value="900" />
+                                </el-select>
+                              </el-form-item>
+                            </el-col>
+                          </el-row>
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-form-item label="背景毛玻璃">
+                                <el-switch v-model="ov.style.bgBlur" />
+                              </el-form-item>
+                            </el-col>
+                            <el-col :span="12">
+                              <el-form-item label="显示阴影">
+                                <el-switch v-model="ov.style.boxShadow" />
+                              </el-form-item>
+                            </el-col>
+                          </el-row>
+                        </el-form>
+                      </el-tab-pane>
+                    </el-tabs>
+
+                  </div>
+
                   <div class="add-overlay-btn" style="text-align: center; margin-top: 10px;">
                     <el-button type="warning" plain size="small" @click="addOverlay(img)">
-                      <el-icon><Plus /></el-icon> 为此图片添加动画浮层
+                      <el-icon><Plus /></el-icon> 添加动画浮层
                     </el-button>
                   </div>
                 </el-card>
 
-                <!-- 新增图片按钮 -->
                 <el-button type="primary" plain class="add-img-btn" @click="addImage(group)">
                   <el-icon><Picture /></el-icon> 添加新图片
                 </el-button>
@@ -156,17 +226,77 @@
         </el-main>
 
         <!-- 右侧：代码 / 预览区 -->
-        <el-aside width="400px" class="right-panel">
-          <div class="panel-header">
-            <h3>JSON 数据输出 (实时预览)</h3>
-          </div>
-          <div class="json-preview-container">
-            <pre class="json-content">{{ formattedJson }}</pre>
-          </div>
-          <div class="json-tips">
-            <p><el-icon><InfoFilled /></el-icon> 配置结束后，使用右上角的“导出 JSON”按钮保存文件。</p>
-            <p>将导出的文件覆盖小程序 <code>data/productConfig.json</code> 即可生效！</p>
-          </div>
+        <el-aside width="450px" class="right-panel">
+          <el-tabs v-model="activeRightTab" class="right-tabs">
+            <el-tab-pane label="实时预览 (可拖拽)" name="preview">
+              <div class="preview-toolbar">
+                <span>预览组：</span>
+                <el-select v-model="previewGroupIndex" size="small" style="width:120px">
+                  <el-option v-for="(g, idx) in configData.groups" :key="idx" :label="'Group ' + (idx+1)" :value="idx" />
+                </el-select>
+              </div>
+
+              <!-- 手机壳模拟 -->
+              <div class="phone-mockup">
+                <!-- 全局鼠标事件监听，处理拖拽 -->
+                <div class="phone-screen" 
+                     @mousemove="onDragMove" 
+                     @mouseup="onDragEnd" 
+                     @mouseleave="onDragEnd">
+                  
+                  <div v-if="previewGroup" class="phone-content">
+                    <div 
+                      v-for="(img, iIndex) in previewGroup.images" 
+                      :key="iIndex" 
+                      class="preview-img-row"
+                    >
+                      <img :src="img.previewUrl || img.src || placeholderImg" class="p-img" draggable="false" @error="e => { if(e.target.src !== placeholderImg) e.target.src = placeholderImg; }" />
+                      
+                      <!-- 浮层渲染 -->
+                      <div v-for="(ov, oIndex) in img.overlays" :key="oIndex"
+                           class="p-fov"
+                           :class="[ov.type]"
+                           :style="getPreviewStyle(ov)"
+                           @mousedown="onDragStart($event, ov)">
+                         
+                         <!-- tag 特有 -->
+                         <div v-if="ov.type === 'tag'" class="p-tag-inner" :style="getInnerStyle(ov)">
+                           <span class="p-icon">{{ov.icon}}</span>
+                           <span class="p-txt">{{ov.label}}</span>
+                         </div>
+                         
+                         <!-- card 特有 -->
+                         <div v-else-if="ov.type === 'card'" class="p-card-inner" :style="getInnerStyle(ov)">
+                           <div class="p-eyebrow">{{ov.eyebrow}}</div>
+                           <div class="p-title">{{ov.title}}</div>
+                           <div class="p-desc">{{ov.desc}}</div>
+                         </div>
+                         
+                         <!-- main 特有 -->
+                         <div v-else-if="ov.type === 'main'" class="p-main-inner" :style="getInnerStyle(ov)">
+                           <div class="p-eyebrow">{{ov.eyebrow}}</div>
+                           <div class="p-title">{{ov.title}}</div>
+                           <div class="p-desc">{{ov.desc}}</div>
+                           <div class="p-btn">{{ov.btnText}} →</div>
+                         </div>
+                      </div>
+
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
+            </el-tab-pane>
+            
+            <el-tab-pane label="JS 代码输出" name="code">
+              <div class="json-tips">
+                <el-icon><InfoFilled /></el-icon> 已转为 module.exports 格式，右上方点击导出即可。
+              </div>
+              <div class="json-preview-container">
+                <pre class="json-content">{{ jsExportStr }}</pre>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </el-aside>
       </el-container>
     </el-container>
@@ -177,89 +307,65 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 
-// 初始化默认的小程序配置数据结构（模拟数据）
+// --- 初始占位图 ---
+const placeholderImg = 'data:image/svg+xml;utf8,<svg width="375" height="400" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="%23e0e0e0"/><text x="50%" y="50%" fill="%23aaa" font-family="sans-serif" font-size="20" text-anchor="middle" alignment-baseline="middle">本地无预览图，选择文件以预览</text></svg>'
+
+// --- 默认模板工厂 ---
+const createOverlay = (overrides = {}) => ({
+  type: 'tag',
+  pos: { x: 5, y: 15 },
+  dir: 'left', // 保留向下兼容
+  anim: { type: 'slideX_right', duration: 650, easing: 'spring', delay: 0 },
+  style: { color: '#111111', fontSize: 28, fontWeight: '700', bgColor: 'rgba(255,255,255,0.93)', bgBlur: true, boxShadow: true },
+  icon: '✨', label: '新特性',
+  ...overrides
+})
+
+// --- 初始化数据 ---
 const configData = reactive({
   groups: [
     {
       images: [
         {
-          id: 'img0', src: '/assets/01.jpg',
-          overlays: [{ type: 'tag', dir: 'left', anchor: 'top-left', icon: '✨', label: '全新登场' }],
+          id: 'img0', src: '/assets/01.jpg', previewUrl: null,
+          overlays: [createOverlay({ label: '全新型号', pos: {x:10, y:12} })],
         },
         {
-          id: 'img1', src: '/assets/02.jpg',
-          overlays: [{ type: 'card', dir: 'right', anchor: 'mid-right', eyebrow: '精选功能', title: '震撼视觉', desc: '超越以往的美学方案，带来极致体验' }],
-        },
-        {
-          id: 'img2', src: '/assets/03.jpg',
-          overlays: [{ type: 'tag', dir: 'bottom', anchor: 'bot-center', icon: '🚀', label: '性能狂飙' }],
-        },
-      ],
-    },
-    {
-      images: [
-        {
-          id: 'img3', src: '/assets/04.jpg',
-          overlays: [{ type: 'card', dir: 'left', anchor: 'mid-left', eyebrow: '核心优势', title: '坚若磐石', desc: '创新材料架构，经久耐用' }],
-        },
-        {
-          id: 'img4', src: '/assets/05.jpg',
-          overlays: [{ type: 'tag', dir: 'right', anchor: 'top-right', icon: '🔋', label: '持久续航' }],
-        },
-        {
-          id: 'img5', src: '/assets/06.jpg',
-          overlays: [{ type: 'main', dir: 'bottom', anchor: 'bot-center', eyebrow: '立即了解', title: '立即体验', desc: '感受更多不凡之处', btnText: '探索产品' }],
-        },
-      ],
+          id: 'img1', src: '/assets/02.jpg', previewUrl: null,
+          overlays: [createOverlay({ 
+            type: 'card', pos: {x:40, y:30}, anim: { type:'slideX_left', duration:650, easing:'ease', delay:100 },
+            eyebrow: '精选功能', title: '震撼视觉', desc: '超越以往的美学方案' 
+          })],
+        }
+      ]
     }
   ]
 })
 
-// 默认展开所有折叠面板
-const activeGroups = ref([0, 1])
+const activeGroups = ref([0])
+const activeRightTab = ref('preview')
+const previewGroupIndex = ref(0)
+const previewGroup = computed(() => configData.groups[previewGroupIndex.value])
 
-// ---------- 组操作 ----------
+// ---------- 组与图片操作 ----------
 const addGroup = () => {
   configData.groups.push({ images: [] })
   activeGroups.value.push(configData.groups.length - 1)
 }
+const deleteGroup = (index) => { configData.groups.splice(index, 1) }
 
-const deleteGroup = (index) => {
-  configData.groups.splice(index, 1)
-}
-
-// ---------- 图片操作 ----------
-// 为了生成唯一的 ID，简单使用时间戳或者随机数
-const generateUUID = () => 'img_' + Math.random().toString(36).substring(2, 8)
+const generateUUID = () => 'img_' + Math.random().toString(36).substring(2, 6)
 
 const addImage = (group) => {
-  group.images.push({
-    id: generateUUID(),
-    src: '/assets/placeholder.jpg',
-    overlays: []
-  })
+  group.images.push({ id: generateUUID(), src: '/assets/placeholder.jpg', previewUrl: null, overlays: [] })
 }
 
-const deleteImage = (group, index) => {
-  group.images.splice(index, 1)
-}
+const deleteImage = (group, index) => { group.images.splice(index, 1) }
 
 // ---------- 浮层操作 ----------
-const addOverlay = (img) => {
-  img.overlays.push({
-    type: 'tag',
-    dir: 'left',
-    anchor: 'top-left',
-    icon: '✨',
-    label: '新特性'
-  })
-}
+const addOverlay = (img) => { img.overlays.push(createOverlay()) }
+const deleteOverlay = (img, index) => { img.overlays.splice(index, 1) }
 
-const deleteOverlay = (img, index) => {
-  img.overlays.splice(index, 1)
-}
-
-// 浮层类型切换时，保证属性匹配（虽然无关属性存在也不会影响 JSON 使用，为了严谨可以清理）
 const handleTypeChange = (ov) => {
   if (ov.type === 'tag') {
     if (!ov.icon) ov.icon = '✨'
@@ -270,26 +376,114 @@ const handleTypeChange = (ov) => {
   }
 }
 
-// ---------- JSON 显示与下载 ----------
-const formattedJson = computed(() => {
-  return JSON.stringify(configData, null, 2)
+// 本地图片预览
+const handleLocalImage = (e, img) => {
+  const file = e.target.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    img.previewUrl = url;
+  }
+}
+
+// ---------- 拖拽预览逻辑 ----------
+let dragTarget = null;
+let startX = 0;
+let startY = 0;
+let initialPosX = 0;
+let initialPosY = 0;
+let parentW = 0;
+let parentH = 0;
+
+const onDragStart = (e, ov) => {
+  e.preventDefault();
+  dragTarget = ov;
+  startX = e.clientX;
+  startY = e.clientY;
+  initialPosX = ov.pos.x;
+  initialPosY = ov.pos.y;
+  
+  const parentEl = e.target.closest('.preview-img-row');
+  if (parentEl) {
+    const rect = parentEl.getBoundingClientRect();
+    parentW = rect.width;
+    parentH = rect.height;
+  }
+}
+
+const onDragMove = (e) => {
+  if (!dragTarget || !parentW || !parentH) return;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  
+  let newX = initialPosX + (dx / parentW) * 100;
+  let newY = initialPosY + (dy / parentH) * 100;
+  
+  dragTarget.pos.x = Math.max(0, Math.min(100, Number(newX.toFixed(1))));
+  dragTarget.pos.y = Math.max(0, Math.min(100, Number(newY.toFixed(1))));
+}
+
+const onDragEnd = () => {
+  dragTarget = null;
+}
+
+// 预览样式映射
+const getPreviewStyle = (ov) => {
+  return {
+    left: ov.pos.x + '%',
+    top: ov.pos.y + '%',
+    cursor: dragTarget === ov ? 'grabbing' : 'grab'
+  }
+}
+
+const getInnerStyle = (ov) => {
+  const s = ov.style || {};
+  return {
+    color: s.color,
+    fontSize: (s.fontSize / 2.6) + 'px', // 模拟 rpx 缩放
+    fontWeight: s.fontWeight,
+    backgroundColor: s.bgColor,
+    backdropFilter: s.bgBlur ? 'blur(10px)' : 'none',
+    boxShadow: s.boxShadow === false ? 'none' : ''
+  }
+}
+
+// ---------- JS 导出逻辑 ----------
+const stripPreviewData = (data) => {
+  // 深拷贝并去除不需要的字段 (如 previewUrl)
+  const copy = JSON.parse(JSON.stringify(data));
+  copy.groups.forEach(g => {
+    g.images.forEach(img => {
+      delete img.previewUrl;
+    })
+  });
+  return copy;
+}
+
+const jsExportStr = computed(() => {
+  const cleanData = stripPreviewData(configData);
+  const jsonStr = JSON.stringify(cleanData, null, 2);
+  return `// 此文件由 WeChat Detail Editor 自动生成
+// 使用 module.exports 导出以供小程序直接 require()
+
+module.exports = ${jsonStr};
+`;
 })
 
-const downloadJson = () => {
-  const jsonStr = JSON.stringify(configData, null, 2)
-  const blob = new Blob([jsonStr], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
+const downloadJs = () => {
+  const fileStr = jsExportStr.value;
+  const blob = new Blob([fileStr], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
   
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'productConfig.json'
-  document.body.appendChild(link)
-  link.click()
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'productConfig.js';
+  document.body.appendChild(link);
+  link.click();
   
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
   
-  ElMessage.success('成功导出 productConfig.json！')
+  ElMessage.success('成功导出 productConfig.js！');
 }
 
 </script>
@@ -323,10 +517,26 @@ const downloadJson = () => {
   border-right: 1px solid #ebeef5;
 }
 .right-panel {
-  background-color: #fcfcfc;
+  background-color: #f5f7fa;
   display: flex;
   flex-direction: column;
 }
+.right-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+:deep(.right-tabs > .el-tabs__content) {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+:deep(.el-tab-pane) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -339,84 +549,67 @@ const downloadJson = () => {
   color: #303133;
 }
 
-/* 组与折叠面版样式 */
-.collapse-title {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding-right: 15px;
-}
-.img-count {
-  margin-left: 15px;
-  font-size: 13px;
-  color: #909399;
-}
-.delete-btn {
-  margin-left: auto;
-}
-.group-content {
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-}
-
-/* 图片卡片样式 */
-.img-card {
-  margin-bottom: 15px;
-}
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.add-img-btn {
-  width: 100%;
-  margin-top: 10px;
-}
+/* 组/图片样式 */
+.collapse-title { display: flex; align-items: center; width: 100%; padding-right: 15px; }
+.img-count { margin-left: 15px; font-size: 13px; color: #909399; }
+.delete-btn { margin-left: auto; }
+.group-content { padding: 10px; background-color: #f8f9fa; border-radius: 8px; }
+.img-card { margin-bottom: 15px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.add-img-btn { width: 100%; margin-top: 10px; }
 
 /* 浮层动画配置区 */
-.overlay-box {
-  background-color: #f0f4ff;
-  border: 1px dashed #b3c0d1;
-  border-radius: 6px;
-  padding: 15px 15px 0 15px;
-  margin-bottom: 12px;
-}
-.ov-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.polymorphic-fields {
-  background-color: white;
-  padding: 10px 10px 5px 10px;
-  border-radius: 4px;
-  margin-top: 10px;
-  margin-bottom: 15px;
-}
+.overlay-box { background-color: #f9fbfd; border: 1px solid #dcdfe6; border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+.ov-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ov-tabs { border: none !important; box-shadow: none !important; }
+.polymorphic-fields { background-color: white; padding: 10px; border-radius: 4px; margin-top: 10px; border: 1px dashed #e4e7ed;}
 
 /* JSON 预览区 */
-.json-preview-container {
-  flex: 1;
-  overflow: auto;
-  padding: 15px;
-  background-color: #1e1e1e;
+.json-preview-container { flex: 1; overflow: auto; padding: 15px; background-color: #1e1e1e; }
+.json-content { margin: 0; color: #d4d4d4; font-family: Consolas, Monaco, monospace; font-size: 13px; }
+.json-tips { padding: 10px 15px; background-color: #ecf5ff; color: #409eff; font-size: 13px; border-bottom: 1px solid #d9ecff; }
+
+/* 手机壳模拟区 */
+.preview-toolbar { padding: 10px; text-align: center; background: white; border-bottom: 1px solid #e4e7ed; }
+.phone-mockup { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 30px; background-color: #e4e7ed; }
+.phone-screen {
+  width: 375px; 
+  background: black; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+  border-radius: 30px; 
+  overflow: hidden; 
+  position: relative;
+  /* Disable text selection while dragging */
+  user-select: none;
 }
-.json-content {
-  margin: 0;
-  color: #d4d4d4;
-  font-family: Consolas, Monaco, 'Courier New', monospace;
-  font-size: 13px;
+.phone-content { height: 100%; overflow: auto; }
+.phone-content::-webkit-scrollbar { width: 0; }
+
+.preview-img-row { position: relative; width: 100%; line-height: 0; }
+.p-img { width: 100%; display: block; }
+.p-fov { position: absolute; z-index: 10; pointer-events: auto; }
+
+/* 预览版浮层基础样式 */
+.p-tag-inner {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 14px; border-radius: 30px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  white-space: nowrap;
 }
-.json-tips {
-  padding: 15px;
-  background-color: #ecf5ff;
-  color: #409eff;
-  font-size: 13px;
-  border-top: 1px solid #d9ecff;
+.p-card-inner {
+  width: 140px; padding: 14px; border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  display: flex; flex-direction: column; gap: 6px;
+  line-height: 1.4;
 }
-.json-tips p {
-  margin: 5px 0;
+.p-main-inner {
+  width: 260px; padding: 20px; border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
 }
+.p-title { font-weight: 800; font-size: 1.1em;}
+.p-eyebrow { font-size: 0.6em; opacity: 0.5; letter-spacing: 2px;}
+.p-desc { font-size: 0.7em; opacity: 0.8; }
+.p-btn { margin-top: 8px; padding: 8px 24px; border-radius: 20px; background: #333; color: white; font-size: 0.8em; font-weight: bold; }
+
 </style>
