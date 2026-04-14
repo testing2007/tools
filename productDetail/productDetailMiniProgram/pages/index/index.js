@@ -32,52 +32,10 @@
 // ================================================================
 
 // ================================================================
-// 商品数据配置（内联，与渲染逻辑分区，后期对接 API 时只需替换此处）
-//
-// 结构：groups[] → images[] → overlays[]
-//   type:   'tag' | 'card' | 'main'
-//   dir:    'left' | 'right' | 'bottom'
-//   anchor: 'top-left' | 'top-right' | 'mid-left' | 'mid-right' | 'bot-center'
+// 提示：使用 require() 直接引入包内 JSON（wx.getFileSystemManager
+//       无权限读取代码包内的 /assets/ 文件，只能读取用户目录）。
 // ================================================================
-const PRODUCT_CONFIG = {
-  groups: [
-    // ── 第 1 组：组内自由滑动，到达底部后需弹簧力才能进入第 2 组 ──
-    {
-      images: [
-        {
-          id: 'img0', src: '/assets/01.jpg',
-          overlays: [{ type: 'tag', dir: 'left', anchor: 'top-left', icon: '✨', label: '全新登场' }],
-        },
-        {
-          id: 'img1', src: '/assets/02.jpg',
-          overlays: [{ type: 'card', dir: 'right', anchor: 'mid-right', eyebrow: '精选功能', title: '震撼视觉', desc: '超越以往的美学方案，带来极致体验' }],
-        },
-        {
-          id: 'img2', src: '/assets/03.jpg',
-          overlays: [{ type: 'tag', dir: 'bottom', anchor: 'bot-center', icon: '🚀', label: '性能狂飙' }],
-        },
-      ],
-    },
-    // ── 第 2 组 ──
-    {
-      images: [
-        {
-          id: 'img3', src: '/assets/04.jpg',
-          overlays: [{ type: 'card', dir: 'left', anchor: 'mid-left', eyebrow: '核心优势', title: '坚若磐石', desc: '创新材料架构，经久耐用' }],
-        },
-        {
-          id: 'img4', src: '/assets/05.jpg',
-          overlays: [{ type: 'tag', dir: 'right', anchor: 'top-right', icon: '🔋', label: '持久续航' }],
-        },
-        {
-          id: 'img5', src: '/assets/06.jpg',
-          overlays: [{ type: 'main', dir: 'bottom', anchor: 'bot-center', eyebrow: '立即了解', title: '立即体验', desc: '感受更多不凡之处', btnText: '探索产品' }],
-        },
-      ],
-    },
-    // 新增第 3 组只需在此追加一项：{ images: [{ id, src, overlays }] }
-  ],
-};
+const PRODUCT_CONFIG = require('../../data/productConfig');
 
 
 // ── 弹簧物理常量 ──
@@ -133,6 +91,7 @@ Page({
     const sys = wx.getSystemInfoSync();
     this._wH = sys.windowHeight;
 
+    // require() 在小程序中同步加载代码包内的 JSON，无需 fs.readFile
     const groups  = PRODUCT_CONFIG.groups;
     const nGroups = groups.length;
 
@@ -140,7 +99,6 @@ Page({
     const animMap = {};
     groups.forEach(g => g.images.forEach(img => { animMap[img.id] = 'initial'; }));
 
-    // 初始化各组内滚偏移和过渡为默认值
     this._groupMaxScroll = new Array(nGroups).fill(0);
 
     this.setData({
@@ -148,6 +106,16 @@ Page({
       groupY:    new Array(nGroups).fill(0),
       groupEase: new Array(nGroups).fill(EASE_NONE),
       animMap,
+    }, () => {
+      // setData 回调表示数据已提交，但 DOM 渲染是异步的。
+      // 延迟 600ms 再建立 Observer，确保所有图片节点已挂载；
+      // 否则 observe() 找不到节点，visible 状态永远不触发（动画消失的根本原因）。
+      const firstId = this.data.groups[0]?.images[0]?.id;
+      if (firstId) setTimeout(() => this._setAnim(firstId, 'visible'), 400);
+      setTimeout(() => {
+        this._setupObservers();
+        this._measureLayout();
+      }, 600);
     });
   },
 
@@ -155,15 +123,7 @@ Page({
   //  onReady：DOM 已就绪，启动测量和观察
   // ================================================================
   onReady() {
-    // 图片使用 widthFix，高度由原始比例决定，等 800ms 布局稳定后测量
-    setTimeout(() => this._measureLayout(), 800);
-
-    // 首组第一张图立即触发飞入动画
-    const firstId = this.data.groups[0]?.images[0]?.id;
-    if (firstId) setTimeout(() => this._setAnim(firstId, 'visible'), 400);
-
-    // 启动 IntersectionObserver
-    this._setupObservers();
+    // onReady 不再处理 DOM 测量，因为我们要等 fs.readFile 异步数据读取完整并渲染完成后，再在 setData 的回调里开启
   },
 
   onUnload() {

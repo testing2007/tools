@@ -1,6 +1,6 @@
 {
   "libVersion": "3.15.1",
-  "projectname": "productDetail",
+  "projectname": "productDetailMiniProgram",
   "setting": {
     "urlCheck": false,
     "coverView": false,
