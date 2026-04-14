@@ -181,25 +181,67 @@ async def process_youtube_video(task_id: str, url: str, upload_dir: str, databas
         def transcribe_and_build():
             # Use 'base' model for decent speed/accuracy on CPU
             model = WhisperModel("base", compute_type="default")
-            segments, info = model.transcribe(audio_path, vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500))
+            segments, info = model.transcribe(
+                audio_path, 
+                vad_filter=True, 
+                vad_parameters=dict(min_silence_duration_ms=500),
+                word_timestamps=True
+            )
             total_duration = info.duration
             
             content = ""
             count = 0
+            
+            current_words = []
+            current_start = None
+            current_end = None
+            
+            def append_sentence(text, start, end, current_count, current_content):
+                text = text.strip()
+                text = re.sub(r'\s+', ' ', text)
+                if text and not re.search(r'[\u4e00-\u9fa5]', text):
+                    current_count += 1
+                    current_content += f"{current_count}\n{format_timestamp(start)} --> {format_timestamp(end)}\n{text}\n\n"
+                return current_count, current_content
+
             for i, segment in enumerate(segments):
                 if total_duration > 0:
                     progress_percent = int((segment.end / total_duration) * 100)
                     tasks[task_id]["stepDescriptions"][2] = f"正在进行 AI 转录 ({min(progress_percent, 99)}%)..."
                     
-                start = format_timestamp(segment.start)
-                end = format_timestamp(segment.end)
-                text = segment.text.strip()
-                
-                # Filter Chinese - only allow English/ASCII (and common punctuation)
-                if text and not re.search(r'[\u4e00-\u9fa5]', text):
-                    count += 1
-                    content += f"{count}\n{start} --> {end}\n{text}\n\n"
+                if not segment.words:
+                    text = segment.text.strip()
+                    count, content = append_sentence(text, segment.start, segment.end, count, content)
+                    continue
                     
+                for word in segment.words:
+                    word_text = word.word.strip()
+                    if not word_text:
+                        continue
+                        
+                    if current_start is None:
+                        current_start = word.start
+                        
+                    current_words.append(word.word)
+                    current_end = word.end
+                    
+                    is_end = bool(re.search(r'[.!?]["\']?$', word_text))
+                    
+                    if is_end:
+                        lower_word = word_text.lower()
+                        if lower_word in ['mr.', 'mrs.', 'ms.', 'dr.', 'prof.', 'st.', 'vs.', 'etc.']:
+                            is_end = False
+                            
+                    if is_end:
+                        text = "".join(current_words)
+                        count, content = append_sentence(text, current_start, current_end, count, content)
+                        current_words = []
+                        current_start = None
+                        
+            if current_words:
+                text = "".join(current_words)
+                count, content = append_sentence(text, current_start, current_end, count, content)
+                
             tasks[task_id]["stepDescriptions"][2] = "正在进行 AI 转录 (100%)..."
             return content, count
 
