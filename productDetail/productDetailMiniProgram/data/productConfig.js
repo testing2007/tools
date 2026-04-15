@@ -69,6 +69,40 @@ module.exports = {
           ]
         }
       ]
+    },
+    {
+      "images": [
+        {
+          "id": "img_v5c8",
+          "src": "/assets/03.jpg",
+          "overlays": [
+            {
+              "type": "tag",
+              "pos": {
+                "x": 5,
+                "y": 15
+              },
+              "dir": "left",
+              "anim": {
+                "type": "slideX_right",
+                "duration": 650,
+                "easing": "spring",
+                "delay": 0
+              },
+              "style": {
+                "color": "#111111",
+                "fontSize": 28,
+                "fontWeight": "700",
+                "bgColor": "rgba(255,255,255,0.93)",
+                "bgBlur": true,
+                "boxShadow": true
+              },
+              "icon": "✨",
+              "label": "新特性"
+            }
+          ]
+        }
+      ]
     }
   ]
 };

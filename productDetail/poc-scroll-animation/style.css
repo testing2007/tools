@@ -1,0 +1,199 @@
+:root {
+  --bg-color: #0d0d0f;
+  --text-main: #f0f0f0;
+  --accent: #00ff88;
+  --panel-bg: rgba(255, 255, 255, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  overflow: hidden; /* 使用完全可控的 JS 虚拟滚动 */
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Header / Hero Section */
+.page-header {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  text-align: center;
+  background: radial-gradient(circle at center, #1a1a24 0%, var(--bg-color) 100%);
+}
+
+.page-header h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
+}
+
+.page-header h1 span {
+  background: -webkit-linear-gradient(45deg, var(--accent), #00b8ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-header p {
+  font-size: 1.2rem;
+  color: #888;
+  max-width: 600px;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.7;
+}
+.mouse {
+  width: 30px;
+  height: 50px;
+  border: 2px solid var(--text-main);
+  border-radius: 20px;
+  position: relative;
+}
+.mouse::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 8px;
+  background: var(--text-main);
+  border-radius: 4px;
+  animation: scroll 1.5s infinite;
+}
+@keyframes scroll {
+  0% { top: 8px; opacity: 1; }
+  100% { top: 24px; opacity: 0; }
+}
+
+/* Progress bar top */
+#progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), #00b8ff);
+  width: 0%; /* Will be updated via JS */
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+}
+
+/* Main Content Area */
+.outer-track {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  /* 确保外层容器不被意外裁剪 */
+  overflow: visible; 
+}
+
+.group-screen {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  /* 保证每组屏幕都是独立的视口裁剪区 */
+}
+
+.group-content {
+  position: relative;
+  width: 100%;
+  /* 增加 padding-bottom 防止最后一组图片无法滑出底部边界 */
+  padding-bottom: 20vh;
+}
+
+.product-image-container {
+  position: relative;
+  width: 100%;
+  /* To give some scrolling length, we make them tall */
+  height: 120vh;
+  margin-bottom: 20vh; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.product-bg-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  object-fit: cover;
+  border-radius: 24px;
+  opacity: 0.4;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+
+/* Overlay Base */
+.overlay {
+  position: absolute;
+  /* Will-change helps performance for scrolling animations */
+  will-change: transform, opacity;
+  /* Initial default state to prevent flicker, usually overridden by JS inline styles */
+}
+
+/* Tag */
+.overlay-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.overlay-tag .icon { font-size: 1.2rem; }
+
+/* Card */
+.overlay-card {
+  padding: 30px;
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  min-width: 300px;
+}
+.overlay-card .eyebrow {
+  display: block;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.overlay-card .title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: -webkit-linear-gradient(45deg, #fff, #aaa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.overlay-card .desc {
+  font-size: 1rem;
+  color: #bbb;
+  line-height: 1.5;
+}
