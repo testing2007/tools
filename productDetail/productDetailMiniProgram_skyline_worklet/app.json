@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "产品详情演示",
+    "navigationBarTextStyle": "black"
+  },
+  "renderer": "skyline",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0"
+    }
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "componentFramework": "glass-easel",
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

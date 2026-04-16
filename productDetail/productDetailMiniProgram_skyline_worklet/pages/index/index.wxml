@@ -1,0 +1,48 @@
+
+<scroll-view
+  id="mainScroll"
+  class="scroll-container"
+  type="list"
+  scroll-y
+  worklet:onscroll="handleScroll"
+>
+  <!-- 顶部商品大图 - 支持视差 -->
+  <view class="hero-section">
+    <image id="heroImage" class="hero-image" src="{{goods.image}}" mode="aspectFill" />
+  </view>
+
+  <!-- 商品信息 -->
+  <view class="goods-info">
+    <view id="priceTag" class="price-row">
+      <text class="price">¥{{goods.price}}</text>
+      <text class="original-price">¥{{goods.originalPrice}}</text>
+    </view>
+    <view class="title">{{goods.title}}</view>
+    <view class="desc">{{goods.desc}}</view>
+  </view>
+
+  <!-- 详情区域 -->
+  <view class="detail-section">
+    <view class="section-title">商品详情</view>
+    <view style="height: 2000rpx; background: linear-gradient(#f5f5f5, #e0e0e0);" />
+  </view>
+</scroll-view>
+
+<!-- 浮层 -->
+<view id="navBar" class="float-nav-bar">
+  <view class="nav-inner">
+    <view class="nav-back" bindtap="goBack">←</view>
+    <text class="nav-title">商品详情</text>
+  </view>
+</view>
+
+<view id="bottomBar" class="float-bottom-bar">
+  <view class="bar-inner">
+    <view class="bar-btn bar-btn--cart">加入购物车</view>
+    <view class="bar-btn bar-btn--buy">立即购买</view>
+  </view>
+</view>
+
+<view id="backTopBtn" class="float-back-top" bindtap="scrollToTop">
+  <text>↑</text>
+</view>
