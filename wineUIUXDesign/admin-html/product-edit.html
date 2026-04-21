@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商品编辑</title>
+  <style>
+    :root { --bg:#f5f6f8;--card:#fff;--text:#222831;--muted:#7b828f;--line:#e7e9ee;--brand:#7a1028;--brand2:#9f1d3c;--ok:#1f8a62;--warn:#a46a14;--danger:#b73245;--shadow:0 10px 24px rgba(20,24,35,.06);} *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+    .layout{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.sidebar{background:#141b25;color:#e8edf6;padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{font-weight:700;font-size:16px}.sub{font-size:12px;color:#96a3b8;margin:6px 0 12px}.nav{display:grid;gap:6px}.nav a{text-decoration:none;color:#cbd5e5;font-size:13px;padding:8px 10px;border-radius:8px}.nav a:hover{background:#1f2836}.nav a.active{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+    .main{display:grid;grid-template-rows:56px 1fr}.top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 20px}.top b{font-size:15px}.top span{font-size:12px;color:var(--muted)}
+    .content{padding:18px;display:grid;gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    input,select,textarea{width:100%;height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13px;background:#fff} textarea{height:auto;padding:8px 10px}
+    .btn{border:0;height:34px;border-radius:8px;padding:0 12px;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));font-size:13px}.btn.s{background:#fff;color:#4e5562;border:1px solid var(--line)}
+    .body{display:grid;grid-template-columns:1fr 360px;gap:12px}.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #f0ddb8;background:#fff6e7;color:#a46a14}
+    table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left}th{color:#67707e;background:#fafbfc}
+    .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid}.ok{color:var(--ok);background:#eaf8f2;border-color:#bde6d4}.warn{color:var(--warn);background:#fff6e7;border-color:#f0ddb8}.danger{color:var(--danger);background:#feeff2;border-color:#f4cad3}
+    .drawer{position:fixed;right:-360px;top:0;width:340px;height:100vh;background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(0,0,0,.08);padding:14px;transition:.25s;z-index:30}.drawer.show{right:0}
+    .modal{position:fixed;inset:0;background:rgba(13,18,28,.35);display:none;align-items:center;justify-content:center;z-index:40}.modal.show{display:flex}.panel{width:min(760px,92vw);background:#fff;border-radius:12px;border:1px solid var(--line);padding:14px}
+    @media (max-width:1280px){.body{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">Wine Admin</div><div class="sub">酒类电商后台 · 商品中心</div>
+      <nav class="nav" id="nav">
+        <a href="index.html">后台原型导航</a><a href="dashboard.html">仪表盘</a><a href="product-list.html">商品列表</a><a href="product-edit.html" data-path="product-edit.html">商品编辑</a><a href="order-list.html">订单列表</a><a href="order-detail.html">订单详情</a><a href="user-list.html">用户列表</a><a href="member-level.html">会员等级配置</a><a href="points-config.html">积分与商城配置</a><a href="group-buy-manage.html">拼团活动管理</a><a href="coupon-manage.html">优惠券管理</a><a href="flash-sale-manage.html">限时折扣管理</a><a href="gift-card-manage.html">企业礼品卡管理</a><a href="drinking-game-manage.html">酒局游戏管理</a><a href="grape-plan-manage.html">葡萄酒养成计划管理</a><a href="nfc-activity-manage.html">NFC红包活动管理</a><a href="ar-content-manage.html">AR内容管理</a><a href="digital-cellar-manage.html">数字酒窖管理</a><a href="blind-box-manage.html">福袋盲盒规则管理</a><a href="defect-wine-manage.html">瑕疵酒专区管理</a><a href="traceability-manage.html">真伪/批次溯源管理</a><a href="brand-story-manage.html">品牌故事管理</a><a href="region-map-manage.html">产区地图管理</a><a href="pairing-manage.html">搭餐建议管理</a><a href="taste-profile-manage.html">口感档案管理</a><a href="drink-window-manage.html">适饮窗口管理</a><a href="ai-sommelier-manage.html">AI侍酒师配置</a>
+      </nav>
+    </aside>
+    <section class="main">
+      <header class="top"><b>商品编辑</b><span>SKU: MC-2019-04-A7 · 编辑中</span></header>
+      <main class="content">
+        <section class="card">
+          <div class="row"><b>基础信息</b><span class="tag">酒类专属字段已启用</span></div>
+          <div class="grid3" style="margin-top:10px;">
+            <input value="商品名称：Chateau Montclair Reserve 2019" />
+            <input value="副标题：左岸风格干红" />
+            <input value="品牌：Montclair" />
+            <input value="年份：2019" />
+            <input value="酒精度：13.5%vol" />
+            <input value="容量：750ml" />
+            <input value="产区：法国 梅多克 AOC" />
+            <input value="批次号：MC-2019-04-A7" />
+            <input value="溯源码：WN-2026-8891027" />
+            <select><option>是否支持数字酒窖：是</option><option>否</option></select>
+            <select><option>是否瑕疵酒：否</option><option>是</option></select>
+            <input value="活动价：299" />
+          </div>
+        </section>
+
+        <section class="body">
+          <div class="card">
+            <div class="row"><b>酒类专业内容配置</b><div><button class="btn s" onclick="toggleDrawer(true)">规则抽屉</button> <button class="btn" onclick="toggleModal(true)">预览发布</button></div></div>
+            <div class="grid2" style="margin-top:10px;">
+              <textarea rows="4">品牌故事：始于 1863 年，强调分区酿造与可持续葡萄园。</textarea>
+              <textarea rows="4">产区地图：砾石土壤、海洋性气候，赤霞珠占比 72%。</textarea>
+              <textarea rows="4">搭餐建议：黑椒牛排、烤羊排、陈年硬质芝士。</textarea>
+              <textarea rows="4">口感档案：酸度62，甜度18，单宁74，酒体68，香气80。</textarea>
+              <textarea rows="4">适饮窗口：2025-2029 为最佳适饮期，建议醒酒20分钟。</textarea>
+              <textarea rows="4">瑕疵说明：若为瑕疵酒需说明“外观轻瑕，不影响饮用，介意者慎拍”。</textarea>
+            </div>
+            <div class="row" style="margin-top:10px;"><button class="btn">保存草稿</button><button class="btn">提交审核</button></div>
+          </div>
+
+          <div class="card">
+            <b>发布检查</b>
+            <table style="margin-top:8px;">
+              <thead><tr><th>检查项</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>品牌故事完整性</td><td><span class="badge ok">通过</span></td></tr>
+                <tr><td>口感档案字段合法</td><td><span class="badge ok">通过</span></td></tr>
+                <tr><td>适饮窗口格式</td><td><span class="badge ok">通过</span></td></tr>
+                <tr><td>溯源码唯一性</td><td><span class="badge warn">待校验</span></td></tr>
+                <tr><td>瑕疵说明一致性</td><td><span class="badge ok">通过</span></td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:10px;font-size:12px;color:#6a717d;line-height:1.6;">提示：若选择“瑕疵酒=是”，系统将自动在前台详情页注入慎拍提示与自饮建议标签。</div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class="drawer" id="drawer">
+    <div class="row" style="margin-bottom:10px;"><b>字段联动规则</b><button class="btn s" onclick="toggleDrawer(false)">关闭</button></div>
+    <select><option>规则集：红酒标准</option><option>威士忌标准</option></select>
+    <textarea rows="8" style="margin-top:8px;">联动示意：
+- 产区=法国 时，必须填写 AOC 等级
+- 支持数字酒窖=是 时，批次号不可为空
+- 瑕疵酒=是 时，必须填写瑕疵说明且长度>20
+- AI侍酒师入口默认开启</textarea>
+    <button class="btn" style="margin-top:8px;">保存规则</button>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="panel">
+      <div class="row"><b>发布预览摘要</b><button class="btn s" onclick="toggleModal(false)">关闭</button></div>
+      <table style="margin-top:8px;">
+        <thead><tr><th>模块</th><th>前台展示</th><th>完成度</th></tr></thead>
+        <tbody>
+          <tr><td>品牌故事</td><td>商品详情中段卡片</td><td>100%</td></tr>
+          <tr><td>产区地图</td><td>可跳转产区页</td><td>100%</td></tr>
+          <tr><td>口感档案</td><td>可视化条形图</td><td>100%</td></tr>
+          <tr><td>适饮窗口</td><td>周推荐文案</td><td>100%</td></tr>
+          <tr><td>溯源信息</td><td>traceability入口</td><td>90%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('#nav a').forEach(a=>{ if(a.dataset.path==='product-edit.html') a.classList.add('active'); });
+    function toggleDrawer(s){document.getElementById('drawer').classList[s?'add':'remove']('show');}
+    function toggleModal(s){document.getElementById('modal').classList[s?'add':'remove']('show');}
+  </script>
+</body>
+</html>

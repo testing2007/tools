@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>限时折扣</title>
+<style>
+:root{--bg:#f4ede3;--card:#fffaf2;--p:#711328;--t:#2f2a27;--m:#7c736b;--l:#ead9bf;--s:0 8px 24px rgba(113,19,40,.1)}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 10% 0%,#fff9ef,#f3ebdf 46%,#ecdfce 100%);color:var(--t)}
+.phone{max-width:375px;margin:0 auto;min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:20;padding:10px 12px 12px;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:linear-gradient(140deg,#4f0f22 0%,#7b1730 62%,#a93d57 100%);color:#fff;box-shadow:0 8px 22px rgba(62,16,31,.24)}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.btn-link{text-decoration:none;color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);border-radius:999px;padding:6px 10px;font-size:12px}
+.tt{text-align:center;font-size:16px;font-weight:700}.sub{margin-top:8px;font-size:12px;line-height:1.5;color:#f5e8da;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 10px}
+.main{padding:12px;display:grid;gap:12px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tab{height:34px;border-radius:999px;border:1px solid #e8d7bd;background:#fff;font-size:12px;color:#635a52;font-weight:600}.tab.active{color:#fff;border-color:transparent;background:linear-gradient(135deg,#7a0f28,#9b1b3a)}
+.count{background:var(--card);border:1px solid var(--l);border-radius:14px;box-shadow:var(--s);padding:10px}.count b{display:block;color:#451722}.timer{font-size:22px;color:#9b1e3d;font-weight:800;letter-spacing:1px;margin-top:4px}
+.list{display:grid;gap:10px}.item{background:var(--card);border:1px solid var(--l);border-radius:12px;box-shadow:var(--s);padding:10px;display:grid;grid-template-columns:90px 1fr;gap:10px}.img{border-radius:10px;background:linear-gradient(145deg,#f9ecd8,#e7c491)}
+.name{margin:0;font-size:14px;color:#3d1921}.meta{margin:3px 0 0;font-size:12px;color:#675d55;line-height:1.45}.price{margin:6px 0 0;display:flex;align-items:baseline;gap:8px}.now{font-size:21px;color:#9a1f3d;font-weight:800}.old{font-size:12px;color:#968c83;text-decoration:line-through}
+.stock{height:6px;background:#f0e5d6;border-radius:999px;overflow:hidden;margin-top:7px}.fill{height:100%;background:linear-gradient(90deg,#8b1732,#cb4c6f)}
+.bottom{display:flex;justify-content:space-between;align-items:center;margin-top:7px}.left{font-size:11px;color:#8d837a}.go{border:0;height:30px;padding:0 12px;border-radius:999px;color:#fff;font-size:12px;font-weight:700;background:linear-gradient(135deg,#7a0f28,#9b1b3a)}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:375px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));border-top:1px solid #eadfcd;background:rgba(255,250,242,.98);display:grid;grid-template-columns:repeat(5,1fr)}
+.nav a{text-decoration:none;text-align:center;font-size:11px;color:#6f665f}.nav a.active{color:var(--p);font-weight:700}
+</style>
+</head>
+<body>
+<div class="phone">
+<header class="top"><div class="row"><a class="btn-link" href="home.html">返回</a><div class="tt">限时折扣</div><a class="btn-link" href="coupon-center.html">领券</a></div><div class="sub">活动场次：今日场 / 晚8点场 / 明日预告。酒类专场含名庄、威士忌、香槟和精酿组合。</div></header>
+<main class="main">
+<section class="tabs" id="tabs"><button class="tab active" data-tab="today">今日场</button><button class="tab" data-tab="night">晚8点场</button><button class="tab" data-tab="tomorrow">明日预告</button></section>
+<section class="count"><b id="sceneName">今日场 · 进行中</b><div class="timer" id="timer">--:--:--</div></section>
+<section class="list" id="list"></section>
+</main>
+<nav class="nav"><a href="home.html">首页</a><a href="category.html">分类</a><a class="active" href="flash-sale.html">活动</a><a href="digital-cellar.html">酒窖</a><a href="member-center.html">我的</a></nav>
+</div>
+<script>
+const data={today:[{n:'奔富 BIN 28 2019',b:'奔富',r:'南澳',y:'2019',p:299,o:469,s:62},{n:'山崎12年单一麦芽',b:'三得利',r:'日本',y:'NV',p:699,o:999,s:35}],night:[{n:'路易王妃香槟',b:'Louis Roederer',r:'香槟',y:'NV',p:459,o:699,s:71},{n:'高原骑士12年',b:'Highland Park',r:'苏格兰',y:'12Y',p:249,o:389,s:48}],tomorrow:[{n:'里奥哈陈酿 2018',b:'Marques',r:'西班牙',y:'2018',p:169,o:268,s:80},{n:'獭祭45 纯米大吟酿',b:'旭酒造',r:'日本',y:'NV',p:188,o:289,s:56}]};
+let tab='today';
+function render(){const arr=data[tab];list.innerHTML=arr.map(i=>`<article class="item"><div class="img"></div><div><h4 class="name">${i.n}</h4><p class="meta">品牌：${i.b} · 产区：${i.r} · 年份：${i.y}</p><div class="price"><span class="now">￥${i.p}</span><span class="old">￥${i.o}</span></div><div class="stock"><div class="fill" style="width:${i.s}%"></div></div><div class="bottom"><span class="left">库存进度 ${i.s}%</span><button class="go" onclick="location.href='product-detail.html'">秒杀抢购</button></div></div></article>`).join('');sceneName.textContent=(tab==='today'?'今日场':'night'===tab?'晚8点场':'明日预告')+' · '+(tab==='tomorrow'?'即将开始':'进行中');}
+function tick(){const target=Date.now()+1000*60*97;setInterval(()=>{const d=Math.max(0,target-Date.now());const h=String(Math.floor(d/3600000)).padStart(2,'0');const m=String(Math.floor(d%3600000/60000)).padStart(2,'0');const s=String(Math.floor(d%60000/1000)).padStart(2,'0');timer.textContent=`${h}:${m}:${s}`;},1000)}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{tab=t.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');render();});
+const list=document.getElementById('list'),sceneName=document.getElementById('sceneName'),timer=document.getElementById('timer');render();tick();
+</script>
+</body>
+</html>

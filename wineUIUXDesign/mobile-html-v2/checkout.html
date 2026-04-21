@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><title>结算</title>
+<style>
+:root{--bg:#f4ede3;--card:#fffaf2;--p:#711328;--t:#2f2a27;--l:#ead9bf;--s:0 8px 24px rgba(113,19,40,.1)}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 10% 0%,#fff9ef,#f3ebdf 46%,#ecdfce 100%);color:var(--t)}.phone{max-width:375px;margin:0 auto;min-height:100vh;padding-bottom:calc(88px + env(safe-area-inset-bottom))}.top{padding:10px 12px;background:linear-gradient(135deg,#6f1125,#9a1e3d);color:#fff;text-align:center;font-weight:700}.main{padding:12px;display:grid;gap:10px}.card{background:var(--card);border:1px solid var(--l);border-radius:12px;box-shadow:var(--s);padding:9px}.line{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;color:#5f554d}.total{font-size:15px;font-weight:800;color:#3d1921}
+.pay{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:375px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,250,242,.98);border-top:1px solid #eadfcd;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.btn{height:38px;border:0;border-radius:999px;color:#fff;font-weight:700;padding:0 16px;background:linear-gradient(135deg,#7a0f28,#9b1b3a)}
+
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style></head><body><div class="phone"><header class="top">确认订单</header><main class="main"><section class="card"><b>收货信息</b><div style="font-size:12px;color:#6b625a;margin-top:4px">上海市徐汇区 · 张先生 138****0001</div></section><section class="card"><b>商品信息</b><div class="line"><span>Montclair 2019</span><span>￥299</span></div><div class="line"><span>山崎12年</span><span>￥699</span></div></section><section class="card"><b>优惠与服务</b><div class="line"><span>优惠券</span><span>-￥40</span></div><div class="line"><span>运费</span><span>￥0</span></div><div class="line"><span>数字酒窖入库服务</span><span>￥12</span></div><div class="line total"><span>应付总额</span><span style="color:#9a1f3d">￥970</span></div></section></main></div><footer class="pay"><div><div style="font-size:11px;color:#756b63">支付后可查看批次溯源与提酒选项</div></div><button class="btn" onclick="location.href='order-list.html'">提交并支付</button></footer></body></html>
+
+

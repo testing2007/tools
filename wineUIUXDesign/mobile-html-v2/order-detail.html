@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><title>订单详情</title>
+<style>
+:root{--bg:#f4ede3;--card:#fffaf2;--p:#711328;--t:#2f2a27;--l:#ead9bf;--s:0 8px 24px rgba(113,19,40,.1)}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 10% 0%,#fff9ef,#f3ebdf 46%,#ecdfce 100%);color:var(--t)}.phone{max-width:375px;margin:0 auto;min-height:100vh;padding:12px}.top{height:52px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(135deg,#6f1125,#9a1e3d);color:#fff;font-weight:700;box-shadow:var(--s)}.card{margin-top:10px;background:var(--card);border:1px solid var(--l);border-radius:12px;box-shadow:var(--s);padding:10px}.line{display:flex;justify-content:space-between;font-size:12px;color:#5f554d;padding:4px 0}.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.btn{height:32px;border:0;border-radius:999px;background:linear-gradient(135deg,#7a0f28,#9b1b3a);color:#fff;font-size:12px}
+
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style></head><body><div class="phone"><div class="top">订单详情</div><section class="card"><div class="line"><span>订单号</span><b>WD20260418001</b></div><div class="line"><span>状态</span><b>待发货</b></div><div class="line"><span>下单时间</span><span>2026-04-18 12:33</span></div></section>
+<section class="card"><b>商品清单</b><div class="line"><span>Montclair 2019</span><span>￥299</span></div><div class="line"><span>山崎12年</span><span>￥699</span></div><div class="line"><span>优惠券抵扣</span><span>-￥40</span></div><div class="line"><span>总计</span><b style="color:#9a1f3d">￥970</b></div></section>
+<section class="card"><b>酒类服务</b><div class="line"><span>批次溯源</span><a href="traceability.html" style="color:#711328">查看</a></div><div class="line"><span>数字酒窖入库</span><a href="digital-cellar.html" style="color:#711328">查看</a></div><div class="line"><span>侍酒建议</span><a href="ai-sommelier.html" style="color:#711328">咨询</a></div><div class="btns"><button class="btn" onclick="location.href='order-list.html'">返回列表</button><button class="btn" onclick="location.href='traceability.html'">查溯源</button><button class="btn" onclick="location.href='digital-cellar.html'">去酒窖</button></div></section></div></body></html>
+
+

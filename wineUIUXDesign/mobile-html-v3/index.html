@@ -1,0 +1,714 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>酒屿 · 原型导航</title>
+  <style>
+    :root {
+      --bg: #f6f1eb;
+      --panel: #fffaf3;
+      --panel-2: #fff6e9;
+      --wine-950: #17110f;
+      --wine-900: #1c1917;
+      --wine-700: #4a322f;
+      --wine-500: #8b5a53;
+      --gold: #ca8a04;
+      --gold-soft: #f2d9a6;
+      --text: #120f0d;
+      --muted: #6a5c54;
+      --line: rgba(202, 138, 4, .2);
+      --shadow-soft: 0 8px 20px rgba(30, 19, 16, .1);
+      --shadow-strong: 0 14px 34px rgba(30, 19, 16, .24);
+      --radius-xl: 22px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --safe-bottom: calc(78px + env(safe-area-inset-bottom));
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: #666666;
+      /* background:
+        radial-gradient(70% 40% at 0% 0%, rgba(202,138,4,.2), transparent 65%),
+        radial-gradient(50% 30% at 100% 10%, rgba(139,90,83,.2), transparent 70%),
+        var(--bg); */
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      background: linear-gradient(180deg, rgba(255, 250, 243, .94), rgba(255, 248, 238, .97));
+      /* background:
+        radial-gradient(70% 40% at 0% 0%, rgba(202, 138, 4, .2), transparent 65%),
+        radial-gradient(50% 30% at 100% 10%, rgba(139, 90, 83, .2), transparent 70%),
+        var(--bg); */
+      padding-bottom: var(--safe-bottom);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 14px 12px;
+      background: linear-gradient(180deg, rgba(23, 17, 15, .95), rgba(23, 17, 15, .86));
+      border-bottom: 1px solid rgba(242, 217, 166, .24);
+      backdrop-filter: blur(8px);
+    }
+
+    .top-title {
+      margin: 0;
+      color: #fff4de;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .title-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(242, 217, 166, .26);
+      background: rgba(255, 255, 255, .1);
+      font-size: 11px;
+      color: #fbe8bf;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      min-height: 184px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background:
+        linear-gradient(140deg, rgba(20, 14, 12, .8), rgba(20, 14, 12, .38)),
+        url('https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=1200&q=80') center/cover;
+      box-shadow: var(--shadow-strong);
+      color: #fff4de;
+      padding: 14px;
+      display: grid;
+      align-content: end;
+      gap: 10px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: .2px;
+    }
+
+    .hero p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255, 242, 218, .92);
+      max-width: 30ch;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      border: 1px solid rgba(242, 217, 166, .42);
+      background: rgba(255, 255, 255, .1);
+      backdrop-filter: blur(5px);
+    }
+
+    .content {
+      padding: 12px;
+      display: grid;
+      gap: 12px
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .section {
+      padding: 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px
+    }
+
+    .head h2 {
+      margin: 0;
+      font-size: 16px
+    }
+
+    .head span {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 12px 10px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff, #fff7ef);
+      border: 1px solid rgba(139, 105, 48, .14);
+    }
+
+    .stat small {
+      display: block;
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 19px/1 "PingFang SC", sans-serif;
+      color: #7b5213
+    }
+
+    .group-card {
+      padding: 12px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff, #fff8f5);
+      border: 1px solid rgba(202, 138, 4, .14);
+      display: grid;
+      gap: 8px;
+    }
+
+    .featured {
+      padding: 12px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(34, 197, 94, .12), rgba(99, 102, 241, .1)),
+        linear-gradient(180deg, #fff, #fff8f1);
+      border: 1px solid rgba(34, 197, 94, .18);
+      box-shadow: 0 12px 24px rgba(76, 36, 25, .08);
+      display: grid;
+      gap: 10px;
+    }
+
+    .featured-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .featured-top b {
+      display: block;
+      font-size: 15px;
+      color: #1f2e24
+    }
+
+    .featured-top p {
+      margin: 4px 0 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted)
+    }
+
+    .featured-badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, .12);
+      color: #166534;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .featured-cta {
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(135deg, #166534, #22c55e);
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 12px 20px rgba(34, 197, 94, .2);
+    }
+
+    .group-card b {
+      font-size: 14px
+    }
+
+    .group-card p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted)
+    }
+
+    .group-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .mini {
+      padding: 10px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(141, 105, 48, .16);
+    }
+
+    .mini small {
+      display: block;
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    .mini strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .nav-link {
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: #fff;
+      border-radius: 18px;
+      min-height: 104px;
+      padding: 12px;
+      display: grid;
+      align-content: space-between;
+      box-shadow: 0 12px 22px rgba(94, 36, 25, .12);
+      isolation: isolate;
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 86% 14%, rgba(255, 255, 255, .24), transparent 24%),
+        radial-gradient(circle at 10% 100%, rgba(255, 255, 255, .18), transparent 26%);
+      z-index: -1;
+    }
+
+    .nav-link b {
+      font-size: 13px;
+      letter-spacing: .2px
+    }
+
+    .nav-link small {
+      font-size: 11px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, .9)
+    }
+
+    .nav-home {
+      background: linear-gradient(145deg, #6f222a, #a13a33)
+    }
+
+    .nav-category {
+      background: linear-gradient(145deg, #1c4e6a, #2e6f8f)
+    }
+
+    .nav-product {
+      background: linear-gradient(145deg, #7a4a12, #c58a2d)
+    }
+
+    .nav-cart {
+      background: linear-gradient(145deg, #4c2d2a, #7a5450)
+    }
+
+    .nav-checkout {
+      background: linear-gradient(145deg, #1f5d42, #4f8f60)
+    }
+
+    .nav-order {
+      background: linear-gradient(145deg, #0f4d3d, #256a56)
+    }
+
+    .nav-member {
+      background: linear-gradient(145deg, #2d2448, #5e4c8d)
+    }
+
+    .nav-points {
+      background: linear-gradient(145deg, #7b3f14, #d97706)
+    }
+
+    .nav-group {
+      background: linear-gradient(145deg, #8b1e26, #f97316)
+    }
+
+    .nav-coupon {
+      background: linear-gradient(145deg, #1d4ed8, #06b6d4)
+    }
+
+    .nav-flash {
+      background: linear-gradient(145deg, #9b1c1c, #fb7185)
+    }
+
+    .nav-gift {
+      background: linear-gradient(145deg, #4f46e5, #8b5cf6)
+    }
+
+    .nav-drink {
+      background: linear-gradient(145deg, #8b1e26, #c2410c)
+    }
+
+    .nav-grape {
+      background: linear-gradient(145deg, #22c55e, #4f46e5)
+    }
+
+    .nav-nfc {
+      background: linear-gradient(145deg, #1f4a38, #448161)
+    }
+
+    .nav-ar {
+      background: linear-gradient(145deg, #1f2f56, #3f5c95)
+    }
+
+    .nav-cellar {
+      background: linear-gradient(145deg, #0f4d3d, #256a56)
+    }
+
+    .nav-blind {
+      background: linear-gradient(145deg, #c2410c, #f59e0b)
+    }
+
+    .nav-defect {
+      background: linear-gradient(145deg, #4c2d2a, #7a5450)
+    }
+
+    .nav-trace {
+      background: linear-gradient(145deg, #2d2448, #5e4c8d)
+    }
+
+    .nav-ai {
+      background: linear-gradient(145deg, #3b2f64, #7c3aed)
+    }
+
+    .tiny-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .tiny {
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(141, 105, 48, .14);
+      background: linear-gradient(180deg, #fff, #fff8f3);
+    }
+
+    .tiny b {
+      display: block;
+      font-size: 12px
+    }
+
+    .tiny span {
+      display: block;
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.45
+    }
+
+    .footer {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff, #fff6e8);
+      border: 1px solid rgba(202, 138, 4, .12);
+    }
+
+    .footer b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px
+    }
+
+    .footer p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted)
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(242, 217, 166, .25);
+      background: rgba(23, 17, 15, .95);
+      z-index: 25;
+    }
+
+    .tab {
+      color: rgba(255, 244, 222, .78);
+      text-decoration: none;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+    }
+
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8
+    }
+
+    .tab.active {
+      color: #f6d69f
+    }
+
+    .float-ai {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .float-ai svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8
+    }
+  </style>
+</head>
+
+<body>
+  <main class="phone">
+    <header class="topbar">
+      <div class="top-title">
+        <span class="title-badge">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M8 3h8M9 3v5l-3 6a4 4 0 0 0 3.6 6h4.8A4 4 0 0 0 18 14l-3-6V3" />
+          </svg>
+          酒屿原型导航
+        </span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1>酒类电商小程序原型总入口</h1>
+      <p>按页面类型快速进入预览，所有页面均为 375px 视觉稿，高保真图片化，适合直接给开发对照。</p>
+      <div class="hero-meta">
+        <span class="pill">23 个页面</span>
+        <span class="pill">酒类优先</span>
+        <span class="pill">高保真图文</span>
+      </div>
+    </section>
+
+    <section class="content">
+      <article class="card section">
+        <div class="head">
+          <h2>新生成页面</h2><span>优先预览</span>
+        </div>
+        <div class="featured">
+          <div class="featured-top">
+            <div>
+              <b>葡萄酒养成计划</b>
+              <p>这次新补的成长型互动页，加入了浇水、成长阶段、好友互访和成熟奖励，适合直接看交互效果。</p>
+            </div>
+            <span class="featured-badge">新增入口</span>
+          </div>
+          <a class="featured-cta" href="grape-plan.html">打开 grape-plan.html</a>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>项目概览</h2><span>统一壳层 / 统一入口</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><small>导航页</small><strong>index</strong></div>
+          <div class="stat"><small>核心首页</small><strong>home</strong></div>
+          <div class="stat"><small>活动页</small><strong>9+ 个</strong></div>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>首页与交易</h2><span>主路径</span>
+        </div>
+        <div class="nav-grid">
+          <a class="nav-link nav-home" href="home.html"><b>首页</b><small>品牌故事 / 产区 / 搭餐 / 侍酒师</small></a>
+          <a class="nav-link nav-category" href="category.html"><b>分类</b><small>酒类专属模块 / 筛选 / 商品流</small></a>
+          <a class="nav-link nav-product" href="product-detail.html"><b>商品详情</b><small>口感档案 / 溯源 / 酒窖 / AI</small></a>
+          <a class="nav-link nav-cart" href="cart.html"><b>购物车</b><small>瑕疵酒 / 数量器 / 结算前确认</small></a>
+          <a class="nav-link nav-checkout" href="checkout.html"><b>结算页</b><small>地址 / 优惠 / 支付 / 风险确认</small></a>
+          <a class="nav-link nav-order" href="order-list.html"><b>订单列表</b><small>状态 / 搜索 / 继续逛酒</small></a>
+          <a class="nav-link nav-member" href="member-center.html"><b>会员中心</b><small>等级 / 权益 / 入口总览</small></a>
+          <a class="nav-link nav-points" href="points-mall.html"><b>积分商城</b><small>积分资产 / 兑换池 / 任务</small></a>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>营销活动</h2><span>节奏更强</span>
+        </div>
+        <div class="nav-grid">
+          <a class="nav-link nav-group" href="group-buy.html"><b>拼团专区</b><small>开团中 / 即将开始 / 已结束</small></a>
+          <a class="nav-link nav-coupon" href="coupon-center.html"><b>优惠券中心</b><small>可领取 / 我的券 / 过期券</small></a>
+          <a class="nav-link nav-flash" href="flash-sale.html"><b>限时秒杀</b><small>今日场 / 倒计时 / 库存节奏</small></a>
+          <a class="nav-link nav-gift" href="gift-card.html"><b>企业礼品卡</b><small>企业采购 / 员工福利 / 兑换码</small></a>
+          <a class="nav-link nav-drink" href="drinking-game.html"><b>酒局游戏</b><small>进房逻辑 / 答题 / 排行榜</small></a>
+          <a class="nav-link nav-grape" href="grape-plan.html"><b>养成计划</b><small>葡萄园 / 浇水施肥 / 收获奖励</small></a>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>互动与增长</h2><span>体验页</span>
+        </div>
+        <div class="tiny-grid">
+          <a class="tiny" href="nfc-redpacket.html"><b>NFC 红包</b><span>触碰成功 / 邀友瓜分 / 开奖记录</span></a>
+          <a class="tiny" href="ar-experience.html"><b>AR 体验</b><span>扫码取景 / 侍酒演示 / 3D 展示</span></a>
+          <a class="tiny" href="digital-cellar.html"><b>数字酒窖</b><span>藏酒资产 / 出库 / 转赠</span></a>
+          <a class="tiny" href="blind-box.html"><b>福袋盲盒</b><span>规则透明 / 限购 / 开盒晒单</span></a>
+          <a class="tiny" href="defect-wine.html"><b>瑕疵酒专区</b><span>自饮推荐 / 瑕疵说明 / 慎拍提示</span></a>
+          <a class="tiny" href="traceability.html"><b>真伪溯源</b><span>扫码验证 / 批次信息 / 流通链路</span></a>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>AI 与品鉴</h2><span>专业酒感</span>
+        </div>
+        <div class="group-card">
+          <b>AI 侍酒师</b>
+          <p>从选酒、搭餐到开瓶建议，一句话即可获得推荐。适合放在首页和详情页做统一入口。</p>
+          <div class="group-list">
+            <div class="mini"><small>快捷入口</small><strong><a href="ai-sommelier.html">打开 AI 侍酒师</a></strong></div>
+            <div class="mini"><small>新生成页面</small><strong><a href="grape-plan.html">打开养成计划</a></strong></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card section">
+        <div class="head">
+          <h2>项目说明</h2><span>交付给开发</span>
+        </div>
+        <div class="footer">
+          <b>原型浏览建议</b>
+          <p>先看首页、分类页和商品详情，再按活动页与互动页补充。所有页面均可单页打开，路径全部使用相对链接。</p>
+        </div>
+      </article>
+    </section>
+
+    <a class="float-ai" href="ai-sommelier.html" aria-label="AI侍酒师">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+        <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+      </svg>
+      AI侍酒师
+    </a>
+
+    <nav class="bottom-nav" aria-label="底部导航">
+      <a class="tab active" href="index.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>
+        导航
+      </a>
+      <a class="tab" href="home.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>
+        首页
+      </a>
+      <a class="tab" href="category.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+        </svg>
+        分类
+      </a>
+      <a class="tab" href="group-buy.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12h14M12 5v14" />
+          <path d="M5 5h14v14H5z" />
+        </svg>
+        活动
+      </a>
+      <a class="tab" href="member-center.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+          <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+        我的
+      </a>
+    </nav>
+  </main>
+</body>
+
+</html>

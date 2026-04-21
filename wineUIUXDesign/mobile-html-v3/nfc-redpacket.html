@@ -1,0 +1,726 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NFC 红包活动</title>
+  <style>
+    :root {
+      --bg: #fff4f3;
+      --panel: #ffffff;
+      --ink: #2c1112;
+      --muted: #7a5b5d;
+      --line: rgba(185, 28, 28, .14);
+      --shadow: 0 18px 36px rgba(104, 23, 26, .14);
+      --primary: #b91c1c;
+      --accent: #f97316;
+      --gold: #facc15;
+      --safe: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background-color: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      background:
+        radial-gradient(900px 280px at 0% 0%, rgba(185, 28, 28, .15), transparent 55%),
+        radial-gradient(760px 220px at 100% 0%, rgba(249, 115, 22, .12), transparent 52%),
+        linear-gradient(180deg, #fff7f6 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(255, 247, 246, .94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(185, 28, 28, .1)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(185, 28, 28, .12);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(104, 23, 26, .06)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(63, 7, 9, .96), rgba(185, 28, 28, .86) 52%, rgba(249, 115, 22, .82)),
+        url("https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff8ef
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 4px rgba(253, 230, 138, .14)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch;
+      color: rgba(255, 248, 240, .92)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .14);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .stat small {
+      display: block;
+      font-size: 10px;
+      color: rgba(255, 248, 240, .8)
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #fff
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .touch-zone {
+      padding: 0 12px 12px
+    }
+
+    .nfc-stage {
+      position: relative;
+      border-radius: 26px;
+      overflow: hidden;
+      background:
+        radial-gradient(220px 220px at 50% 50%, rgba(250, 204, 21, .2), transparent 70%),
+        linear-gradient(135deg, rgba(88, 8, 10, .96), rgba(185, 28, 28, .84) 50%, rgba(249, 115, 22, .72));
+      color: #fff8ef;
+      box-shadow: 0 18px 30px rgba(104, 23, 26, .18);
+      min-height: 260px
+    }
+
+    .nfc-stage .inner {
+      padding: 16px
+    }
+
+    .scan-ring {
+      position: relative;
+      width: 172px;
+      height: 172px;
+      margin: 0 auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center
+    }
+
+    .scan-ring::before,
+    .scan-ring::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .18);
+      animation: pulse 2.8s infinite ease-out
+    }
+
+    .scan-ring::after {
+      inset: 18px;
+      border-color: rgba(255, 255, 255, .12);
+      animation-delay: 1s
+    }
+
+    .chip {
+      width: 92px;
+      height: 92px;
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, #fde68a, #fb7185 58%, #f97316);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 14px 24px rgba(0, 0, 0, .18)
+    }
+
+    .chip svg {
+      width: 40px;
+      height: 40px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .stage-note {
+      text-align: center;
+      margin-top: 14px
+    }
+
+    .stage-note h3 {
+      margin: 0 0 6px;
+      font-size: 16px
+    }
+
+    .stage-note p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: rgba(255, 248, 240, .92)
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .btn {
+      height: 40px;
+      border-radius: 13px;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--gold), #f59e0b);
+      color: #5b2108;
+      box-shadow: 0 12px 22px rgba(250, 204, 21, .18)
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16);
+      color: #fff
+    }
+
+    .gifts {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .gift-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .gift {
+      padding: 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff, #fff7f7);
+      border: 1px solid rgba(185, 28, 28, .1)
+    }
+
+    .gift h4 {
+      margin: 0 0 6px;
+      font-size: 13px
+    }
+
+    .gift p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted)
+    }
+
+    .gift strong {
+      display: block;
+      margin-top: 8px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #b91c1c
+    }
+
+    .friends {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .friend {
+      display: grid;
+      grid-template-columns: 30px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(185, 28, 28, .1)
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #ffe4e6, #fde68a);
+      font-size: 11px;
+      font-weight: 800;
+      color: #9b1c1c
+    }
+
+    .friend h5 {
+      margin: 0 0 2px;
+      font-size: 12px
+    }
+
+    .friend p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .friend span {
+      font-size: 11px;
+      color: #b45309;
+      font-weight: 800
+    }
+
+    .log {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .log-item {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(185, 28, 28, .1)
+    }
+
+    .dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #b91c1c, #fb7185);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800
+    }
+
+    .log-item h5 {
+      margin: 0 0 2px;
+      font-size: 12px
+    }
+
+    .log-item p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--muted)
+    }
+
+    .footer-note {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: #fff7f6;
+      border: 1px solid rgba(185, 28, 28, .08)
+    }
+
+    .footer-note h3 {
+      margin: 0 0 6px;
+      font-size: 13px
+    }
+
+    .footer-note p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(185, 28, 28, .1);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: #7b6b67;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #b91c1c
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(.82);
+        opacity: .8
+      }
+
+      70% {
+        transform: scale(1.08);
+        opacity: .16
+      }
+
+      100% {
+        transform: scale(1.16);
+        opacity: 0
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="group-buy.html" aria-label="返回活动页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">NFC 红包活动</div>
+        <a class="iconbtn" href="gift-card.html" aria-label="礼品卡"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 3v18" />
+            <path d="M4 8h16" />
+            <path d="M6 8c1.5 3 3.7 5 6 5s4.5-2 6-5" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">酒瓶 NFC 营销活动</span>
+        <h1 class="hero-title">触碰酒标，立即解锁多人瓜分红包</h1>
+        <p class="hero-sub">模拟你用手机靠近酒瓶标签后进入活动页，红包按参与人数实时滚动，适合线下陈列和门店营销。</p>
+        <div class="stats">
+          <div class="stat"><small>红包总额</small><strong>¥8,880</strong></div>
+          <div class="stat"><small>参与人数</small><strong>286</strong></div>
+          <div class="stat"><small>剩余份数</small><strong>73</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>触碰成功</h2>
+        <span>NFC 动效模拟</span>
+      </div>
+      <div class="touch-zone">
+        <div class="nfc-stage">
+          <div class="inner">
+            <div class="scan-ring">
+              <div class="chip">
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 6h8M8 12h8M8 18h8" />
+                  <path d="M4 4h16v16H4z" />
+                </svg>
+              </div>
+            </div>
+            <div class="stage-note">
+              <h3>已识别酒标 NFC</h3>
+              <p>“2020 年份赤霞珠”已进入红包池，触碰后可直接邀请好友继续瓜分。</p>
+              <div class="btn-row">
+                <a class="btn primary" href="nfc-redpacket.html">邀请好友一起瓜分</a>
+                <a class="btn secondary" href="points-mall.html">查看奖励权益</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>红包与奖励</h2>
+        <span>实时动态</span>
+      </div>
+      <div class="gifts">
+        <div class="gift-row">
+          <div class="gift">
+            <h4>红包总金额</h4>
+            <p>当前活动总奖池，按人数均分后仍有额外惊喜包。</p>
+            <strong>¥8,880</strong>
+          </div>
+          <div class="gift">
+            <h4>我的参与状态</h4>
+            <p>已触碰成功，等待再邀请 2 位好友即可提升中奖率。</p>
+            <strong>已参与</strong>
+          </div>
+        </div>
+        <div class="gift-row">
+          <div class="gift">
+            <h4>可得奖励</h4>
+            <p>包含酒券、积分、试饮资格与盲盒优先购。</p>
+            <strong>4 类</strong>
+          </div>
+          <div class="gift">
+            <h4>发奖方式</h4>
+            <p>实时到账，支持微信零钱、积分账户或兑换券。</p>
+            <strong>自动发放</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>好友参与列表</h2>
+        <span>越多人越热闹</span>
+      </div>
+      <div class="friends">
+        <div class="friend">
+          <div class="avatar">王</div>
+          <div>
+            <h5>王** 刚刚触碰成功</h5>
+            <p>获得 18 元红包 + 50 积分</p>
+          </div><span>+68</span>
+        </div>
+        <div class="friend">
+          <div class="avatar">李</div>
+          <div>
+            <h5>李** 邀请了 3 位好友</h5>
+            <p>直接把红包池扩展到 220 人</p>
+          </div><span>+120</span>
+        </div>
+        <div class="friend">
+          <div class="avatar">陈</div>
+          <div>
+            <h5>陈** 从酒瓶标签进入活动</h5>
+            <p>领取试饮资格一张</p>
+          </div><span>试饮</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>开奖记录</h2>
+        <span>每次参与都有痕迹</span>
+      </div>
+      <div class="log">
+        <div class="log-item">
+          <div class="dot">1</div>
+          <div>
+            <h5>14:22 触碰成功</h5>
+            <p>识别到酒瓶 NFC 标签，进入活动页并锁定红包资格。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="dot">2</div>
+          <div>
+            <h5>14:24 邀请好友</h5>
+            <p>通过微信分享邀请 2 位好友加入，解锁加成奖励。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="dot">3</div>
+          <div>
+            <h5>14:26 发放结果</h5>
+            <p>获得 20 元红包与 100 积分，已同步到账。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h3>页面适配建议</h3>
+      <p>开发时可以把 NFC 触碰做成独立入口，成功后进入这个活动页，红包池、参与人数和开奖记录都要实时刷新。</p>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tabnav active" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tabnav" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+      </svg>酒窖</a>
+    <a class="tabnav" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+</body>
+
+</html>

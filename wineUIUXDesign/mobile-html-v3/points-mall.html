@@ -1,0 +1,754 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>积分商城</title>
+  <style>
+    :root {
+      --bg: #ecfdf5;
+      --panel: #ffffff;
+      --panel-2: #f9fffc;
+      --ink: #064e3b;
+      --muted: #4b7265;
+      --line: rgba(5, 150, 105, .16);
+      --shadow: 0 14px 30px rgba(6, 78, 59, .10);
+      --primary: #059669;
+      --secondary: #10b981;
+      --cta: #f97316;
+      --gold: #d6a444;
+      --safe: calc(82px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      position: relative;
+      background:
+        radial-gradient(900px 280px at 0% 0%, rgba(16, 185, 129, .15), transparent 55%),
+        radial-gradient(820px 260px at 100% 0%, rgba(249, 115, 22, .16), transparent 52%),
+        linear-gradient(180deg, #f4fff9 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px;
+      background: rgba(244, 255, 249, .92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(5, 150, 105, .12)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 700 16px/1 "Rubik", "PingFang SC", sans-serif;
+      letter-spacing: .4px
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(5, 150, 105, .12);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(6, 78, 59, .06)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(5, 150, 105, .94), rgba(16, 185, 129, .86) 48%, rgba(249, 115, 22, .76)),
+        url("https://images.unsplash.com/photo-1528823872057-9c018a7f2955?auto=format&fit=crop&w=1200&q=80") center/cover
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #fef3c7;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .18);
+      padding: 5px 10px;
+      border-radius: 999px
+    }
+
+    .kicker::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 4px rgba(253, 230, 138, .15)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.1 "Rubik", "PingFang SC", sans-serif;
+      color: #fffdf7
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255, 255, 255, .92);
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch
+    }
+
+    .balance-grid {
+      display: grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    .balance {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .92);
+      backdrop-filter: blur(8px)
+    }
+
+    .balance small {
+      display: block;
+      color: #2d6a56;
+      font-size: 11px
+    }
+
+    .balance strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 28px/1 "Rubik", "PingFang SC", sans-serif;
+      color: #0f6e52
+    }
+
+    .balance .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #447562
+    }
+
+    .expiring {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(6, 95, 70, .28);
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: #fff9ef
+    }
+
+    .expiring small {
+      display: block;
+      font-size: 11px;
+      color: rgba(255, 248, 230, .86)
+    }
+
+    .expiring strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 22px/1 "Rubik", sans-serif
+    }
+
+    .expiring p {
+      margin: 8px 0 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: rgba(255, 248, 230, .92)
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .88);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 14px 12px
+    }
+
+    .pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #f4fbf8;
+      border: 1px solid rgba(5, 150, 105, .14);
+      font-size: 11px;
+      color: #2f5d51
+    }
+
+    .rewards {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .reward {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff, #f8fffb);
+      border: 1px solid rgba(5, 150, 105, .1);
+      text-decoration: none;
+      color: inherit
+    }
+
+    .reward img {
+      width: 96px;
+      height: 96px;
+      border-radius: 14px;
+      object-fit: cover
+    }
+
+    .reward h3 {
+      margin: 2px 0 4px;
+      font-size: 14px
+    }
+
+    .reward .meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 7px
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #effdf6;
+      color: #0f7a57;
+      border: 1px solid rgba(5, 150, 105, .12)
+    }
+
+    .reward p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted)
+    }
+
+    .reward .foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      gap: 10px
+    }
+
+    .points {
+      font: 800 15px/1 "Rubik", sans-serif;
+      color: #0f8a60
+    }
+
+    .buy {
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--cta), #fb923c);
+      color: #fff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(249, 115, 22, .18)
+    }
+
+    .tasks {
+      padding: 0 12px 14px;
+      display: grid;
+      gap: 10px
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(5, 150, 105, .1)
+    }
+
+    .task-ico {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #d1fae5, #fef3c7);
+      color: #047857
+    }
+
+    .task-ico svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .task h4 {
+      margin: 0 0 3px;
+      font-size: 13px
+    }
+
+    .task p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45
+    }
+
+    .task .gain {
+      font-size: 11px;
+      color: #b45309;
+      font-weight: 700
+    }
+
+    .task .gain strong {
+      display: block;
+      font: 800 14px/1 "Rubik", sans-serif;
+      color: #ea580c;
+      margin-top: 3px;
+      text-align: right
+    }
+
+    .task.done .gain strong {
+      color: #059669
+    }
+
+    .mission {
+      padding: 0 12px 14px;
+      display: grid;
+      gap: 10px
+    }
+
+    .mission-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(5, 150, 105, .12);
+      background:
+        linear-gradient(135deg, rgba(5, 150, 105, .96), rgba(16, 185, 129, .82)),
+        url("https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fffaf2
+    }
+
+    .mission-card .inner {
+      padding: 14px
+    }
+
+    .mission-card h3 {
+      margin: 0 0 6px;
+      font-size: 15px
+    }
+
+    .mission-card p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.65;
+      color: rgba(255, 249, 238, .92)
+    }
+
+    .mission-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px
+    }
+
+    .mini {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .14);
+      backdrop-filter: blur(4px)
+    }
+
+    .mini b {
+      display: block;
+      font-size: 12px
+    }
+
+    .mini span {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: rgba(255, 249, 238, .88)
+    }
+
+    .sticky {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(236, 253, 245, .16), rgba(255, 255, 255, .96) 24%, rgba(255, 255, 255, .98));
+      border-top: 1px solid rgba(5, 150, 105, .12);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 20
+    }
+
+    .summary {
+      flex: 1;
+      min-width: 0
+    }
+
+    .summary small {
+      display: block;
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    .summary strong {
+      display: block;
+      font: 800 14px/1.2 "Rubik", sans-serif
+    }
+
+    .cta {
+      flex: 0 0 132px;
+      height: 46px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font: 800 14px/1 "Rubik", sans-serif;
+      box-shadow: 0 12px 22px rgba(5, 150, 105, .18)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 66px;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(5, 150, 105, .1)
+    }
+
+    .tab {
+      text-decoration: none;
+      color: #6b8b80;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tab.active {
+      color: #0f8a60
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="home.html" aria-label="返回首页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">积分商城</div>
+        <a class="iconbtn" href="member-center.html" aria-label="会员中心"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+            <path d="M4 20a8 8 0 0 1 16 0" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="kicker">积分资产 · 酒类兑换池</span>
+        <h1 class="hero-title">把每一次下单，都变成下一瓶酒的折扣</h1>
+        <p class="hero-sub">查看可用积分、即将过期积分和高价值兑换项，积分可直接兑换酒具、试饮装、品鉴课和数字酒窖体验。</p>
+        <div class="balance-grid">
+          <div class="balance">
+            <small>当前可用积分</small>
+            <strong>12,680</strong>
+            <div class="row"><span>今日新增 +260</span><span>可抵现 126.8 元</span></div>
+          </div>
+          <div class="expiring">
+            <small>30 天内将过期</small>
+            <strong>860</strong>
+            <p>建议先兑换试饮小酒、满减券和开瓶器，别让积分在仓库里沉睡。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>高价值兑换</h2>
+        <span>先兑高单价，再兑日常券</span>
+      </div>
+      <div class="pill-row">
+        <span class="pill">酒具</span>
+        <span class="pill">开瓶器</span>
+        <span class="pill">醒酒器</span>
+        <span class="pill">品鉴课</span>
+        <span class="pill">试饮小酒</span>
+        <span class="pill">满减券</span>
+        <span class="pill">数字酒窖</span>
+      </div>
+      <div class="rewards">
+        <a class="reward" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=800&q=80"
+            alt="红酒醒酒器" loading="lazy" />
+          <div>
+            <h3>侍酒师推荐醒酒器</h3>
+            <div class="meta"><span class="tag">高频兑换</span><span class="tag">包邮</span></div>
+            <p>适合赤霞珠、巴罗洛等结构型酒款，提升香气释放效率。</p>
+            <div class="foot"><span class="points">3,200 积分</span><span class="buy">立即兑换</span></div>
+          </div>
+        </a>
+        <a class="reward" href="traceability.html">
+          <img src="https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=800&q=80"
+            alt="品鉴课程" loading="lazy" />
+          <div>
+            <h3>葡萄酒品鉴入门课</h3>
+            <div class="meta"><span class="tag">限量</span><span class="tag">线上课</span></div>
+            <p>从香气识别、单宁判断到产区风格，适合会员进阶学习。</p>
+            <div class="foot"><span class="points">5,800 积分</span><span class="buy">立即兑换</span></div>
+          </div>
+        </a>
+        <a class="reward" href="blind-box.html">
+          <img src="https://images.unsplash.com/photo-1547595628-c61a29f496f0?auto=format&fit=crop&w=800&q=80" alt="试饮装"
+            loading="lazy" />
+          <div>
+            <h3>试饮小酒三支装</h3>
+            <div class="meta"><span class="tag">热门</span><span class="tag">口感探索</span></div>
+            <p>适合盲盒前先试口感，包含三款不同产区风格样酒。</p>
+            <div class="foot"><span class="points">2,400 积分</span><span class="buy">立即兑换</span></div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>赚积分任务</h2>
+        <span>完成后直接到账</span>
+      </div>
+      <div class="tasks">
+        <article class="task">
+          <div class="task-ico"><svg viewBox="0 0 24 24">
+              <path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
+            </svg></div>
+          <div>
+            <h4>每日签到领积分</h4>
+            <p>连续签到 7 天，额外获得试饮券。</p>
+          </div>
+          <div class="gain">今日可得<strong>+30</strong></div>
+        </article>
+        <article class="task">
+          <div class="task-ico"><svg viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5v14" />
+              <path d="M7 7l10 10" />
+            </svg></div>
+          <div>
+            <h4>完成一笔酒类订单</h4>
+            <p>红酒、白酒、威士忌订单都可累积成长积分。</p>
+          </div>
+          <div class="gain">可得<strong>+120</strong></div>
+        </article>
+        <article class="task done">
+          <div class="task-ico"><svg viewBox="0 0 24 24">
+              <path d="M20 6 9 17l-5-5" />
+            </svg></div>
+          <div>
+            <h4>参与酒局游戏</h4>
+            <p>在活动房间完成互动任务，奖励已发放。</p>
+          </div>
+          <div class="gain">已完成<strong>+80</strong></div>
+        </article>
+        <article class="task">
+          <div class="task-ico"><svg viewBox="0 0 24 24">
+              <path d="M7 17c3-6 7-6 10 0" />
+              <path d="M8 7h8M9 12h6" />
+            </svg></div>
+          <div>
+            <h4>NFC 触碰活动</h4>
+            <p>线下触碰酒标即可解锁双倍积分与抽奖资格。</p>
+          </div>
+          <div class="gain">可得<strong>+60</strong></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>本周兑换灵感</h2>
+        <span>热门、稀缺、实用</span>
+      </div>
+      <div class="mission">
+        <div class="mission-card">
+          <div class="inner">
+            <h3>先换试饮，再换大件</h3>
+            <p>先用积分兑换小样确认口感，再决定是否入手整箱酒。这样更适合酒类消费的决策路径。</p>
+            <div class="mission-grid">
+              <div class="mini"><b>试饮装</b><span>先试后买，降低踩雷</span></div>
+              <div class="mini"><b>品鉴课</b><span>提升选酒与搭餐能力</span></div>
+              <div class="mini"><b>酒具券</b><span>适配开瓶器/醒酒器</span></div>
+              <div class="mini"><b>数字酒窖</b><span>积分换藏酒仓位体验</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tab" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tab" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tab" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tab" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+      </svg>酒窖</a>
+    <a class="tab active" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+</body>
+
+</html>

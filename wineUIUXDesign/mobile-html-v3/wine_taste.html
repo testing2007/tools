@@ -1,0 +1,835 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>红酒品鉴夜</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg: #fff1f2;
+      --panel: #ffffff;
+      --panel-soft: #fff7f8;
+      --ink: #881337;
+      --muted: #9f4d67;
+      --line: rgba(225, 29, 72, .12);
+      --shadow: 0 16px 34px rgba(136, 19, 55, .12);
+      --primary: #e11d48;
+      --secondary: #fb7185;
+      --cta: #2563eb;
+      --safe: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666;
+      font-family: "Source Sans 3", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      position: relative;
+      background: radial-gradient(900px 260px at 0% 0%, rgba(225, 29, 72, .14), transparent 55%),
+        radial-gradient(740px 220px at 100% 0%, rgba(37, 99, 235, .12), transparent 52%),
+        linear-gradient(180deg, #fff7f8 0%, var(--bg) 100%);
+      ;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(255, 247, 248, .9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(225, 29, 72, .08)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(225, 29, 72, .1);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(136, 19, 55, .05)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .title {
+      text-align: center;
+      font-family: "Bebas Neue", "PingFang SC", sans-serif;
+      font-size: 22px;
+      letter-spacing: 1px;
+      color: #9f1239
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(150deg, rgba(136, 19, 55, .92), rgba(225, 29, 72, .80) 54%, rgba(37, 99, 235, .68)),
+        url("https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff9fb;
+      position: relative
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255, 255, 255, .14), transparent 0 24px),
+        radial-gradient(circle at 78% 22%, rgba(255, 255, 255, .12), transparent 0 18px),
+        radial-gradient(circle at 60% 70%, rgba(255, 255, 255, .08), transparent 0 22px);
+      pointer-events: none
+    }
+
+    .hero-inner {
+      padding: 16px;
+      position: relative;
+      z-index: 1
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .14);
+      font-size: 11px
+    }
+
+    .kicker::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fda4af;
+      box-shadow: 0 0 0 4px rgba(253, 164, 175, .16)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font-family: "Bebas Neue", "PingFang SC", sans-serif;
+      font-size: 34px;
+      line-height: 1;
+      color: #fffdfd;
+      letter-spacing: 1px
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      color: rgba(255, 250, 251, .92);
+      max-width: 28ch
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px
+    }
+
+    .meta {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12);
+      font-size: 11px
+    }
+
+    .countdown {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px
+    }
+
+    .tick {
+      padding: 8px 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .14);
+      text-align: center
+    }
+
+    .tick strong {
+      display: block;
+      font-family: "Bebas Neue", sans-serif;
+      font-size: 22px;
+      line-height: 1;
+      color: #fff
+    }
+
+    .tick span {
+      display: block;
+      margin-top: 4px;
+      font-size: 10px;
+      color: rgba(255, 248, 250, .84)
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: "Bebas Neue", "PingFang SC", sans-serif;
+      font-size: 22px;
+      letter-spacing: .8px;
+      color: #9f1239
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .sign {
+      padding: 0 12px 12px
+    }
+
+    .sign-card {
+      padding: 14px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #fff, #fff8f9);
+      border: 1px solid rgba(225, 29, 72, .08)
+    }
+
+    .sign-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center
+    }
+
+    .sign-top b {
+      font-size: 14px
+    }
+
+    .sign-top p {
+      margin: 4px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .sign-btn {
+      height: 42px;
+      border: none;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), #fb7185);
+      color: #fff;
+      box-shadow: 0 12px 22px rgba(225, 29, 72, .18);
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 14px
+    }
+
+    .sign-btn:active {
+      transform: scale(.97)
+    }
+
+    .sign-btn.done {
+      background: linear-gradient(135deg, #22c55e, #16a34a)
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px
+    }
+
+    .mini {
+      padding: 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(225, 29, 72, .08)
+    }
+
+    .mini small {
+      display: block;
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    .mini strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 16px;
+      color: #9f1239
+    }
+
+    .lottery {
+      padding: 0 12px 12px
+    }
+
+    .lottery-card {
+      padding: 14px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, .94), rgba(225, 29, 72, .82)),
+        url("https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff;
+      box-shadow: 0 14px 26px rgba(37, 99, 235, .14)
+    }
+
+    .lottery-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start
+    }
+
+    .lottery-top h3 {
+      margin: 0;
+      font-family: "Bebas Neue", sans-serif;
+      font-size: 24px;
+      letter-spacing: .8px
+    }
+
+    .lottery-top p {
+      margin: 4px 0 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, .9)
+    }
+
+    .prize {
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .14);
+      font-size: 11px;
+      text-align: right
+    }
+
+    .prize strong {
+      display: block;
+      font-size: 17px;
+      margin-top: 4px
+    }
+
+    .lottery-body {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: end
+    }
+
+    .lottery-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px
+    }
+
+    .lottery-box {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .lottery-box small {
+      display: block;
+      font-size: 10px;
+      color: rgba(255, 255, 255, .82)
+    }
+
+    .lottery-box strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px
+    }
+
+    .join-btn {
+      height: 44px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 14px;
+      background: #fff;
+      color: #2563eb;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
+      cursor: pointer
+    }
+
+    .social {
+      padding: 0 12px 12px
+    }
+
+    .avatars {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px
+    }
+
+    .avatars::-webkit-scrollbar {
+      display: none
+    }
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 52px
+    }
+
+    .avatar img {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      object-fit: cover;
+      border: 2px solid #fff;
+      box-shadow: 0 8px 18px rgba(136, 19, 55, .08)
+    }
+
+    .avatar span {
+      display: block;
+      margin-top: 5px;
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center
+    }
+
+    .social-note {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 18px;
+      background: #fff7f8;
+      border: 1px solid rgba(225, 29, 72, .08);
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .agenda {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .agenda-item {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(225, 29, 72, .08)
+    }
+
+    .time {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+      color: #9f1239;
+      font-family: "Bebas Neue", sans-serif;
+      font-size: 18px;
+      line-height: 1;
+      text-align: center
+    }
+
+    .agenda-item h4 {
+      margin: 0 0 3px;
+      font-size: 13px
+    }
+
+    .agenda-item p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted)
+    }
+
+    .banner {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff, #fff5f7);
+      border: 1px solid rgba(225, 29, 72, .08)
+    }
+
+    .banner b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px
+    }
+
+    .banner p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .sticky {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(255, 241, 242, .1), rgba(255, 255, 255, .96) 25%, rgba(255, 255, 255, .98));
+      border-top: 1px solid rgba(225, 29, 72, .08);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 30
+    }
+
+    .sticky .copy {
+      flex: 1;
+      min-width: 0
+    }
+
+    .sticky .copy small {
+      display: block;
+      font-size: 10px;
+      color: var(--muted)
+    }
+
+    .sticky .copy strong {
+      display: block;
+      font-size: 13px;
+      color: #9f1239
+    }
+
+    .sticky a {
+      flex: 0 0 132px;
+      height: 46px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--cta), #3b82f6);
+      color: #fff;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      box-shadow: 0 12px 22px rgba(37, 99, 235, .18)
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="home.html" aria-label="返回首页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">wine tasting</div>
+        <a class="iconbtn" href="traceability.html" aria-label="查看酒款"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M4 6h16v12H4z" />
+            <path d="M8 10h8" />
+            <path d="M8 14h5" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="kicker">红酒品鉴夜 · 线下签到抽奖</span>
+        <h1 class="hero-title">红酒品鉴夜</h1>
+        <p class="hero-sub">在这场高端酒类品鉴活动里，先签到，再参与抽奖，最后和朋友一起把现场氛围推到最高点。</p>
+        <div class="hero-meta">
+          <span class="meta">2026.05.18 19:30</span>
+          <span class="meta">上海 · 外滩酒会厅</span>
+          <span class="meta">限定 128 人</span>
+        </div>
+        <div class="countdown" aria-label="活动倒计时">
+          <div class="tick"><strong id="d">02</strong><span>天</span></div>
+          <div class="tick"><strong id="h">14</strong><span>时</span></div>
+          <div class="tick"><strong id="m">26</strong><span>分</span></div>
+          <div class="tick"><strong id="s">18</strong><span>秒</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>签到状态</h2>
+        <span>轻微缩放动效</span>
+      </div>
+      <div class="sign">
+        <div class="sign-card">
+          <div class="sign-top">
+            <div>
+              <b id="signText">未签到</b>
+              <p>完成签到后，你会进入抽奖资格池，并提升现场互动权重。</p>
+            </div>
+            <button class="sign-btn" id="signBtn">立即签到</button>
+          </div>
+          <div class="status-row">
+            <div class="mini"><small>当前签到</small><strong id="statusValue">未完成</strong></div>
+            <div class="mini"><small>签到奖励</small><strong>积分 +88</strong></div>
+            <div class="mini"><small>抽奖资格</small><strong id="lotteryValue">待解锁</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>抽奖参与区</h2>
+        <span>现场抽奖</span>
+      </div>
+      <div class="lottery">
+        <div class="lottery-card">
+          <div class="lottery-top">
+            <div>
+              <h3>一瓶红酒</h3>
+              <p>当前奖池包含一等 / 二等 / 幸运参与奖，开奖在现场进行，不是线上直接抽走。</p>
+            </div>
+            <div class="prize">奖池总额<strong>¥12,800</strong></div>
+          </div>
+          <div class="lottery-body">
+            <div class="lottery-stats">
+              <div class="lottery-box"><small>当前参与人数</small><strong>128</strong></div>
+              <div class="lottery-box"><small>剩余名额</small><strong>0</strong></div>
+              <div class="lottery-box"><small>一等奖</small><strong>红酒 1 瓶</strong></div>
+              <div class="lottery-box"><small>参与提醒</small><strong>现场开奖</strong></div>
+            </div>
+            <button class="join-btn" id="joinBtn">参与抽奖</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>社交互动</h2>
+        <span>128 人已参与</span>
+      </div>
+      <div class="social">
+        <div class="avatars">
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像1" loading="lazy"><span>Alex</span></div>
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像2" loading="lazy"><span>Lina</span></div>
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像3" loading="lazy"><span>Ken</span></div>
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像4" loading="lazy"><span>May</span></div>
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像5" loading="lazy"><span>Tom</span></div>
+          <div class="avatar"><img
+              src="https://images.unsplash.com/photo-1502323777036-f29e3972a5f0?auto=format&fit=crop&w=200&q=80"
+              alt="用户头像6" loading="lazy"><span>June</span></div>
+        </div>
+        <div class="social-note">已有 <strong>128</strong> 人参与。你可以把这一页当做现场签到与抽奖的入口，朋友一看就懂今天是来喝酒、来互动、来拿奖的。</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>活动流程</h2>
+        <span>现场氛围节奏</span>
+      </div>
+      <div class="agenda">
+        <div class="agenda-item">
+          <div class="time">19:30</div>
+          <div>
+            <h4>签到入场</h4>
+            <p>手机一键签到，领取抽奖资格和现场互动点数。</p>
+          </div>
+        </div>
+        <div class="agenda-item">
+          <div class="time">20:00</div>
+          <div>
+            <h4>品鉴讲解</h4>
+            <p>讲解产区、酒体、口感和适饮窗口，帮助大家更专业地参与。</p>
+          </div>
+        </div>
+        <div class="agenda-item">
+          <div class="time">20:40</div>
+          <div>
+            <h4>现场抽奖</h4>
+            <p>抽中一等红酒、酒券和积分奖励，奖品在现场直接发放。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="banner">
+      <b>活动氛围文案</b>
+      <p>举杯之间，惊喜即将揭晓。这个活动页要给人“现场真的很热闹”的感觉，所以信息不只在排版里，也要在节奏里。</p>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="sticky">
+    <div class="copy">
+      <small>活动状态</small>
+      <strong id="footerStatus">未签到，待解锁抽奖资格</strong>
+    </div>
+    <a href="javascript:void(0)" id="footerCta">立即签到</a>
+  </nav>
+
+  <script>
+    const signBtn = document.getElementById('signBtn');
+    const signText = document.getElementById('signText');
+    const statusValue = document.getElementById('statusValue');
+    const lotteryValue = document.getElementById('lotteryValue');
+    const footerStatus = document.getElementById('footerStatus');
+    const footerCta = document.getElementById('footerCta');
+    const joinBtn = document.getElementById('joinBtn');
+
+    function setSigned(signed) {
+      if (signed) {
+        signBtn.textContent = '已签到';
+        signBtn.classList.add('done');
+        signText.textContent = '已签到 ✓';
+        statusValue.textContent = '完成';
+        lotteryValue.textContent = '已解锁';
+        footerStatus.textContent = '已签到，可参与抽奖';
+        footerCta.textContent = '参与抽奖';
+      } else {
+        signBtn.textContent = '立即签到';
+        signBtn.classList.remove('done');
+        signText.textContent = '未签到';
+        statusValue.textContent = '未完成';
+        lotteryValue.textContent = '待解锁';
+        footerStatus.textContent = '未签到，待解锁抽奖资格';
+        footerCta.textContent = '立即签到';
+      }
+    }
+
+    signBtn.addEventListener('click', () => setSigned(true));
+    footerCta.addEventListener('click', () => {
+      if (footerCta.textContent.includes('签到')) {
+        setSigned(true);
+      } else {
+        joinBtn.click();
+      }
+    });
+    joinBtn.addEventListener('click', () => {
+      joinBtn.textContent = '已参与';
+      joinBtn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+      joinBtn.style.color = '#fff';
+      footerStatus.textContent = '已参与抽奖，等待现场开奖';
+    });
+
+    const endAt = new Date('2026-05-18T19:30:00+08:00').getTime();
+    const ids = ['d', 'h', 'm', 's'];
+    function tick() {
+      const now = Date.now();
+      let diff = Math.max(0, endAt - now);
+      const d = Math.floor(diff / 86400000);
+      diff -= d * 86400000;
+      const h = Math.floor(diff / 3600000);
+      diff -= h * 3600000;
+      const m = Math.floor(diff / 60000);
+      diff -= m * 60000;
+      const s = Math.floor(diff / 1000);
+      [d, h, m, s].forEach((v, i) => document.getElementById(ids[i]).textContent = String(v).padStart(2, '0'));
+    }
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+
+</html>

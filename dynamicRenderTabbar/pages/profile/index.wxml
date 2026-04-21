@@ -1,0 +1,6 @@
+<view class="container">
+  <view class="card">
+    <view class="title">Profile</view>
+    <view class="sub-title">When N = 3/4, this page is not shown as a tab button.</view>
+  </view>
+</view>

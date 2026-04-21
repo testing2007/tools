@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html lang='zh-CN'>
+
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0, viewport-fit=cover' />
+  <title>酒类电商小程序原型导航</title>
+  <style>
+    :root {
+      --wine-bg: #f6f0e8;
+      --wine-card: #fffdf8;
+      --wine-primary: #6f1125;
+      --wine-gold: #c9a45c;
+      --wine-text: #2f2b28;
+      --wine-sub: #7b736a;
+      --shadow: 0 8px 20px rgba(111, 17, 37, 0.08);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f3ece3 0%, #f8f5f0 60%, #faf8f5 100%);
+      color: var(--wine-text);
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: transparent;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(111, 17, 37, 0.95);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .main {
+      padding: 12px;
+    }
+
+    .card {
+      background: var(--wine-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(111, 17, 37, 0.1);
+      color: var(--wine-primary);
+      font-size: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .item {
+      display: block;
+      padding: 10px;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--wine-text);
+      text-decoration: none;
+      box-shadow: var(--shadow);
+    }
+
+    .item small {
+      color: var(--wine-sub);
+      display: block;
+      margin-top: 4px;
+    }
+
+    .footer-space {
+      height: calc(16px + env(safe-area-inset-bottom));
+    }
+  </style>
+</head>
+
+<body>
+  <div class='phone'>
+    <header class='topbar'>酒类电商原型导航</header>
+    <main class='main'>
+      <div class='card'>
+        <div class='badge'>项目状态</div>
+        <h3 style='margin:10px 0 6px;'>wineUIUXDesign</h3>
+        <p style='margin:0;color:#7b736a;font-size:14px;'>移动端原型导航页（无单页提示词）。用于统一进入各功能页面预览。</p>
+      </div>
+
+      <div class='card'>
+        <div class='badge'>页面导航</div>
+        <div class='grid' style='margin-top:10px;'>
+          <a class='item' href='home.html'>首页</a>
+          <a class='item' href='category.html'>分类页</a>
+          <a class='item' href='product-detail.html'>商品详情页</a>
+          <a class='item' href='cart.html'>购物车页</a>
+          <a class='item' href='checkout.html'>结算页</a>
+          <a class='item' href='order-list.html'>订单列表页</a>
+          <a class='item' href='order-detail.html'>订单详情页</a>
+          <a class='item' href='member-center.html'>会员中心页</a>
+          <a class='item' href='points-mall.html'>积分商城页</a>
+          <a class='item' href='group-buy.html'>拼团页</a>
+          <a class='item' href='coupon-center.html'>优惠券页</a>
+          <a class='item' href='flash-sale.html'>限时折扣页</a>
+          <a class='item' href='gift-card.html'>企业礼品卡页</a>
+          <a class='item' href='drinking-game.html'>酒局游戏页</a>
+          <a class='item' href='grape-plan.html'>葡萄酒养成计划页</a>
+          <a class='item' href='nfc-redpacket.html'>NFC红包页</a>
+          <a class='item' href='ar-experience.html'>AR体验页</a>
+          <a class='item' href='digital-cellar.html'>数字酒窖页</a>
+          <a class='item' href='blind-box.html'>福袋盲盒页</a>
+          <a class='item' href='defect-wine.html'>瑕疵酒专区页</a>
+          <a class='item' href='traceability.html'>溯源页</a>
+          <a class='item' href='ai-sommelier.html'>AI侍酒师页</a>
+        </div>
+      </div>
+    </main>
+    <div class='footer-space'></div>
+  </div>
+</body>
+
+</html>

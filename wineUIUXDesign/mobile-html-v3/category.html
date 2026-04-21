@@ -1,0 +1,1130 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>酒类分类</title>
+  <style>
+    :root {
+      --bg: #f5f2ee;
+      --panel: #fffaf4;
+      --card: #fffdf9;
+      --ink: #14110f;
+      --muted: #6d6158;
+      --wine: #1c1917;
+      --wine-2: #453230;
+      --accent: #b98931;
+      --line: rgba(185, 137, 49, 0.22);
+      --danger: #8f2f3a;
+      --ok: #1f6d4f;
+      --shadow: 0 10px 24px rgba(30, 21, 16, 0.12);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --safe-bottom: calc(82px + env(safe-area-inset-bottom));
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: #666;
+      /* background:
+        radial-gradient(70% 45% at 0% 0%, rgba(185,137,49,0.2), transparent 70%),
+        radial-gradient(65% 40% at 100% 8%, rgba(69,50,48,0.18), transparent 70%),
+        var(--bg); */
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100dvh;
+      background: linear-gradient(180deg, rgba(255, 250, 244, .95), rgba(255, 248, 242, .98));
+      padding-bottom: var(--safe-bottom);
+      overscroll-behavior: contain;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px 12px;
+      border-bottom: 1px solid rgba(242, 217, 166, .24);
+      background: linear-gradient(180deg, rgba(23, 17, 15, .95), rgba(23, 17, 15, .86));
+      backdrop-filter: blur(8px);
+    }
+
+    .topline {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(242, 217, 166, .36);
+      background: rgba(255, 255, 255, .12);
+      color: #fbe8bf;
+      display: grid;
+      place-items: center;
+      text-decoration: none;
+    }
+
+    .title {
+      text-align: center;
+      color: #fff2d7;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 70px;
+      gap: 8px;
+    }
+
+    .search {
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(250, 226, 184, .34);
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      padding: 0 12px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search::placeholder {
+      color: rgba(255, 243, 220, .72);
+    }
+
+    .filter-btn {
+      border-radius: 10px;
+      border: 1px solid rgba(250, 226, 184, .34);
+      background: rgba(255, 255, 255, .12);
+      color: #fcebc7;
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      min-height: calc(100dvh - 110px);
+    }
+
+    .left-rail {
+      border-right: 1px solid rgba(185, 137, 49, .18);
+      background: rgba(250, 243, 232, .9);
+      padding: 10px 8px 10px;
+      position: sticky;
+      top: 110px;
+      max-height: calc(100dvh - 110px);
+      overflow: auto;
+    }
+
+    .cat-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      padding: 9px 6px;
+      font-size: 12px;
+      color: #5f524b;
+      cursor: pointer;
+      margin-bottom: 6px;
+      transition: all .2s var(--ease);
+    }
+
+    .cat-btn.active {
+      background: linear-gradient(145deg, #fff3dd, #fff9ef);
+      color: #7b5213;
+      box-shadow: inset 0 0 0 1px rgba(185, 137, 49, .4);
+      font-weight: 700;
+    }
+
+    .right-pane {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      min-height: 152px;
+      padding: 12px;
+      color: #fff5df;
+      display: grid;
+      align-content: end;
+      gap: 7px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(150deg, rgba(20, 15, 13, .72), rgba(20, 15, 13, .32));
+      pointer-events: none;
+    }
+
+    .hero>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(255, 242, 220, .92);
+    }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #f9ebcd;
+      border: 1px solid rgba(249, 219, 160, .45);
+      background: rgba(255, 255, 255, .1);
+    }
+
+    .sub-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 10px;
+    }
+
+    .sub-tag {
+      border: 1px solid rgba(141, 105, 48, .22);
+      border-radius: 999px;
+      background: #fff;
+      color: #5f524b;
+      padding: 5px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .sort-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 0 10px 10px;
+    }
+
+    .sort-btn {
+      border: 1px solid rgba(141, 105, 48, .22);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 11px;
+      height: 30px;
+      color: #5f524b;
+      cursor: pointer;
+    }
+
+    .sort-btn.active {
+      background: #fdf2dc;
+      color: #83550d;
+      border-color: rgba(185, 137, 49, .45);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 2px;
+    }
+
+    .section-head b {
+      font-size: 14px;
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .product-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .p-card {
+      background: var(--card);
+      border: 1px solid rgba(141, 105, 48, .2);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 8px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .p-card img {
+      width: 86px;
+      height: 126px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .p-body {
+      padding: 8px 8px 8px 0;
+      display: grid;
+      gap: 5px;
+    }
+
+    .p-title {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .p-meta {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .p-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 10px;
+      border-radius: 999px;
+      padding: 2px 7px;
+      background: #fff3dc;
+      color: #85570f;
+      border: 1px solid rgba(185, 137, 49, .28);
+    }
+
+    .tag.bad {
+      background: #ffecef;
+      color: #8f2f3a;
+      border-color: rgba(143, 47, 58, .28);
+    }
+
+    .tag.pool {
+      background: #eaf7f0;
+      color: #1f6d4f;
+      border-color: rgba(31, 109, 79, .28);
+    }
+
+    .p-price {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1px;
+    }
+
+    .price {
+      font-size: 16px;
+      color: #8f2f3a;
+      font-weight: 800;
+    }
+
+    .p-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 3px;
+    }
+
+    .btn {
+      height: 28px;
+      border-radius: 9px;
+      border: 1px solid rgba(141, 105, 48, .25);
+      background: #fff;
+      color: #5f524b;
+      font-size: 11px;
+      display: grid;
+      place-items: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #6f222a, #96323c);
+      color: #fff5e2;
+      border: none;
+    }
+
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      padding: 0 12px 14px;
+    }
+
+    .q-link {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 0;
+      padding: 12px;
+      text-decoration: none;
+      color: #fff;
+      min-height: 98px;
+      display: grid;
+      align-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 12px 22px rgba(94, 36, 25, .12);
+      isolation: isolate;
+    }
+
+    .q-link::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 86% 14%, rgba(255, 255, 255, .24), transparent 24%),
+        radial-gradient(circle at 10% 100%, rgba(255, 255, 255, .18), transparent 26%);
+      z-index: -1;
+    }
+
+    .q-link b {
+      font-size: 13px;
+      letter-spacing: .2px;
+    }
+
+    .q-link small {
+      font-size: 11px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, .9);
+    }
+
+    .q-story {
+      background: linear-gradient(145deg, #6f222a, #a13a33);
+    }
+
+    .q-map {
+      background: linear-gradient(145deg, #1c4e6a, #2e6f8f);
+    }
+
+    .q-pairing {
+      background: linear-gradient(145deg, #1f5d42, #4f8f60);
+    }
+
+    .q-flavor {
+      background: linear-gradient(145deg, #7a4a12, #c58a2d);
+    }
+
+    .q-trace {
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+    }
+
+    .q-cellar {
+      background: linear-gradient(145deg, #0f4d3d, #256a56);
+    }
+
+    .q-ai {
+      background: linear-gradient(145deg, #4c2d2a, #7a5450);
+    }
+
+    .empty {
+      border-radius: 12px;
+      border: 1px dashed rgba(141, 105, 48, .35);
+      background: #fff;
+      padding: 14px;
+      text-align: center;
+      font-size: 12px;
+      color: #6e6259;
+      display: none;
+    }
+
+    .float-ai {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(242, 217, 166, .25);
+      background: rgba(23, 17, 15, .95);
+      z-index: 25;
+    }
+
+    .tab {
+      color: rgba(255, 244, 222, .78);
+      text-decoration: none;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+    }
+
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+    }
+
+    .tab.active {
+      color: #f6d69f;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 13, 11, .52);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s var(--ease);
+    }
+
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%) translateY(110%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      background: #fffdf8;
+      border-radius: 18px 18px 0 0;
+      border: 1px solid rgba(141, 105, 48, .2);
+      padding: 12px;
+      z-index: 45;
+      transition: transform .25s var(--ease);
+      max-height: 72dvh;
+      overflow: auto;
+    }
+
+    .sheet.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .sheet h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .sheet p {
+      margin: 0;
+      font-size: 12px;
+      color: #5b4f48;
+      line-height: 1.55;
+    }
+
+    .opts {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .opt-group {
+      border: 1px solid rgba(141, 105, 48, .2);
+      border-radius: 12px;
+      padding: 9px;
+    }
+
+    .opt-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .opt-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .opt-chip {
+      border: 1px solid rgba(141, 105, 48, .25);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .opt-chip.sel {
+      background: #fdf2dc;
+      color: #83550d;
+      border-color: rgba(185, 137, 49, .45);
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .sheet-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .sheet-btn {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(141, 105, 48, .26);
+      background: #fff;
+      font-size: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .sheet-btn.primary {
+      border: none;
+      background: linear-gradient(135deg, #6f222a, #96323c);
+      color: #fff6e4;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(102px + env(safe-area-inset-bottom));
+      background: rgba(22, 18, 16, .92);
+      color: #fff3dd;
+      border-radius: 999px;
+      font-size: 12px;
+      padding: 8px 12px;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity .18s var(--ease);
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .45s var(--ease), transform .45s var(--ease);
+    }
+
+    .reveal.on {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .reveal,
+      .sheet,
+      .overlay,
+      .toast {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="topline">
+        <a class="icon-btn" href="index.html" aria-label="返回导航">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </a>
+        <div class="title">酒类分类</div>
+        <a class="icon-btn" href="member-center.html" aria-label="个人中心">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+            <path d="M4 20a8 8 0 0 1 16 0" />
+          </svg>
+        </a>
+      </div>
+      <div class="search-row">
+        <input id="searchInput" class="search" placeholder="搜索酒名 / 品牌 / 产区" />
+        <button id="openFilter" class="filter-btn">筛选</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="left-rail" id="categoryRail"></aside>
+
+      <section class="right-pane">
+        <article class="card hero reveal" id="heroCard"></article>
+
+        <article class="card reveal">
+          <div class="sub-filters" id="subFilterRow"></div>
+          <div class="sort-row" id="sortRow"></div>
+        </article>
+
+        <div class="section-head reveal"><b>精选酒款</b><span id="resultText">0 款</span></div>
+        <section class="product-list" id="productList"></section>
+        <div class="empty" id="emptyState">未找到匹配酒款，试试更换关键词或清空筛选。</div>
+
+        <article class="card section-head reveal" style="padding: 10px 2px 0; margin-top: 2px;">
+          <b>酒类专属模块</b><span>快速入口</span>
+        </article>
+        <section class="quick-links reveal" id="moduleLinks"></section>
+      </section>
+    </section>
+
+    <a class="float-ai" href="ai-sommelier.html">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M12 3l2.7 5.5L20 11l-5.3 2.5L12 19l-2.7-5.5L4 11l5.3-2.5z" />
+      </svg>
+      AI 侍酒师
+    </a>
+
+    <nav class="bottom-nav" aria-label="底部导航">
+      <a class="tab" href="index.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>
+        导航
+      </a>
+      <a class="tab" href="home.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>
+        首页
+      </a>
+      <a class="tab active" href="category.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+        </svg>
+        分类
+      </a>
+      <a class="tab" href="group-buy.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12h14M12 5v14" />
+          <path d="M5 5h14v14H5z" />
+        </svg>
+        活动
+      </a>
+      <a class="tab" href="member-center.html">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+          <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+        我的
+      </a>
+    </nav>
+  </main>
+
+  <div class="overlay" id="overlay"></div>
+  <section class="sheet" id="sheet"></section>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const categories = [
+      {id: 'red', name: '红酒', heroTitle: '旧世界与新世界红酒', heroSub: '按产区与口感快速匹配晚餐场景', heroImg: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'baijiu', name: '白酒', heroTitle: '酱香 · 浓香 · 清香', heroSub: '宴请与礼赠常用高口碑酒款', heroImg: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'whisky', name: '威士忌', heroTitle: '单一麦芽与调和风格', heroSub: '泥煤、雪莉桶与波本桶风味库', heroImg: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'sparkling', name: '香槟/起泡', heroTitle: '庆祝场景起泡酒精选', heroSub: '甜点、海鲜、节日聚会都能搭配', heroImg: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'sake', name: '清酒', heroTitle: '吟酿与纯米系', heroSub: '适配日料与清淡海鲜口味', heroImg: 'https://images.unsplash.com/photo-1551024739-78e7f3f3f315?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'craft', name: '精酿啤酒', heroTitle: 'IPA / Stout / Sour', heroSub: '轻松社交场景的风味探索', heroImg: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'gift', name: '礼盒', heroTitle: '礼赠套装专区', heroSub: '节日礼盒、企业礼赠、定制卡片', heroImg: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80'},
+      {id: 'defect', name: '瑕疵酒', heroTitle: '自饮性价比专区', heroSub: '标签/外盒瑕疵，酒液品质不受影响', heroImg: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80'}
+    ];
+
+    const subFilters = ['品牌', '产区', '价格带', '口感', '适饮场景'];
+    const sortModes = ['综合', '销量', '价格', '上新'];
+
+    const products = [
+      {id: 1, cat: 'red', name: 'Chateau Lumiere Reserve', brand: 'Lumiere Cellars', region: '波尔多左岸', year: '2018', flavor: '黑樱桃/雪松/香草', window: '2026-2031', price: 429, sales: 2819, fresh: 8, defect: false, blind: true, img: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=500&q=80'},
+      {id: 2, cat: 'red', name: 'Napa Ridge Cabernet', brand: 'Oak & Barrel', region: '纳帕谷', year: '2020', flavor: '黑醋栗/可可/香料', window: '2025-2032', price: 499, sales: 1987, fresh: 15, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1569919659476-f0852f6834b7?auto=format&fit=crop&w=500&q=80'},
+      {id: 3, cat: 'red', name: 'Burgundy Pinot Noir', brand: 'Maison Vigne', region: '勃艮第', year: '2019', flavor: '覆盆子/蘑菇/矿物', window: '2026-2029', price: 538, sales: 963, fresh: 5, defect: true, blind: false, img: 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=500&q=80'},
+      {id: 4, cat: 'baijiu', name: '赤壁酱香珍藏', brand: '赤壁酒坊', region: '贵州仁怀', year: '2021', flavor: '酱香/焦香/粮香', window: '即饮-2035', price: 369, sales: 3033, fresh: 20, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?auto=format&fit=crop&w=500&q=80'},
+      {id: 5, cat: 'whisky', name: 'Highmoor Single Malt 12Y', brand: 'Highmoor', region: '斯佩塞', year: '12年陈', flavor: '蜂蜜/果干/木香', window: '即饮-2030', price: 459, sales: 1421, fresh: 9, defect: false, blind: true, img: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&w=500&q=80'},
+      {id: 6, cat: 'sparkling', name: 'Maison Etoile Brut', brand: 'Maison Etoile', region: '香槟区', year: 'NV', flavor: '青苹果/烘焙/柑橘', window: '2025-2028', price: 339, sales: 1798, fresh: 22, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?auto=format&fit=crop&w=500&q=80'},
+      {id: 7, cat: 'sake', name: '雪川纯米吟酿', brand: '雪川酒造', region: '新潟', year: '2023', flavor: '蜜瓜/米香/梨', window: '2025-2027', price: 268, sales: 1122, fresh: 18, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1551024739-78e7f3f3f315?auto=format&fit=crop&w=500&q=80'},
+      {id: 8, cat: 'craft', name: 'Deep Harbor IPA', brand: 'Deep Harbor', region: '青岛', year: '2024', flavor: '柚子/松针/麦香', window: '尽快饮用', price: 129, sales: 4210, fresh: 25, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=500&q=80'},
+      {id: 9, cat: 'gift', name: '臻选双支礼盒', brand: '酒屿礼选', region: '进口混搭', year: '礼盒款', flavor: '红酒+香槟组合', window: '按酒款标识', price: 699, sales: 788, fresh: 4, defect: false, blind: false, img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=500&q=80'},
+      {id: 10, cat: 'defect', name: '左岸干红（标签微瑕）', brand: 'Lumiere Cellars', region: '波尔多左岸', year: '2019', flavor: '黑李子/雪松', window: '2026-2030', price: 189, sales: 1670, fresh: 13, defect: true, blind: false, img: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=500&q=80'}
+    ];
+
+    const moduleCards = [
+      {id: 'story', title: '品牌故事', desc: '查看酒庄历史与酿造理念', href: 'product-detail.html'},
+      {id: 'map', title: '产区地图', desc: '按风土理解口感差异', action: 'map'},
+      {id: 'pairing', title: '搭餐建议', desc: '按菜系智能配酒', action: 'pairing'},
+      {id: 'flavor', title: '口感档案', desc: '酸度/甜度/单宁/酒体', action: 'flavor'},
+      {id: 'trace', title: '真伪/批次溯源', desc: '扫码查验与流通记录', action: 'trace'},
+      {id: 'cellar', title: '数字酒窖', desc: '入窖托管与提酒管理', action: 'cellar'},
+      {id: 'ai', title: 'AI侍酒师', desc: '一句话获得配酒方案', href: 'ai-sommelier.html'}
+    ];
+
+    const state = {
+      cat: 'red',
+      query: '',
+      sub: '',
+      sort: '综合',
+      filters: {
+        brand: [],
+        region: [],
+        price: [],
+        flavor: [],
+        defectOnly: false,
+        blindOnly: false
+      }
+    };
+
+    const categoryRail = document.getElementById('categoryRail');
+    const heroCard = document.getElementById('heroCard');
+    const subFilterRow = document.getElementById('subFilterRow');
+    const sortRow = document.getElementById('sortRow');
+    const productList = document.getElementById('productList');
+    const resultText = document.getElementById('resultText');
+    const moduleLinks = document.getElementById('moduleLinks');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('searchInput');
+    const openFilter = document.getElementById('openFilter');
+    const overlay = document.getElementById('overlay');
+    const sheet = document.getElementById('sheet');
+    const toast = document.getElementById('toast');
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 1200);
+    }
+
+    function renderCategoryRail() {
+      categoryRail.innerHTML = categories.map(cat => `
+        <button class="cat-btn ${state.cat === cat.id ? 'active' : ''}" data-id="${cat.id}">${cat.name}</button>
+      `).join('');
+    }
+
+    function renderHero() {
+      const cat = categories.find(c => c.id === state.cat) || categories[0];
+      heroCard.style.backgroundImage = `url('${cat.heroImg}')`;
+      heroCard.innerHTML = `
+        <h1>${cat.heroTitle}</h1>
+        <p>${cat.heroSub}</p>
+        <div class="chips">
+          <span class="chip">产区风味</span>
+          <span class="chip">溯源可验</span>
+          <span class="chip">适饮建议</span>
+        </div>
+      `;
+    }
+
+    function renderSubFilters() {
+      subFilterRow.innerHTML = subFilters.map(name => `
+        <button class="sub-tag ${state.sub === name ? 'sel' : ''}" data-sub="${name}">${name}</button>
+      `).join('');
+    }
+
+    function renderSortRow() {
+      sortRow.innerHTML = sortModes.map(mode => `
+        <button class="sort-btn ${state.sort === mode ? 'active' : ''}" data-sort="${mode}">${mode}</button>
+      `).join('');
+    }
+
+    function queryProducts() {
+      let list = products.filter(p => p.cat === state.cat);
+
+      if (state.query.trim()) {
+        const q = state.query.trim().toLowerCase();
+        list = list.filter(p => [p.name, p.brand, p.region, p.flavor].join(' ').toLowerCase().includes(q));
+      }
+
+      if (state.filters.defectOnly) list = list.filter(p => p.defect);
+      if (state.filters.blindOnly) list = list.filter(p => p.blind);
+
+      if (state.filters.price.length) {
+        list = list.filter(p => {
+          return state.filters.price.some(priceBand => {
+            if (priceBand === '0-299') return p.price < 300;
+            if (priceBand === '300-499') return p.price >= 300 && p.price <= 499;
+            if (priceBand === '500+') return p.price >= 500;
+            return true;
+          });
+        });
+      }
+
+      if (state.sort === '销量') list = list.slice().sort((a, b) => b.sales - a.sales);
+      if (state.sort === '价格') list = list.slice().sort((a, b) => a.price - b.price);
+      if (state.sort === '上新') list = list.slice().sort((a, b) => a.fresh - b.fresh);
+
+      return list;
+    }
+
+    function renderProducts() {
+      const list = queryProducts();
+      resultText.textContent = `${list.length} 款`;
+      emptyState.style.display = list.length ? 'none' : 'block';
+
+      productList.innerHTML = list.map(p => `
+        <article class="p-card reveal">
+          <img src="${p.img}" alt="${p.name}" loading="lazy" />
+          <div class="p-body">
+            <div class="p-title">${p.name}</div>
+            <div class="p-meta">${p.brand} · ${p.region} · ${p.year}</div>
+            <div class="p-meta">口感：${p.flavor}</div>
+            <div class="p-meta">适饮窗口：${p.window}</div>
+            <div class="p-tags">
+              <span class="tag" data-action="flavor">口感档案</span>
+              <span class="tag" data-action="map">产区地图</span>
+              <span class="tag" data-action="pairing">搭餐建议</span>
+              ${p.defect ? '<span class="tag bad">瑕疵酒</span>' : ''}
+              ${p.blind ? '<span class="tag pool">可入盲盒池</span>' : ''}
+            </div>
+            <div class="p-price">
+              <span class="price">¥${p.price}</span>
+              <span class="p-meta">月销 ${p.sales}</span>
+            </div>
+            <div class="p-actions">
+              <button class="btn add-cart" data-id="${p.id}">加入购物车</button>
+              <a class="btn primary" href="product-detail.html">查看详情</a>
+            </div>
+          </div>
+        </article>
+      `).join('');
+
+      document.querySelectorAll('.p-card .tag[data-action]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          const action = e.target.dataset.action;
+          openInfoSheet(action);
+        });
+      });
+
+      document.querySelectorAll('.add-cart').forEach(btn => {
+        btn.addEventListener('click', () => showToast('已加入购物车'));
+      });
+
+      observeReveal();
+    }
+
+    function renderModules() {
+      moduleLinks.innerHTML = moduleCards.map(item => {
+        const cls = `q-link q-${item.id}`;
+        if (item.href) {
+          return `<a class="${cls}" href="${item.href}"><b>${item.title}</b><small>${item.desc}</small></a>`;
+        }
+        return `<button class="${cls}" data-mod="${item.action}"><b>${item.title}</b><small>${item.desc}</small></button>`;
+      }).join('');
+
+      moduleLinks.querySelectorAll('button[data-mod]').forEach(btn => {
+        btn.addEventListener('click', () => openInfoSheet(btn.dataset.mod));
+      });
+    }
+
+    function openSheet(html) {
+      sheet.innerHTML = html;
+      overlay.classList.add('show');
+      sheet.classList.add('show');
+    }
+
+    function closeSheet() {
+      overlay.classList.remove('show');
+      sheet.classList.remove('show');
+    }
+
+    function openInfoSheet(type) {
+      const contentMap = {
+        flavor: {
+          title: '口感档案',
+          body: '酸度 62 / 甜度 18 / 单宁 74 / 酒体 68 / 香气 83。黑果主导，尾段有雪松与香草。'
+        },
+        map: {
+          title: '产区地图说明',
+          body: '波尔多左岸以砾石土壤著称，日照充足，适合赤霞珠成熟，酒体结构更强。'
+        },
+        pairing: {
+          title: '搭餐建议',
+          body: '推荐搭配：战斧牛排、烤羊排、熟成硬质奶酪。若偏清淡，可选蘑菇烩饭。'
+        },
+        trace: {
+          title: '真伪 / 批次溯源',
+          body: '批次号：LMR2018-24A；防伪码：A8X9-K2P7-1QZ3。支持扫码查看流通路径。'
+        },
+        cellar: {
+          title: '数字酒窖说明',
+          body: '当前酒款支持入窖托管。购买后可在数字酒窖查看编号、仓储位置和提酒入口。'
+        }
+      };
+      const c = contentMap[type];
+      if (!c) return;
+      openSheet(`
+        <h3>${c.title}</h3>
+        <p>${c.body}</p>
+        <div class="sheet-actions">
+          <button class="sheet-btn" id="closeSheetBtn">我知道了</button>
+          <a class="sheet-btn primary" href="${type === 'trace' ? 'traceability.html' : type === 'cellar' ? 'digital-cellar.html' : 'product-detail.html'}">查看详情</a>
+        </div>
+      `);
+      document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+    }
+
+    function openFilterSheet() {
+      const priceOptions = ['0-299', '300-499', '500+'];
+      const selected = state.filters.price;
+
+      openSheet(`
+        <h3>高级筛选</h3>
+        <div class="opts">
+          <div class="opt-group">
+            <div class="opt-title">价格区间</div>
+            <div class="opt-row">
+              ${priceOptions.map(v => `<button class="opt-chip ${selected.includes(v) ? 'sel' : ''}" data-price="${v}">${v}</button>`).join('')}
+            </div>
+          </div>
+          <div class="opt-group">
+            <div class="opt-title">条件开关</div>
+            <div class="switch-row"><span>仅看瑕疵酒</span><input type="checkbox" id="swDefect" ${state.filters.defectOnly ? 'checked' : ''}></div>
+            <div class="switch-row" style="margin-top:8px;"><span>仅看可入盲盒池</span><input type="checkbox" id="swBlind" ${state.filters.blindOnly ? 'checked' : ''}></div>
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <button class="sheet-btn" id="resetFilter">重置</button>
+          <button class="sheet-btn primary" id="applyFilter">应用筛选</button>
+        </div>
+      `);
+
+      sheet.querySelectorAll('[data-price]').forEach(btn => {
+        btn.addEventListener('click', () => btn.classList.toggle('sel'));
+      });
+
+      document.getElementById('resetFilter').addEventListener('click', () => {
+        state.filters.price = [];
+        state.filters.defectOnly = false;
+        state.filters.blindOnly = false;
+        closeSheet();
+        renderProducts();
+      });
+
+      document.getElementById('applyFilter').addEventListener('click', () => {
+        state.filters.price = [...sheet.querySelectorAll('[data-price].sel')].map(el => el.dataset.price);
+        state.filters.defectOnly = document.getElementById('swDefect').checked;
+        state.filters.blindOnly = document.getElementById('swBlind').checked;
+        closeSheet();
+        renderProducts();
+      });
+    }
+
+    function observeReveal() {
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) entry.target.classList.add('on');
+        });
+      }, {threshold: 0.08});
+
+      document.querySelectorAll('.reveal:not(.on)').forEach(el => io.observe(el));
+    }
+
+    categoryRail.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      state.cat = btn.dataset.id;
+      renderCategoryRail();
+      renderHero();
+      renderProducts();
+    });
+
+    subFilterRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sub-tag');
+      if (!btn) return;
+      state.sub = state.sub === btn.dataset.sub ? '' : btn.dataset.sub;
+      renderSubFilters();
+      showToast(state.sub ? `已选择：${state.sub}` : '已取消二级筛选');
+    });
+
+    sortRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sort-btn');
+      if (!btn) return;
+      state.sort = btn.dataset.sort;
+      renderSortRow();
+      renderProducts();
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      state.query = e.target.value;
+      renderProducts();
+    });
+
+    openFilter.addEventListener('click', openFilterSheet);
+    overlay.addEventListener('click', closeSheet);
+
+    renderCategoryRail();
+    renderHero();
+    renderSubFilters();
+    renderSortRow();
+    renderProducts();
+    renderModules();
+    observeReveal();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,692 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>企业礼品卡</title>
+  <style>
+    :root {
+      --bg: #fff7ec;
+      --panel: #ffffff;
+      --ink: #2a1a14;
+      --muted: #7a645a;
+      --line: rgba(194, 119, 42, .14);
+      --shadow: 0 16px 34px rgba(97, 51, 20, .12);
+      --primary: #7c2d12;
+      --accent: #f59e0b;
+      --soft: #fff3db;
+      --safe: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      background:
+        radial-gradient(900px 280px at 0% 0%, rgba(245, 158, 11, .14), transparent 55%),
+        radial-gradient(760px 220px at 100% 0%, rgba(124, 45, 18, .16), transparent 52%),
+        linear-gradient(180deg, #fffaf0 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(255, 250, 240, .94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(124, 45, 18, .1)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(124, 45, 18, .12);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(97, 51, 20, .06)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(28, 17, 12, .96), rgba(124, 45, 18, .76) 54%, rgba(245, 158, 11, .84)),
+        url("https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff8f0
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 4px rgba(253, 230, 138, .15)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch;
+      color: rgba(255, 248, 240, .92)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .14);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .stat small {
+      display: block;
+      font-size: 10px;
+      color: rgba(255, 248, 240, .8)
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #fff
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .card-shell {
+      padding: 0 12px 12px
+    }
+
+    .gift-card {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(28, 17, 12, .95), rgba(124, 45, 18, .84) 48%, rgba(245, 158, 11, .72)),
+        url("https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff9ef;
+      box-shadow: 0 18px 30px rgba(97, 51, 20, .18)
+    }
+
+    .gift-card .inner {
+      padding: 16px
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px
+    }
+
+    .brand {
+      font-size: 11px;
+      color: rgba(255, 248, 238, .86);
+      letter-spacing: .5px
+    }
+
+    .amount {
+      font: 800 30px/1 "Rubik", sans-serif
+    }
+
+    .amount small {
+      font-size: 13px;
+      vertical-align: baseline
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .code-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center
+    }
+
+    .code-box b {
+      display: block;
+      font-size: 12px
+    }
+
+    .code-box span {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: rgba(255, 248, 238, .88)
+    }
+
+    .code {
+      font: 800 17px/1 "Rubik", sans-serif;
+      letter-spacing: 1.8px
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px
+    }
+
+    .btn {
+      height: 40px;
+      border-radius: 13px;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), #9a3412);
+      color: #fff9f3;
+      box-shadow: 0 12px 22px rgba(124, 45, 18, .18)
+    }
+
+    .btn.secondary {
+      border: 1px solid rgba(124, 45, 18, .12);
+      background: #fff;
+      color: #5f372c
+    }
+
+    .btn.orange {
+      background: linear-gradient(135deg, var(--accent), #fb923c);
+      color: #fff
+    }
+
+    .feature-grid {
+      padding: 0 12px 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px
+    }
+
+    .feature {
+      padding: 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff, #fffaf5);
+      border: 1px solid rgba(124, 45, 18, .1)
+    }
+
+    .feature h3 {
+      margin: 0 0 6px;
+      font-size: 13px
+    }
+
+    .feature p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6
+    }
+
+    .feature strong {
+      display: block;
+      margin-top: 8px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #a16207
+    }
+
+    .desc {
+      padding: 0 14px 14px
+    }
+
+    .desc h3 {
+      margin: 0 0 6px;
+      font-size: 14px
+    }
+
+    .desc p,
+    .desc li {
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .desc ul {
+      margin: 0;
+      padding-left: 16px
+    }
+
+    .log {
+      padding: 0 12px 14px;
+      display: grid;
+      gap: 8px
+    }
+
+    .log-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(124, 45, 18, .1)
+    }
+
+    .log-ico {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #ffedd5, #fde68a);
+      color: #9a3412
+    }
+
+    .log-ico svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .log-item h4 {
+      margin: 0 0 3px;
+      font-size: 13px
+    }
+
+    .log-item p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .footer-note {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: #fff8ec;
+      border: 1px solid rgba(124, 45, 18, .08)
+    }
+
+    .footer-note h3 {
+      margin: 0 0 6px;
+      font-size: 13px
+    }
+
+    .footer-note p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(124, 45, 18, .1);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: #7b6b67;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #9a3412
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="member-center.html" aria-label="返回会员中心"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">企业礼品卡</div>
+        <a class="iconbtn" href="order-list.html" aria-label="兑换记录"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M6 7h12M6 12h12M6 17h12" />
+            <path d="M4 4h16v16H4z" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">企业采购 · 员工福利</span>
+        <h1 class="hero-title">一张礼品卡，覆盖员工福利和节日礼赠</h1>
+        <p class="hero-sub">面向企业批量采购，支持定额发放、指定酒款兑换、员工专属码、到期提醒和兑换记录追踪。</p>
+        <div class="stats">
+          <div class="stat"><small>企业客户</small><strong>286</strong></div>
+          <div class="stat"><small>本月发放</small><strong>8,420</strong></div>
+          <div class="stat"><small>已核销</small><strong>73%</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>礼品卡面板</h2>
+        <span>可直接给员工发放</span>
+      </div>
+      <div class="card-shell">
+        <div class="gift-card">
+          <div class="inner">
+            <div class="card-top">
+              <div>
+                <div class="brand">Barone Wines 福利卡</div>
+                <h2 style="margin:6px 0 0;font-size:16px">企业员工礼品卡</h2>
+              </div>
+              <div class="amount">¥<small>500</small></div>
+            </div>
+            <div class="chip-row">
+              <span class="chip">指定金额</span>
+              <span class="chip">指定酒款兑换</span>
+              <span class="chip">员工专属码</span>
+              <span class="chip">2026-12-31 到期</span>
+            </div>
+            <div class="code-box">
+              <div>
+                <b>兑换码</b>
+                <span>企业可导出 CSV 批量分发，每位员工独立核销。</span>
+              </div>
+              <div class="code">WINE-86K2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="checkout.html">立即兑换</a>
+        <a class="btn secondary" href="gift-card.html">赠送同事</a>
+        <a class="btn orange" href="order-detail.html">查看记录</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>礼品卡能力</h2>
+        <span>企业采购场景专属</span>
+      </div>
+      <div class="feature-grid">
+        <div class="feature">
+          <h3>定额金额</h3>
+          <p>支持 200、300、500、1000 等面额，适配节礼与福利预算。</p>
+          <strong>灵活</strong>
+        </div>
+        <div class="feature">
+          <h3>指定酒款兑换</h3>
+          <p>可限制红酒、白酒、威士忌或指定品牌兑换，避免福利偏差。</p>
+          <strong>可控</strong>
+        </div>
+        <div class="feature">
+          <h3>员工专属码</h3>
+          <p>每位员工独立核销，支持补发、作废和二次分配。</p>
+          <strong>安全</strong>
+        </div>
+        <div class="feature">
+          <h3>有效期管理</h3>
+          <p>发放后可查看剩余天数，到期前自动提醒企业 HR。</p>
+          <strong>透明</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>企业采购说明</h2>
+        <span>支持批量下单</span>
+      </div>
+      <div class="desc">
+        <h3>适用人群</h3>
+        <p>适用于企业福利、周年庆、节礼、客户答谢和团队奖励，不是普通零售卡。</p>
+        <h3>使用说明</h3>
+        <ul>
+          <li>企业先下单购买礼品卡面额包。</li>
+          <li>后台生成批量兑换码或发放名单。</li>
+          <li>员工在兑换时可选择指定酒款或专区。</li>
+          <li>兑换后生成记录，便于财务与 HR 统计。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>兑换记录预览</h2>
+        <span>核销、赠送、退款</span>
+      </div>
+      <div class="log">
+        <div class="log-item">
+          <div class="log-ico"><svg viewBox="0 0 24 24">
+              <path d="M20 7 10 17l-5-5" />
+            </svg></div>
+          <div>
+            <h4>张** 已兑换法国赤霞珠双支装</h4>
+            <p>卡内余额剩余 88 元，核销时间 2026-04-20 14:22。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="log-ico"><svg viewBox="0 0 24 24">
+              <path d="M12 3v18M3 12h18" />
+            </svg></div>
+          <div>
+            <h4>李** 收到同事赠送礼品卡</h4>
+            <p>面额 300 元，可兑换指定品牌红酒。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="log-ico"><svg viewBox="0 0 24 24">
+              <path d="M4 6h16v12H4z" />
+              <path d="M8 10h8" />
+            </svg></div>
+          <div>
+            <h4>企业采购单号 WN-24019</h4>
+            <p>共发放 120 张，当前核销率 73%，支持导出报表。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h3>适合开发的交互点</h3>
+      <p>“立即兑换”可跳结算页，“赠送同事”可弹出发放名单，“查看记录”进入核销明细，便于直接对接企业后台。</p>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tabnav" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tabnav" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+      </svg>酒窖</a>
+    <a class="tabnav active" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+</body>
+
+</html>

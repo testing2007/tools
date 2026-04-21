@@ -1,0 +1,613 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>首页 - 酒类电商小程序原型（V2 年轻化）</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --card: #fffaf2;
+      --primary: #711328;
+      --primary-2: #9a1e3d;
+      --gold: #caa35d;
+      --text: #2f2a27;
+      --muted: #7c736b;
+      --shadow: 0 8px 24px rgba(113, 19, 40, 0.1);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 10% 0%, #fffaf2, #f3ebdf 46%, #efe5d8 100%);
+      color: var(--text);
+    }
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    }
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(113, 19, 40, 0.98) 0%, rgba(113, 19, 40, 0.86) 100%);
+      padding: 10px 12px 12px;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      box-shadow: 0 6px 18px rgba(113, 19, 40, 0.16);
+    }
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #f9efe2;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .top-row a { color: #f9efe2; text-decoration: none; }
+    .search-wrap {
+      display: grid;
+      grid-template-columns: 1fr 36px;
+      gap: 8px;
+    }
+    .search {
+      height: 36px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      padding: 0 14px;
+      font-size: 13px;
+      outline: none;
+    }
+    .search::placeholder { color: rgba(255,255,255,.78); }
+    .msg-btn {
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      font-size: 18px;
+    }
+    .content { padding: 12px; }
+    .section {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      margin-bottom: 12px;
+      transform: translateY(8px);
+      opacity: 0;
+      transition: 0.35s ease;
+    }
+    .section.show { transform: translateY(0); opacity: 1; }
+    .title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .title h3 {
+      margin: 0;
+      font-size: 15px;
+      color: #40131f;
+      letter-spacing: .2px;
+    }
+    .title a { color: var(--primary); text-decoration: none; font-size: 12px; font-weight: 600; }
+    .banner {
+      height: 148px;
+      border-radius: 14px;
+      padding: 14px;
+      color: #fff;
+      background: linear-gradient(130deg, #4b0f1f 0%, #7b1730 56%, #b33a57 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .banner::after {
+      content: "";
+      position: absolute;
+      right: -12px;
+      bottom: -22px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.28), transparent 66%);
+    }
+    .banner small { color: #f4dcb4; font-weight: 600; }
+    .banner h2 { margin: 8px 0 4px; font-size: 20px; }
+    .banner p { margin: 0; font-size: 12px; opacity: .95; }
+    .tag {
+      display: inline-block;
+      margin-top: 10px;
+      background: rgba(202,163,93,.22);
+      border: 1px solid rgba(202,163,93,.6);
+      color: #f6e7cc;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,.96);
+      border: 1px solid rgba(255,255,255,.22);
+      background: linear-gradient(135deg, rgba(255,77,109,.92), rgba(255,184,107,.82));
+      box-shadow: 0 10px 22px rgba(255,77,109,.18);
+      transform: rotate(-1deg);
+    }
+    .chip.alt {
+      background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.08));
+      border: 1px solid rgba(255,255,255,.26);
+      box-shadow: none;
+      transform: rotate(1deg);
+    }
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .cate {
+      text-decoration: none;
+      color: var(--text);
+      text-align: center;
+      font-size: 12px;
+    }
+    .cate i {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      background: linear-gradient(150deg, #fff 0%, #f7ecdf 100%);
+      border: 1px solid #f1e1ce;
+      font-style: normal;
+      font-size: 16px;
+      margin-bottom: 4px;
+      transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    .cate:active i { transform: translateY(1px) scale(.98); filter: saturate(1.06); }
+    .story {
+      background: linear-gradient(120deg, #fff7ea 0%, #f8ebd6 100%);
+      border: 1px solid #ecd8b8;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .story p { margin: 6px 0 0; color: #665d54; font-size: 12px; line-height: 1.55; }
+    .list { display: grid; gap: 8px; }
+    .row-card {
+      display: flex;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      border: 1px solid #f1e6d7;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .thumb {
+      width: 84px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f9e9d0, #e7c08d);
+      flex-shrink: 0;
+    }
+    .map {
+      height: 76px;
+      border-radius: 10px;
+      background:
+        radial-gradient(circle at 20% 38%, rgba(113,19,40,.26) 0 14px, transparent 15px),
+        radial-gradient(circle at 60% 60%, rgba(113,19,40,.2) 0 12px, transparent 13px),
+        linear-gradient(135deg, #f7ecd9, #efe2cc);
+      border: 1px dashed #d8c5a5;
+    }
+    .meta h4 { margin: 0 0 4px; font-size: 14px; }
+    .meta p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .chips { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 2px 7px;
+      background: #f8eee3;
+      color: #7c4f28;
+      border: 1px solid #ebd8bd;
+    }
+    .taste {
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #efdfca;
+    }
+    .bar { height: 6px; border-radius: 999px; background: #f1e7d8; margin: 6px 0 8px; overflow: hidden; }
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #8b1732, #cb4c6f);
+      width: 0;
+      transition: width .8s ease;
+    }
+    .window {
+      border-radius: 12px;
+      padding: 10px;
+      background: linear-gradient(130deg, #fffaf3, #f4e6d1);
+      border: 1px solid #ead8ba;
+      font-size: 12px;
+      color: #5c534b;
+      line-height: 1.5;
+    }
+    .entry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .entry {
+      text-decoration: none;
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 8px 18px rgba(113, 19, 40, 0.16);
+    }
+    .entry b { font-size: 13px; }
+    .entry small { opacity: .9; font-size: 11px; }
+    .e1 { background: linear-gradient(135deg, #711328, #a22947); }
+    .e2 { background: linear-gradient(135deg, #4a3421, #8f6240); }
+    .e3 { background: linear-gradient(135deg, #2f2b5f, #4e4896); }
+    .e4 { background: linear-gradient(135deg, #0f4a4b, #177473); }
+    .e5 { background: linear-gradient(135deg, #5f2b2b, #9a4040); }
+    .e6 { background: linear-gradient(135deg, #6a4a18, #a77621); }
+    .sale {
+      border-radius: 12px;
+      border: 1px solid #f1ddbe;
+      padding: 10px;
+      background: #fff;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .price { color: #a41f40; font-weight: 700; }
+    .old { color: #9a9188; text-decoration: line-through; margin-left: 6px; font-size: 12px; }
+    .count {
+      font-size: 12px;
+      color: #fff;
+      background: #521322;
+      padding: 4px 8px;
+      border-radius: 999px;
+      min-width: 88px;
+      text-align: center;
+    }
+    .nav {
+      position: fixed;
+      width: 100%;
+      max-width: 375px;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      background: rgba(255, 250, 242, 0.98);
+      border-top: 1px solid #eadfcd;
+      box-shadow: 0 -6px 18px rgba(85, 53, 24, 0.08);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #6f665f;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .nav a.active { color: var(--primary); font-weight: 700; }
+    .safe { height: calc(12px + env(safe-area-inset-bottom)); }
+  
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header class="top">
+      <div class="top-row">
+        <span>上海 · 20分钟达</span>
+        <a href="member-center.html">会员中心</a>
+      </div>
+      <div class="search-wrap">
+        <input class="search" placeholder="搜索酒款/品牌/产区（如：拉菲 2018）" />
+        <button class="msg-btn" aria-label="消息">✉</button>
+      </div>
+    </header>
+
+    <main class="content" id="app"></main>
+
+    <nav class="nav">
+      <a class="active" href="home.html">首页</a>
+      <a href="category.html">分类</a>
+      <a href="group-buy.html">活动</a>
+      <a href="digital-cellar.html">酒窖</a>
+      <a href="member-center.html">我的</a>
+    </nav>
+    <div class="safe"></div>
+  </div>
+
+  <script>
+    const mock = {
+      categories: [
+        { name: '红酒', icon: '🍷', href: 'category.html' },
+        { name: '白酒', icon: '🥃', href: 'category.html' },
+        { name: '威士忌', icon: '🥂', href: 'category.html' },
+        { name: '香槟', icon: '🍾', href: 'category.html' },
+        { name: '精酿', icon: '🍺', href: 'category.html' }
+      ],
+      regions: [
+        { name: '法国波尔多', note: '赤霞珠主导，单宁细密，陈年潜力高' },
+        { name: '西班牙里奥哈', note: '橡木桶香气突出，搭配烤肉风味佳' }
+      ],
+      pairings: [
+        { name: '奔富BIN 389 2021', meal: '黑椒牛排 / 炭烤羊排', taste: '黑莓、香草、丝滑单宁' },
+        { name: '路易王妃香槟 NV', meal: '海鲜冷盘 / 黄油焗扇贝', taste: '柑橘、烘烤坚果、细腻气泡' }
+      ],
+      tasteProfile: [
+        { label: '酸度', value: 62 },
+        { label: '甜度', value: 18 },
+        { label: '单宁', value: 74 },
+        { label: '酒体', value: 68 },
+        { label: '香气浓郁度', value: 80 }
+      ],
+      windows: [
+        '本周适饮：玛歌副牌 2019（醒酒 25 分钟，16-18℃）',
+        '周末聚餐：山崎12年（净饮或少量冰块）'
+      ],
+      flash: { name: '獭祭 45 纯米大吟酿 720ml', price: 199, old: 289, endAt: Date.now() + 1000 * 60 * 60 * 7 + 1000 * 60 * 24 }
+    };
+
+    const app = document.getElementById('app');
+
+    const render = () => {
+      app.innerHTML = `
+        <section class="section show">
+          <div class="banner">
+            <small>本周主推 · 酒类优先</small>
+            <h2>名庄酒专场</h2>
+            <p>精选 64 款可追溯酒款，支持数字酒窖入库</p>
+            <div class="chips">
+              <span class="chip">今晚微醺</span>
+              <span class="chip alt">品牌溯源保障</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>酒类分类入口</h3><a href="category.html">全部分类</a></div>
+          <div class="grid-5">
+            ${mock.categories.map(i => `<a class="cate" href="${i.href}"><i>${i.icon}</i>${i.name}</a>`).join('')}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>品牌故事</h3><a href="product-detail.html">查看酒款</a></div>
+          <div class="story">
+            <strong>Chateau Montclair 蒙克莱尔酒庄</strong>
+            <p>始于 1863 年，位于法国梅多克左岸。坚持砾石土壤微地块分区酿造，近十年连续推进可持续葡萄园计划。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>热门产区地图</h3><a href="category.html">产区酒款</a></div>
+          <div class="list">
+            ${mock.regions.map(r => `
+              <a class="row-card" href="category.html">
+                <div class="thumb map"></div>
+                <div class="meta">
+                  <h4>${r.name}</h4>
+                  <p>${r.note}</p>
+                  <div class="chips"><span class="chip">地理标识</span><span class="chip">年份可查</span></div>
+                </div>
+              </a>
+            `).join('')}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>搭餐推荐</h3><a href="ai-sommelier.html">问 AI 侍酒师</a></div>
+          <div class="list">
+            ${mock.pairings.map(p => `
+              <a class="row-card" href="product-detail.html">
+                <div class="thumb"></div>
+                <div class="meta">
+                  <h4>${p.name}</h4>
+                  <p>搭餐：${p.meal}</p>
+                  <p style="margin-top:4px;">风味：${p.taste}</p>
+                </div>
+              </a>
+            `).join('')}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>口感档案推荐</h3><a href="product-detail.html">查看详情</a></div>
+          <div class="taste">
+            ${mock.tasteProfile.map(t => `
+              <div style="font-size:12px;color:#5f5750;">${t.label} ${t.value}</div>
+              <div class="bar"><div class="fill" data-w="${t.value}"></div></div>
+            `).join('')}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>本周适饮推荐</h3><a href="product-detail.html">适饮窗口</a></div>
+          <div class="window">${mock.windows.map(w => `<div>• ${w}</div>`).join('')}</div>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>秒杀/限时折扣</h3><a href="flash-sale.html">更多秒杀</a></div>
+          <a class="sale" href="flash-sale.html">
+            <div>
+              <div style="font-size:13px;">${mock.flash.name}</div>
+              <div style="margin-top:6px;"><span class="price">￥${mock.flash.price}</span><span class="old">￥${mock.flash.old}</span></div>
+            </div>
+            <div class="count" id="countdown">倒计时 --:--:--</div>
+          </a>
+        </section>
+
+        <section class="section">
+          <div class="title"><h3>特色入口</h3><a href="index.html">原型导航</a></div>
+          <div class="entry-grid">
+            <a class="entry e1" href="blind-box.html"><b>福袋盲盒</b><small>低价抢未知酒款</small></a>
+            <a class="entry e2" href="digital-cellar.html"><b>数字酒窖</b><small>入库、提酒、转赠</small></a>
+            <a class="entry e3" href="ai-sommelier.html"><b>AI侍酒师</b><small>即时搭餐与醒酒建议</small></a>
+            <a class="entry e4" href="nfc-redpacket.html"><b>NFC互动</b><small>碰一碰瓜分红包</small></a>
+            <a class="entry e5" href="defect-wine.html"><b>瑕疵酒专区</b><small>自饮高性价比专场</small></a>
+            <a class="entry e6" href="ar-experience.html"><b>AR体验</b><small>扫酒标看产地故事</small></a>
+          </div>
+        </section>
+      `;
+
+      const fills = app.querySelectorAll('.fill');
+      requestAnimationFrame(() => {
+        fills.forEach(el => { el.style.width = (el.dataset.w || 0) + '%'; });
+      });
+    };
+
+    const setupReveal = () => {
+      const nodes = document.querySelectorAll('.section:not(.show)');
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('show');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      nodes.forEach(n => io.observe(n));
+    };
+
+    const setupCountdown = () => {
+      const target = mock.flash.endAt;
+      const el = document.getElementById('countdown');
+      if (!el) return;
+      const tick = () => {
+        const diff = Math.max(0, target - Date.now());
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        el.textContent = diff ? `倒计时 ${h}:${m}:${s}` : '活动已结束';
+      };
+      tick();
+      setInterval(tick, 1000);
+    };
+
+    render();
+    setupReveal();
+    setupCountdown();
+  </script>
+</body>
+</html>
+
+

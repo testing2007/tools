@@ -1,0 +1,675 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>数字酒窖</title>
+  <style>
+    :root {
+      --bg: #07130f;
+      --panel: #0f1f18;
+      --panel-2: #12261e;
+      --ink: #f3f7f4;
+      --muted: #a9b9b2;
+      --line: rgba(120, 186, 160, .16);
+      --shadow: 0 18px 36px rgba(0, 0, 0, .28);
+      --primary: #10b981;
+      --accent: #f59e0b;
+      --safe: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background-color: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      background:
+        radial-gradient(900px 260px at 0% 0%, rgba(16, 185, 129, .18), transparent 55%),
+        radial-gradient(760px 220px at 100% 0%, rgba(245, 158, 11, .12), transparent 52%),
+        linear-gradient(180deg, #07130f 0%, #0a1712 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(7, 19, 15, .9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(120, 186, 160, .12)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif;
+      color: #f2fff6
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(120, 186, 160, .14);
+      background: rgba(255, 255, 255, .06);
+      display: grid;
+      place-items: center;
+      color: #f2fff6;
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, .16)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(5, 46, 37, .96), rgba(8, 83, 60, .84) 54%, rgba(16, 185, 129, .66)),
+        url("https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #f2fff7
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .10);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #86efac;
+      box-shadow: 0 0 0 4px rgba(134, 239, 172, .14)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch;
+      color: rgba(242, 255, 247, .92)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .stat {
+      padding: 11px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .08);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    .stat small {
+      display: block;
+      font-size: 10px;
+      color: rgba(242, 255, 247, .8)
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 16px/1 "Rubik", sans-serif;
+      color: #fff
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(18, 38, 30, .88);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif;
+      color: #effaf5
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 0 12px 12px
+    }
+
+    .tab {
+      height: 38px;
+      border-radius: 13px;
+      border: 1px solid rgba(120, 186, 160, .14);
+      background: rgba(255, 255, 255, .06);
+      color: #d4e5dd;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: #052e24;
+      border-color: transparent
+    }
+
+    .overview {
+      padding: 0 12px 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px
+    }
+
+    .ov {
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--panel-2);
+      border: 1px solid rgba(120, 186, 160, .12)
+    }
+
+    .ov small {
+      display: block;
+      font-size: 10px;
+      color: #a4b7af
+    }
+
+    .ov strong {
+      display: block;
+      margin-top: 6px;
+      font: 800 20px/1 "Rubik", sans-serif;
+      color: #ecfff6
+    }
+
+    .ov p {
+      margin: 8px 0 0;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted)
+    }
+
+    .wine-list {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .wine {
+      display: none;
+      grid-template-columns: 96px 1fr;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #11251d, #0c1b16);
+      border: 1px solid rgba(120, 186, 160, .12);
+      text-decoration: none;
+      color: inherit
+    }
+
+    .wine.active {
+      display: grid
+    }
+
+    .wine img {
+      width: 96px;
+      height: 118px;
+      border-radius: 14px;
+      object-fit: cover;
+      background: linear-gradient(145deg, #173328, #0e2019);
+      border: 1px solid rgba(120, 186, 160, .18);
+    }
+
+    .wine h3 {
+      margin: 2px 0 4px;
+      font-size: 14px;
+      color: #f4fff8
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #9dbaaf
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 7px 0
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(120, 186, 160, .12);
+      color: #dff4ea
+    }
+
+    .stock {
+      margin-top: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      overflow: hidden
+    }
+
+    .fill {
+      height: 100%;
+      width: 62%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #34d399, #a3e635)
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px
+    }
+
+    .btn {
+      min-width: 0;
+      height: 36px;
+      border-radius: 12px;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 0 6px;
+      text-align: center;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: #052e24
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(120, 186, 160, .12);
+      color: #e7fff4
+    }
+
+    .log {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .log-item {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border-radius: 16px;
+      background: var(--panel-2);
+      border: 1px solid rgba(120, 186, 160, .12)
+    }
+
+    .dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: #052e24;
+      font-size: 11px;
+      font-weight: 800
+    }
+
+    .log-item h5 {
+      margin: 0 0 2px;
+      font-size: 12px;
+      color: #f0fff7
+    }
+
+    .log-item p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--muted)
+    }
+
+    .footer-note {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(18, 38, 30, .88);
+      border: 1px solid rgba(120, 186, 160, .08)
+    }
+
+    .footer-note h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      color: #f0fff7
+    }
+
+    .footer-note p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(7, 19, 15, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(120, 186, 160, .12);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: #9ab8ae;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #34d399
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="member-center.html" aria-label="返回会员中心"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">数字酒窖</div>
+        <a class="iconbtn" href="order-detail.html" aria-label="出库记录"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M4 7h16v10H4z" />
+            <path d="M8 11h8" />
+            <path d="M8 15h4" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">数字藏酒资产</span>
+        <h1 class="hero-title">查看你的每一瓶酒，像管理收藏品一样管理它</h1>
+        <p class="hero-sub">包含总数、估值、可提酒、在仓数量和运输中数量，适合数字藏酒、仓储管理和转赠记录。</p>
+        <div class="stats">
+          <div class="stat"><small>总藏酒</small><strong>48</strong></div>
+          <div class="stat"><small>总估值</small><strong>¥86,400</strong></div>
+          <div class="stat"><small>可提酒</small><strong>12</strong></div>
+          <div class="stat"><small>运输中</small><strong>3</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>藏酒列表</h2>
+        <span>状态与动作</span>
+      </div>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-filter="all">全部</button>
+        <button class="tab" data-filter="in">在仓</button>
+        <button class="tab" data-filter="out">可提</button>
+      </div>
+      <div class="wine-list">
+        <a class="wine active" data-state="in" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80"
+            alt="波尔多藏酒" loading="lazy" />
+          <div>
+            <div class="meta">编号 WN-2020-001 · 仓位 A-06</div>
+            <h3>左岸赤霞珠 2019</h3>
+            <div class="tag-row"><span class="tag">在仓</span><span class="tag">法国波尔多</span><span class="tag">批次可查</span>
+            </div>
+            <div class="stock">
+              <div class="fill" style="width:72%"></div>
+            </div>
+            <div class="action-row"><a class="btn primary" href="digital-cellar.html">提酒申请</a><a class="btn secondary"
+                href="digital-cellar.html">转赠好友</a></div>
+          </div>
+        </a>
+        <a class="wine active" data-state="out" href="order-detail.html">
+          <img src="https://images.unsplash.com/photo-1528823872057-9c018a7f2955?auto=format&fit=crop&w=900&q=80"
+            alt="香槟藏酒" loading="lazy" />
+          <div>
+            <div class="meta">编号 WN-2021-014 · 仓位 B-02</div>
+            <h3>珍藏年份香槟</h3>
+            <div class="tag-row"><span class="tag">可提酒</span><span class="tag">节庆礼赠</span><span class="tag">已预约</span>
+            </div>
+            <div class="stock">
+              <div class="fill" style="width:44%"></div>
+            </div>
+            <div class="action-row"><a class="btn primary" href="checkout.html">立即提酒</a><a class="btn secondary"
+                href="digital-cellar.html">查看仓储</a></div>
+          </div>
+        </a>
+        <a class="wine active" data-state="in" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=900&q=80"
+            alt="威士忌藏酒" loading="lazy" />
+          <div>
+            <div class="meta">编号 WN-2018-007 · 仓位 C-11</div>
+            <h3>单一麦芽威士忌</h3>
+            <div class="tag-row"><span class="tag">熟成中</span><span class="tag">苏格兰高地</span><span class="tag">估值上涨</span>
+            </div>
+            <div class="stock">
+              <div class="fill" style="width:81%"></div>
+            </div>
+            <div class="action-row"><a class="btn primary" href="digital-cellar.html">查看详情</a><a class="btn secondary"
+                href="gift-card.html">转赠</a></div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>出库记录</h2>
+        <span>可追踪</span>
+      </div>
+      <div class="log">
+        <div class="log-item">
+          <div class="dot">1</div>
+          <div>
+            <h5>2026-04-20 出库申请</h5>
+            <p>左岸赤霞珠 2019 已提交提酒申请，等待仓库确认。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="dot">2</div>
+          <div>
+            <h5>2026-04-18 成功出库</h5>
+            <p>珍藏年份香槟已出库并进入配送中。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="dot">3</div>
+          <div>
+            <h5>2026-04-12 转赠记录</h5>
+            <p>单一麦芽威士忌已转赠给好友，记录自动留档。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>消费记录</h2>
+        <span>资产生命周期</span>
+      </div>
+      <div class="log">
+        <div class="log-item">
+          <div class="dot">A</div>
+          <div>
+            <h5>仓储费</h5>
+            <p>按月扣除仓储服务费，支持会员抵扣。</p>
+          </div>
+        </div>
+        <div class="log-item">
+          <div class="dot">B</div>
+          <div>
+            <h5>藏酒升级</h5>
+            <p>高等级会员可获得更优先的提酒和续仓权益。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h3>页面定位</h3>
+      <p>这个页要像“收藏资产管理台”，开发时建议把仓位、编号、状态和动作做成可配置字段，方便接数字酒窖后端。</p>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <script>
+    const tabs = [...document.querySelectorAll('.tab')];
+    const wines = [...document.querySelectorAll('.wine')];
+    const coverFallback = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='420' viewBox='0 0 320 420'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23173328'/><stop offset='1' stop-color='%230e2019'/></linearGradient></defs><rect width='320' height='420' fill='url(%23g)'/><circle cx='160' cy='140' r='46' fill='%2334d399' fill-opacity='.35'/><path d='M130 240h60v96h-60z' rx='10' fill='%23b7e8d4' fill-opacity='.22'/><text x='160' y='370' text-anchor='middle' fill='%23dff4ea' fill-opacity='.75' font-size='18' font-family='Arial, sans-serif'>Cellar Cover</text></svg>";
+
+    document.querySelectorAll('.wine img').forEach(img => {
+      img.addEventListener('error', () => {
+        img.src = coverFallback;
+      });
+    });
+
+    function render(filter) {
+      wines.forEach(wine => {
+        const show = filter === 'all' || wine.dataset.state === filter;
+        wine.classList.toggle('active', show);
+      });
+    }
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      render(tab.dataset.filter);
+    }));
+  </script>
+</body>
+
+</html>

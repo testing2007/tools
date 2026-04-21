@@ -1,0 +1,857 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>限时折扣</title>
+  <style>
+    :root {
+      --bg: #f6f2ed;
+      --panel: rgba(255, 250, 244, 0.96);
+      --panel-strong: #fff8ef;
+      --ink: #17110f;
+      --muted: #6d6058;
+      --line: rgba(163, 86, 36, 0.18);
+      --wine: #651b16;
+      --wine-2: #a33625;
+      --orange: #f97316;
+      --gold: #d39a36;
+      --shadow: 0 14px 34px rgba(38, 24, 18, 0.14);
+      --safe-bottom: calc(84px + env(safe-area-inset-bottom));
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      background: #666;
+      /* background:
+        radial-gradient(75% 42% at 0% 0%, rgba(249, 115, 22, 0.16), transparent 65%),
+        radial-gradient(60% 40% at 100% 8%, rgba(163, 54, 37, 0.18), transparent 70%),
+        linear-gradient(180deg, #fbf7f1 0%, #f7f0e8 54%, #f4ece3 100%); */
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100dvh;
+      padding-bottom: var(--safe-bottom);
+      background:
+        radial-gradient(120% 50% at 50% 0%, rgba(249, 115, 22, 0.08), transparent 48%),
+        linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(255, 248, 240, 0.98));
+      overflow-x: hidden;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px 12px;
+      border-bottom: 1px solid rgba(255, 210, 165, 0.24);
+      background: linear-gradient(180deg, rgba(24, 18, 16, 0.96), rgba(24, 18, 16, 0.9));
+      backdrop-filter: blur(10px);
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 218, 180, 0.32);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f7e2bf;
+      text-decoration: none;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .title {
+      text-align: center;
+      color: #fff1d8;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .hero {
+      margin: 10px 10px 0;
+      border-radius: 20px;
+      padding: 14px;
+      color: #fff6e7;
+      position: relative;
+      overflow: hidden;
+      min-height: 198px;
+      display: grid;
+      gap: 12px;
+      align-content: end;
+      background:
+        linear-gradient(145deg, rgba(15, 11, 10, 0.84), rgba(101, 27, 22, 0.72)),
+        url("https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80") center/cover;
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      right: -18px;
+      top: -18px;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 202, 130, 0.28), rgba(255, 202, 130, 0));
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      left: -16px;
+      bottom: -20px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.24), rgba(249, 115, 22, 0));
+      pointer-events: none;
+    }
+
+    .hero-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 224, 192, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .flash-clock {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .flash-clock h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .flash-clock p {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: rgba(255, 244, 225, 0.9);
+      line-height: 1.5;
+    }
+
+    .countdown {
+      min-width: 122px;
+      padding: 10px 10px 9px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.11);
+      border: 1px solid rgba(255, 224, 192, 0.22);
+      backdrop-filter: blur(8px);
+      text-align: center;
+    }
+
+    .countdown small {
+      display: block;
+      font-size: 11px;
+      color: rgba(255, 237, 214, 0.82);
+      margin-bottom: 4px;
+    }
+
+    .time {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff6e7;
+      letter-spacing: 0.06em;
+    }
+
+    .tabs {
+      margin: 12px 10px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: rgba(255, 251, 247, 0.7);
+      border: 1px solid rgba(163, 86, 36, 0.12);
+      border-radius: 16px;
+      padding: 6px;
+      box-shadow: 0 10px 18px rgba(39, 24, 17, 0.06);
+    }
+
+    .tab-btn {
+      height: 38px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: #65564f;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s var(--ease), background 0.2s var(--ease), color 0.2s var(--ease);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #651b16, #a33625);
+      color: #fff7ea;
+      box-shadow: 0 8px 16px rgba(101, 27, 22, 0.22);
+    }
+
+    .panel {
+      margin: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(163, 86, 36, 0.16);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 12px 12px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid rgba(163, 86, 36, 0.08);
+      background: linear-gradient(180deg, rgba(255, 245, 231, 0.9), rgba(255, 251, 247, 0.96));
+    }
+
+    .panel-head b {
+      font-size: 15px;
+    }
+
+    .panel-head span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .session-note {
+      padding: 10px 12px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .session-pill {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      border: 1px solid rgba(163, 86, 36, 0.18);
+      color: #7a4b14;
+      background: #fff5df;
+    }
+
+    .progress {
+      margin-top: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #efe3d5;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #8f2d21, #f97316);
+      width: var(--value, 55%);
+      transition: width 0.35s var(--ease);
+    }
+
+    .list {
+      padding: 10px 12px 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .product {
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      gap: 10px;
+      border: 1px solid rgba(163, 86, 36, 0.14);
+      border-radius: 16px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 8px 18px rgba(41, 24, 17, 0.06);
+    }
+
+    .art {
+      position: relative;
+      min-height: 170px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .art::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.08));
+    }
+
+    .flag {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 1;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #fff6e7;
+      background: rgba(101, 27, 22, 0.9);
+      border: 1px solid rgba(255, 224, 192, 0.28);
+    }
+
+    .detail {
+      padding: 10px 10px 10px 0;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .detail h3 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sale {
+      color: #b11f2a;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .origin {
+      text-decoration: line-through;
+      color: #96887e;
+      font-size: 11px;
+    }
+
+    .stock-row {
+      display: grid;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .stock-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stock-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #ece1d6;
+      overflow: hidden;
+    }
+
+    .stock-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #8f2d21, #f97316);
+      width: var(--stock, 50%);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .buy {
+      height: 34px;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #651b16, #a33625);
+      color: #fff6e7;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 14px rgba(101, 27, 22, 0.2);
+    }
+
+    .timer-btn {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(163, 86, 36, 0.2);
+      background: #fff;
+      color: #5f524b;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .slots {
+      margin: 0 10px 10px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .slot {
+      border: 1px solid rgba(163, 86, 36, 0.14);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.78);
+      padding: 10px 8px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(41, 24, 17, 0.05);
+    }
+
+    .slot b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .slot small {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .banner-strip {
+      margin: 0 10px 10px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, rgba(101, 27, 22, 0.96), rgba(249, 115, 22, 0.88));
+      color: #fff7ea;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 10px 20px rgba(101, 27, 22, 0.22);
+    }
+
+    .banner-strip b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .banner-strip small {
+      font-size: 11px;
+      color: rgba(255, 244, 226, 0.9);
+      line-height: 1.35;
+    }
+
+    .nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(24, 18, 16, 0.96);
+      border-top: 1px solid rgba(250, 226, 184, 0.24);
+      z-index: 30;
+    }
+
+    .tab {
+      text-decoration: none;
+      color: rgba(255, 242, 218, 0.76);
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+    }
+
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+    }
+
+    .tab.active {
+      color: #f6d69f;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .tab-btn,
+      .progress span,
+      .stock-bar span {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="icon-btn" href="home.html" aria-label="返回首页">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </a>
+      <div class="title">限时折扣</div>
+      <a class="icon-btn" href="member-center.html" aria-label="会员中心">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+          <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+      </a>
+    </header>
+
+    <section class="hero">
+      <div class="hero-top">
+        <span class="badge">今晚 20:00 开抢</span>
+        <span class="badge">库存实时刷新</span>
+      </div>
+      <div class="flash-clock">
+        <div>
+          <h1>酒类秒杀专场</h1>
+          <p>把握短时低价窗口，酒款、产区、年份都已提前标注。</p>
+        </div>
+        <div class="countdown">
+          <small>距离下场开始</small>
+          <div class="time" id="countdown">00:18:42</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs" aria-label="场次切换">
+      <button class="tab-btn active" data-tab="today">今日场</button>
+      <button class="tab-btn" data-tab="night">晚8点场</button>
+      <button class="tab-btn" data-tab="tomorrow">明日预告</button>
+    </section>
+
+    <section class="banner-strip">
+      <div>
+        <b id="slotTitle">今日场 · 现货秒杀</b>
+        <small id="slotDesc">适合临时聚餐与自饮补货，库存少，手慢无。</small>
+      </div>
+      <div style="text-align:right">
+        <b id="slotRate">热度 98%</b>
+        <small id="slotBadge">已抢 6,482 人</small>
+      </div>
+    </section>
+
+    <section class="slots">
+      <div class="slot">
+        <b>21 秒</b>
+        <small>快速开售</small>
+      </div>
+      <div class="slot">
+        <b>3% 剩余</b>
+        <small>库存紧张</small>
+      </div>
+      <div class="slot">
+        <b>会员优先</b>
+        <small>先到先得</small>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <b>正在秒杀的酒款</b>
+        <span id="panelCount">今日场 3 款</span>
+      </div>
+      <div class="session-note">
+        <span class="session-pill">酒类专场</span>
+        <span class="session-pill">产区 / 年份 / 价格清晰可见</span>
+      </div>
+      <div class="list" id="productList"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <b>补充推荐</b>
+        <span>适合搭餐与囤货</span>
+      </div>
+      <div class="list" style="padding-top: 0;">
+        <div class="product" style="grid-template-columns: 1fr;">
+          <div class="detail" style="padding: 12px;">
+            <h3>拼团补充：同酒款 2 瓶起更划算</h3>
+            <div class="meta">如果秒杀页没抢到，可直接跳到拼团页继续拿更低到手价。</div>
+            <div class="actions" style="grid-template-columns: 1fr 1fr; margin-top: 8px;">
+              <a class="buy" style="display:grid;place-items:center;text-decoration:none;" href="group-buy.html">去拼团</a>
+              <a class="timer-btn" style="display:grid;place-items:center;text-decoration:none;"
+                href="blind-box.html">看盲盒</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="nav" aria-label="底部导航">
+      <a class="tab" href="home.html"><svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>首页</a>
+      <a class="tab" href="category.html"><svg viewBox="0 0 24 24">
+          <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+        </svg>分类</a>
+      <a class="tab active" href="flash-sale.html"><svg viewBox="0 0 24 24">
+          <path d="M13 2L4 14h6l-1 8 9-12h-6z" />
+        </svg>活动</a>
+      <a class="tab" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+          <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+        </svg>酒窖</a>
+      <a class="tab" href="member-center.html"><svg viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+        </svg>我的</a>
+    </nav>
+  </main>
+
+  <script>
+    const tabs = {
+      today: {
+        title: '今日场 · 现货秒杀',
+        desc: '适合临时聚餐和自饮补货，库存少，手慢无。',
+        rate: '热度 98%',
+        badge: '已抢 6,482 人',
+        count: '今日场 3 款',
+        items: [
+          {
+            title: 'Chateau Lumiere Reserve 2018',
+            brand: 'Lumiere Cellars',
+            region: '波尔多左岸',
+            year: '2018',
+            sale: '¥429',
+            origin: '¥568',
+            stock: 72,
+            image: 'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=500&q=80',
+            flag: '赤霞珠主导'
+          },
+          {
+            title: 'Maison Etoile Brut NV',
+            brand: 'Maison Etoile',
+            region: '香槟区',
+            year: 'NV',
+            sale: '¥299',
+            origin: '¥399',
+            stock: 48,
+            image: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?auto=format&fit=crop&w=500&q=80',
+            flag: '庆祝场景'
+          },
+          {
+            title: 'Highmoor Single Malt 12Y',
+            brand: 'Highmoor',
+            region: '斯佩塞',
+            year: '12年陈',
+            sale: '¥459',
+            origin: '¥599',
+            stock: 33,
+            image: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&w=500&q=80',
+            flag: '限量陈年'
+          }
+        ]
+      },
+      night: {
+        title: '晚 8 点场 · 爆款补货',
+        desc: '适合下班后集中抢购，今晚主打高性价比红酒与起泡酒。',
+        rate: '热度 99%',
+        badge: '即将开抢',
+        count: '晚 8 点场 4 款',
+        items: [
+          {
+            title: 'Napa Ridge Cabernet 2020',
+            brand: 'Oak & Barrel',
+            region: '纳帕谷',
+            year: '2020',
+            sale: '¥399',
+            origin: '¥529',
+            stock: 61,
+            image: 'https://images.unsplash.com/photo-1569919659476-f0852f6834b7?auto=format&fit=crop&w=500&q=80',
+            flag: '主推爆款'
+          },
+          {
+            title: 'Burgundy Pinot Noir 2019',
+            brand: 'Maison Vigne',
+            region: '勃艮第',
+            year: '2019',
+            sale: '¥538',
+            origin: '¥699',
+            stock: 27,
+            image: 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=500&q=80',
+            flag: '风土表达'
+          },
+          {
+            title: 'Deep Harbor IPA 2024',
+            brand: 'Deep Harbor',
+            region: '青岛',
+            year: '2024',
+            sale: '¥99',
+            origin: '¥139',
+            stock: 82,
+            image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=500&q=80',
+            flag: '轻松补货'
+          }
+        ]
+      },
+      tomorrow: {
+        title: '明日预告 · 低价清单',
+        desc: '提前收藏，明天整点提醒开抢，适合提前规划宴请或送礼。',
+        rate: '热度 91%',
+        badge: '可先收藏',
+        count: '明日预告 3 款',
+        items: [
+          {
+            title: '雪川纯米吟酿',
+            brand: '雪川酒造',
+            region: '新潟',
+            year: '2023',
+            sale: '¥268',
+            origin: '¥338',
+            stock: 55,
+            image: 'https://images.unsplash.com/photo-1551024739-78e7f3f3f315?auto=format&fit=crop&w=500&q=80',
+            flag: '餐酒友好'
+          },
+          {
+            title: '臻选双支礼盒',
+            brand: '酒屿礼选',
+            region: '进口混搭',
+            year: '礼盒款',
+            sale: '¥699',
+            origin: '¥899',
+            stock: 19,
+            image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=500&q=80',
+            flag: '礼赠预告'
+          },
+          {
+            title: '左岸干红（标签微瑕）',
+            brand: 'Lumiere Cellars',
+            region: '波尔多左岸',
+            year: '2019',
+            sale: '¥189',
+            origin: '¥269',
+            stock: 26,
+            image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=500&q=80',
+            flag: '瑕疵特惠'
+          }
+        ]
+      }
+    };
+
+    const list = document.getElementById('productList');
+    const title = document.getElementById('slotTitle');
+    const desc = document.getElementById('slotDesc');
+    const rate = document.getElementById('slotRate');
+    const badge = document.getElementById('slotBadge');
+    const count = document.getElementById('panelCount');
+    const countdown = document.getElementById('countdown');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+
+    function renderTab(key) {
+      const data = tabs[key];
+      title.textContent = data.title;
+      desc.textContent = data.desc;
+      rate.textContent = data.rate;
+      badge.textContent = data.badge;
+      count.textContent = data.count;
+
+      list.innerHTML = data.items.map((item) => {
+        const stockWidth = `${item.stock}%`;
+        return `
+          <article class="product">
+            <div class="art" style="background-image:url('${item.image}')">
+              <span class="flag">${item.flag}</span>
+            </div>
+            <div class="detail">
+              <h3>${item.title}</h3>
+              <div class="meta">${item.brand} · ${item.region} · ${item.year}</div>
+              <div class="price-row">
+                <span class="sale">${item.sale}</span>
+                <span class="origin">${item.origin}</span>
+              </div>
+              <div class="stock-row">
+                <div class="stock-meta">
+                  <span>库存进度</span>
+                  <span>${item.stock}%</span>
+                </div>
+                <div class="stock-bar" style="--stock:${stockWidth}"><span></span></div>
+              </div>
+              <div class="actions">
+                <button class="buy">秒杀抢购</button>
+                <button class="timer-btn">看详情</button>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach((node) => node.classList.remove('active'));
+        btn.classList.add('active');
+        renderTab(btn.dataset.tab);
+      });
+    });
+
+    let remain = 18 * 60 + 42;
+    const tick = () => {
+      const h = String(Math.floor(remain / 3600)).padStart(2, '0');
+      const m = String(Math.floor((remain % 3600) / 60)).padStart(2, '0');
+      const s = String(remain % 60).padStart(2, '0');
+      countdown.textContent = `${h}:${m}:${s}`;
+      remain = Math.max(0, remain - 1);
+    };
+
+    renderTab('today');
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+
+</html>

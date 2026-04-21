@@ -1,0 +1,461 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AR体验</title>
+  <style>
+    :root {
+      --bg: #f3ede4;
+      --card: #fffaf2;
+      --primary: #711328;
+      --primary-2: #9a1e3d;
+      --gold: #caa35d;
+      --text: #2f2a27;
+      --muted: #7c736b;
+      --tech: #1e4653;
+      --tech-2: #26708a;
+      --shadow: 0 8px 24px rgba(113, 19, 40, 0.1);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 12% 0%, #fff9ef, #f3ebdf 46%, #ecdfce 100%);
+      color: var(--text);
+    }
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+      position: relative;
+    }
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px 12px;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      background: linear-gradient(140deg, #3e1120 0%, #711328 56%, #1f5f73 100%);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(44, 17, 28, 0.24);
+    }
+    .top-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .back, .right {
+      text-decoration: none;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .4px;
+    }
+    .subtitle {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #f4e8d8;
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .content { padding: 12px; display: grid; gap: 12px; }
+    .scan-card {
+      background: linear-gradient(160deg, #0e2c39 0%, #1b5e74 100%);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 28px rgba(17, 54, 67, 0.35);
+      color: #e9f5fa;
+      padding: 12px;
+    }
+    .scan-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .scan-title b { font-size: 15px; }
+    .badge {
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.26);
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 2px 8px;
+    }
+    .scanner {
+      border-radius: 12px;
+      border: 1px solid rgba(220, 247, 255, 0.35);
+      background: linear-gradient(180deg, rgba(7,17,22,.42), rgba(19,67,80,.42));
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+    }
+    .scan-box {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 220px;
+      height: 120px;
+      transform: translate(-50%, -50%);
+      border: 1.5px solid rgba(117, 231, 255, 0.8);
+      border-radius: 10px;
+      box-shadow: inset 0 0 16px rgba(125, 214, 232, 0.16);
+    }
+    .scan-line {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #76e9ff, transparent);
+      box-shadow: 0 0 12px rgba(118, 233, 255, .9);
+      animation: sweep 2.2s linear infinite;
+    }
+    .scan-tip {
+      position: absolute;
+      bottom: 8px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #b9eaf4;
+    }
+    @keyframes sweep {
+      0% { top: 28px; opacity: .4; }
+      50% { opacity: 1; }
+      100% { top: 148px; opacity: .4; }
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .func {
+      text-decoration: none;
+      color: inherit;
+      border-radius: 12px;
+      padding: 10px;
+      background: var(--card);
+      border: 1px solid #efdcc0;
+      box-shadow: var(--shadow);
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform .18s ease;
+    }
+    .func:active { transform: scale(.985); }
+    .func i {
+      font-style: normal;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      background: linear-gradient(145deg, #fcefdc, #ecd0a0);
+      border: 1px solid #e8c58f;
+    }
+    .func b { font-size: 13px; color: #381820; }
+    .func small { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .section {
+      background: var(--card);
+      border: 1px solid #efdfca;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .section h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: #3d1921;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section p {
+      margin: 0;
+      color: #635a52;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .steps {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: #584f47;
+    }
+    .steps div {
+      background: #fff;
+      border: 1px dashed #ebd6b3;
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .compat {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+    }
+    .compat div {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      background: #fff;
+      border: 1px solid #ecdabf;
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: #5f554d;
+    }
+    .ok { color: #1b6b52; font-weight: 700; }
+    .mid { color: #8f5f16; font-weight: 700; }
+    .low { color: #9b2a3f; font-weight: 700; }
+    .action {
+      margin-top: 10px;
+      border: 0;
+      width: 100%;
+      height: 42px;
+      border-radius: 12px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #711328, #9a1e3d);
+    }
+    .action:active { transform: scale(.99); }
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: 100%;
+      max-width: 375px;
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid #eadfcd;
+      background: rgba(255, 250, 242, 0.98);
+      box-shadow: 0 -6px 18px rgba(85, 53, 24, 0.08);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      z-index: 40;
+    }
+    .bottom-nav a {
+      text-decoration: none;
+      text-align: center;
+      font-size: 11px;
+      color: #6f665f;
+      line-height: 1.4;
+    }
+    .bottom-nav a.active { color: var(--primary); font-weight: 700; }
+  
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header class="top">
+      <div class="top-row">
+        <a class="back" href="home.html">返回</a>
+        <div class="title">AR体验中心</div>
+        <a class="right" href="product-detail.html">关联酒款</a>
+      </div>
+      <div class="subtitle">通过酒标识别、3D酒瓶展示与产地故事联动，打造更具沉浸感的酒类选购体验。当前为交互原型，不调用真实 AR 能力。</div>
+    </header>
+
+    <main class="content">
+      <section class="scan-card">
+        <div class="scan-title">
+          <b>扫描酒标入口</b>
+          <span class="badge">AR Scan</span>
+        </div>
+        <div class="scanner" id="scanner">
+          <div class="scan-box"></div>
+          <div class="scan-line"></div>
+          <div class="scan-tip" id="scanTip">将酒标放入框内，自动识别品牌与批次</div>
+        </div>
+      </section>
+
+      <section class="grid" id="funcGrid"></section>
+
+      <section class="section">
+        <h3>AR体验说明 <span style="font-size:12px;color:#7c736b;font-weight:500;">原型流程</span></h3>
+        <p>本页面用于演示酒类商品 AR 体验路径，包含识别、内容浏览与购买转化，适合在手机端预览交互结构。</p>
+        <div class="steps">
+          <div>1. 扫描酒标，识别酒款并展示真伪与年份信息。</div>
+          <div>2. 进入 3D 酒瓶视图，查看瓶身细节与标签说明。</div>
+          <div>3. 观看侍酒演示，获取醒酒和搭餐建议。</div>
+          <div>4. 查看产地故事与品牌历史，完成下单或收藏。</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>适配提示 <span style="font-size:12px;color:#7c736b;font-weight:500;">设备兼容</span></h3>
+        <p>推荐在光线充足环境下使用。若摄像头权限关闭，页面仍可通过“模拟体验”按钮浏览 AR 内容结构。</p>
+        <div class="compat">
+          <div><span>iOS Safari / 微信内置浏览器</span><span class="ok">推荐</span></div>
+          <div><span>Android Chrome / 微信内置浏览器</span><span class="ok">推荐</span></div>
+          <div><span>旧版 Android WebView</span><span class="mid">可用</span></div>
+          <div><span>桌面浏览器</span><span class="low">仅演示</span></div>
+        </div>
+        <button class="action" type="button" id="mockBtn">开始模拟 AR 体验</button>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="home.html">首页</a>
+      <a href="category.html">分类</a>
+      <a href="group-buy.html">活动</a>
+      <a href="digital-cellar.html">酒窖</a>
+      <a href="member-center.html">我的</a>
+    </nav>
+  </div>
+
+  <script>
+    const functions = [
+      { icon: '📸', title: '扫描酒标入口', desc: '识别酒款、年份、真伪批次', href: 'traceability.html' },
+      { icon: '🧴', title: '3D酒瓶展示入口', desc: '旋转查看瓶身与酒标细节', href: 'product-detail.html' },
+      { icon: '🍷', title: '侍酒演示入口', desc: '学习醒酒、倒酒与温控建议', href: 'ai-sommelier.html' },
+      { icon: '🗺', title: '产地故事入口', desc: '查看产区地图与风土特征', href: 'traceability.html' },
+      { icon: '🏰', title: '品牌历史入口', desc: '了解酒庄沿革与年份里程碑', href: 'home.html' }
+    ];
+
+    const funcGrid = document.getElementById('funcGrid');
+    funcGrid.innerHTML = functions.map(item => `
+      <a class="func" href="${item.href}">
+        <i>${item.icon}</i>
+        <b>${item.title}</b>
+        <small>${item.desc}</small>
+      </a>
+    `).join('');
+
+    const tips = [
+      '识别中：疑似 Chateau Montclair 2019',
+      '已读取标签：AOC Medoc / 13.5% vol',
+      '发现可播放内容：产地故事 + 侍酒演示',
+      '可进入：真伪溯源与数字酒窖'
+    ];
+    let tipIndex = 0;
+    const scanTip = document.getElementById('scanTip');
+    setInterval(() => {
+      tipIndex = (tipIndex + 1) % tips.length;
+      scanTip.textContent = tips[tipIndex];
+    }, 1800);
+
+    document.getElementById('mockBtn').addEventListener('click', () => {
+      const msg = '已进入模拟 AR：你可以点击上方功能卡继续查看 3D 展示、产地故事与侍酒建议。';
+      scanTip.textContent = msg;
+      document.getElementById('scanner').style.boxShadow = '0 0 0 2px rgba(118,233,255,.35) inset';
+      setTimeout(() => {
+        document.getElementById('scanner').style.boxShadow = 'none';
+      }, 900);
+    });
+  </script>
+</body>
+</html>
+
+

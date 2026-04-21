@@ -1,0 +1,262 @@
+﻿<!DOCTYPE html>
+<html lang='zh-CN'>
+
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0, viewport-fit=cover' />
+  <title>酒类电商小程序原型导航（V2 年轻化）</title>
+  <style>
+    :root {
+      --wine-bg: #f6f0e8;
+      --wine-card: #fffdf8;
+      --wine-primary: #6f1125;
+      --wine-gold: #c9a45c;
+      --wine-text: #2f2b28;
+      --wine-sub: #7b736a;
+      --shadow: 0 8px 20px rgba(111, 17, 37, 0.08);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f3ece3 0%, #f8f5f0 60%, #faf8f5 100%);
+      color: var(--wine-text);
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: transparent;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(111, 17, 37, 0.95);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .topbar a {
+      position: absolute;
+      left: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: #fff;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+    }
+
+    .main {
+      padding: 12px;
+    }
+
+    .card {
+      background: var(--wine-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(111, 17, 37, 0.1);
+      color: var(--wine-primary);
+      font-size: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .item {
+      display: block;
+      padding: 10px;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--wine-text);
+      text-decoration: none;
+      box-shadow: var(--shadow);
+    }
+
+    .item small {
+      color: var(--wine-sub);
+      display: block;
+      margin-top: 4px;
+    }
+
+    .footer-space {
+      height: calc(16px + env(safe-area-inset-bottom));
+    }
+  
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style>
+</head>
+
+<body>
+  <div class='phone'>
+    <header class='topbar'>
+      <a href='../mobile-html/index.html'>旧版</a>
+      酒类电商原型导航 · V2
+    </header>
+    <main class='main'>
+      <div class='card'>
+        <div class='badge'>V2 年轻化轻奢</div>
+        <h3 style='margin:10px 0 6px;'>wineUIUXDesign · mobile-html-v2</h3>
+        <p style='margin:0;color:#7b736a;font-size:14px;'>在不覆盖旧版的前提下，提供更活泼、更年轻的移动端原型视觉方案。</p>
+      </div>
+
+      <div class='card'>
+        <div class='badge'>页面导航</div>
+        <div class='grid' style='margin-top:10px;'>
+          <a class='item' href='home.html'>首页</a>
+          <a class='item' href='category.html'>分类页</a>
+          <a class='item' href='product-detail.html'>商品详情页</a>
+          <a class='item' href='cart.html'>购物车页</a>
+          <a class='item' href='checkout.html'>结算页</a>
+          <a class='item' href='order-list.html'>订单列表页</a>
+          <a class='item' href='order-detail.html'>订单详情页</a>
+          <a class='item' href='member-center.html'>会员中心页</a>
+          <a class='item' href='points-mall.html'>积分商城页</a>
+          <a class='item' href='group-buy.html'>拼团页</a>
+          <a class='item' href='coupon-center.html'>优惠券页</a>
+          <a class='item' href='flash-sale.html'>限时折扣页</a>
+          <a class='item' href='gift-card.html'>企业礼品卡页</a>
+          <a class='item' href='drinking-game.html'>酒局游戏页</a>
+          <a class='item' href='grape-plan.html'>葡萄酒养成计划页</a>
+          <a class='item' href='nfc-redpacket.html'>NFC红包页</a>
+          <a class='item' href='ar-experience.html'>AR体验页</a>
+          <a class='item' href='digital-cellar.html'>数字酒窖页</a>
+          <a class='item' href='blind-box.html'>福袋盲盒页</a>
+          <a class='item' href='defect-wine.html'>瑕疵酒专区页</a>
+          <a class='item' href='traceability.html'>溯源页</a>
+          <a class='item' href='ai-sommelier.html'>AI侍酒师页</a>
+        </div>
+      </div>
+    </main>
+    <div class='footer-space'></div>
+  </div>
+</body>
+
+</html>
+

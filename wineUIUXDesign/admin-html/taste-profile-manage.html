@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <title>口感档案管理</title>
+  <style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#222831;--muted:#7b828f;--line:#e7e9ee;--brand:#7a1028;--brand2:#9f1d3c;--ok:#1f8a62;--warn:#a46a14;--danger:#b73245;--shadow:0 10px 24px rgba(20,24,35,.06)}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+.layout{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.sidebar{background:#141b25;color:#e8edf6;padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-weight:700;font-size:16px}.sub{font-size:12px;color:#96a3b8;margin:6px 0 12px}.nav{display:grid;gap:6px}.nav a{text-decoration:none;color:#cbd5e5;font-size:13px;padding:8px 10px;border-radius:8px}.nav a:hover{background:#1f2836}.nav a.active{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+.main{display:grid;grid-template-rows:56px 1fr}.top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 20px}.top b{font-size:15px}.top span{font-size:12px;color:var(--muted)}
+.content{padding:18px;display:grid;gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.metric .k{font-size:12px;color:var(--muted)}.metric .v{margin-top:4px;font-size:22px;font-weight:700}
+.filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}input,select,textarea{width:100%;height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13px;background:#fff}textarea{height:auto;padding:8px 10px}
+.btn{border:0;height:34px;border-radius:8px;padding:0 12px;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));font-size:13px}.btn.s{background:#fff;color:#4e5562;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left}th{color:#67707e;background:#fafbfc}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid;cursor:pointer}.ok{color:var(--ok);background:#eaf8f2;border-color:#bde6d4}.warn{color:var(--warn);background:#fff6e7;border-color:#f0ddb8}.danger{color:var(--danger);background:#feeff2;border-color:#f4cad3}
+.body{display:grid;grid-template-columns:1fr 340px;gap:12px}
+.drawer{position:fixed;right:-360px;top:0;width:340px;height:100vh;background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(0,0,0,.08);padding:14px;transition:.25s;z-index:30}.drawer.show{right:0}
+.modal{position:fixed;inset:0;background:rgba(13,18,28,.35);display:none;align-items:center;justify-content:center;z-index:40}.modal.show{display:flex}.panel{width:min(720px,92vw);background:#fff;border-radius:12px;border:1px solid var(--line);padding:14px}
+@media (max-width:1280px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.body{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class='layout'>
+    <aside class='sidebar'>
+      <div class='brand'>Wine Admin</div>
+      <div class='sub'>酒类电商后台 · 模块管理台</div>
+      <nav class='nav' id='nav'>
+<a href='index.html' data-path='index.html'>后台原型导航</a>
+<a href='dashboard.html' data-path='dashboard.html'>仪表盘</a>
+<a href='product-list.html' data-path='product-list.html'>商品列表</a>
+<a href='product-edit.html' data-path='product-edit.html'>商品编辑</a>
+<a href='order-list.html' data-path='order-list.html'>订单列表</a>
+<a href='order-detail.html' data-path='order-detail.html'>订单详情</a>
+<a href='user-list.html' data-path='user-list.html'>用户列表</a>
+<a href='member-level.html' data-path='member-level.html'>会员等级配置</a>
+<a href='points-config.html' data-path='points-config.html'>积分与商城配置</a>
+<a href='group-buy-manage.html' data-path='group-buy-manage.html'>拼团活动管理</a>
+<a href='coupon-manage.html' data-path='coupon-manage.html'>优惠券管理</a>
+<a href='flash-sale-manage.html' data-path='flash-sale-manage.html'>限时折扣管理</a>
+<a href='gift-card-manage.html' data-path='gift-card-manage.html'>企业礼品卡管理</a>
+<a href='drinking-game-manage.html' data-path='drinking-game-manage.html'>酒局游戏管理</a>
+<a href='grape-plan-manage.html' data-path='grape-plan-manage.html'>葡萄酒养成计划管理</a>
+<a href='nfc-activity-manage.html' data-path='nfc-activity-manage.html'>NFC红包活动管理</a>
+<a href='ar-content-manage.html' data-path='ar-content-manage.html'>AR内容管理</a>
+<a href='digital-cellar-manage.html' data-path='digital-cellar-manage.html'>数字酒窖管理</a>
+<a href='blind-box-manage.html' data-path='blind-box-manage.html'>福袋盲盒规则管理</a>
+<a href='defect-wine-manage.html' data-path='defect-wine-manage.html'>瑕疵酒专区管理</a>
+<a href='traceability-manage.html' data-path='traceability-manage.html'>真伪/批次溯源管理</a>
+<a href='brand-story-manage.html' data-path='brand-story-manage.html'>品牌故事管理</a>
+<a href='region-map-manage.html' data-path='region-map-manage.html'>产区地图管理</a>
+<a href='pairing-manage.html' data-path='pairing-manage.html'>搭餐建议管理</a>
+<a href='taste-profile-manage.html' data-path='taste-profile-manage.html'>口感档案管理</a>
+<a href='drink-window-manage.html' data-path='drink-window-manage.html'>适饮窗口管理</a>
+<a href='ai-sommelier-manage.html' data-path='ai-sommelier-manage.html'>AI侍酒师配置</a>
+      </nav>
+    </aside>
+    <section class='main'>
+      <header class='top'><b>口感档案管理</b><span>结构化口感维度维护</span></header>
+      <main class='content'>
+        <section class='grid4'>
+          <div class='metric'><div class='k'>总记录数</div><div class='v'>248</div></div>
+          <div class='metric'><div class='k'>启用中</div><div class='v'>187</div></div>
+          <div class='metric'><div class='k'>待审核</div><div class='v'>39</div></div>
+          <div class='metric'><div class='k'>本周新增</div><div class='v'>22</div></div>
+        </section>
+
+        <section class='body'>
+          <div class='card'>
+            <div class='filters'>
+              <input placeholder='关键字搜索（名称/编号）' />
+              <select><option>状态：全部</option><option>启用</option><option>待审核</option><option>停用</option></select>
+              <input placeholder='按字段：酸甜单宁酒体香气' />
+              <select><option>负责人：全部</option><option>运营</option><option>风控</option><option>内容</option></select>
+              <input placeholder='开始日期' />
+              <button class='btn'>查询</button>
+            </div>
+            <table style='margin-top:10px;'>
+              <thead><tr><th>名称</th><th>关键字段</th><th>负责人</th><th>更新时间</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+<tr><td>Montclair 2019</td><td>酸62 甜18 单宁74</td><td>侍酒团队</td><td>2026-04-18 14:20</td><td><span class='badge ok' onclick='toggleStatus(this)'>启用</span></td><td><button class='btn s' onclick='toggleModal(true)'>详情</button></td></tr>
+<tr><td>BIN389 2021</td><td>酸58 甜16 单宁68</td><td>侍酒团队</td><td>2026-04-18 14:20</td><td><span class='badge ok' onclick='toggleStatus(this)'>启用</span></td><td><button class='btn s' onclick='toggleModal(true)'>详情</button></td></tr>
+<tr><td>里奥哈 2018</td><td>酸55 甜20 单宁60</td><td>侍酒团队</td><td>2026-04-18 14:20</td><td><span class='badge ok' onclick='toggleStatus(this)'>启用</span></td><td><button class='btn s' onclick='toggleModal(true)'>详情</button></td></tr>
+                <tr><td>示例配置项</td><td>酸甜单宁酒体香气 / 规则版本 v2.3</td><td>系统管理员</td><td>2026-04-17 18:40</td><td><span class='badge warn' onclick='toggleStatus(this)'>待审核</span></td><td><button class='btn s' onclick='toggleDrawer(true)'>配置</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class='card'>
+            <div class='row'><b>表单配置区</b><button class='btn s' onclick='toggleDrawer(true)'>打开抽屉</button></div>
+            <div style='display:grid;gap:8px;margin-top:10px;'>
+              <input value='配置名称：口感档案管理默认模板' />
+              <input value='关键字段：酸甜单宁酒体香气' />
+              <select><option>生效范围：全部渠道</option><option>仅小程序</option><option>仅H5</option></select>
+              <textarea rows='5'>配置说明：
+- 本页面用于演示后台交互原型
+- 包含筛选、状态切换、弹窗、抽屉
+- 数据为 mock，不依赖后端接口</textarea>
+              <button class='btn'>保存配置</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class='drawer' id='drawer'>
+    <div class='row' style='margin-bottom:10px;'><b>口感档案管理 · 抽屉</b><button class='btn s' onclick='toggleDrawer(false)'>关闭</button></div>
+    <input value='规则名称：口感档案管理规则A' />
+    <select style='margin-top:8px;'><option>状态：启用</option><option>停用</option></select>
+    <textarea rows='6' style='margin-top:8px;'>说明：
+- 这里用于演示模块配置抽屉
+- 可扩展为真实后台表单</textarea>
+    <button class='btn' style='margin-top:8px;'>保存</button>
+  </div>
+
+  <div class='modal' id='modal'>
+    <div class='panel'>
+      <div class='row'><b>口感档案管理 · 详情弹窗</b><button class='btn s' onclick='toggleModal(false)'>关闭</button></div>
+      <table style='margin-top:8px;'>
+        <thead><tr><th>字段</th><th>值</th></tr></thead>
+        <tbody><tr><td>模块名称</td><td>口感档案管理</td></tr><tr><td>业务关键字段</td><td>酸甜单宁酒体香气</td></tr><tr><td>说明</td><td>结构化口感维度维护</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('#nav a').forEach(a=>{ if(a.dataset.path==='taste-profile-manage.html') a.classList.add('active'); });
+    function toggleDrawer(s){document.getElementById('drawer').classList[s?'add':'remove']('show');}
+    function toggleModal(s){document.getElementById('modal').classList[s?'add':'remove']('show');}
+    function toggleStatus(el){ if(el.classList.contains('ok')){el.className='badge warn';el.textContent='待审核';return;} if(el.classList.contains('warn')){el.className='badge danger';el.textContent='停用';return;} el.className='badge ok';el.textContent='启用'; }
+  </script>
+</body>
+</html>

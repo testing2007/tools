@@ -1,0 +1,27 @@
+<view class="tabbar-shell">
+  <view class="tabbar-card mode-{{shapeMode}}">
+    <view class="tabbar-wrap">
+      <view
+        wx:for="{{visibleTabs}}"
+        wx:key="pagePath"
+        class="tab-item {{selectedPath === item.fullPath ? 'active' : ''}} {{item.isCenter && shapeMode === 'floating' ? 'center-ghost' : ''}}"
+        data-path="{{item.tapPath}}"
+        bindtap="onTabTap"
+      >
+        <text class="tab-label">{{item.text}}</text>
+      </view>
+    </view>
+
+    <view
+      wx:if="{{shapeMode === 'floating' && centerTab}}"
+      class="center-fab {{selectedPath === centerTab.fullPath ? 'active' : ''}}"
+      data-path="{{centerTab.fullPath}}"
+      bindtap="onTabTap"
+    >
+      <view class="center-fab-inner">
+        <text class="center-fab-glyph">{{centerTab.glyph}}</text>
+      </view>
+      <text class="center-fab-label">{{centerTab.text}}</text>
+    </view>
+  </view>
+</view>

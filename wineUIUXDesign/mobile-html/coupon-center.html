@@ -1,0 +1,462 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>优惠券中心</title>
+  <style>
+    :root {
+      --bg: #f5eee4;
+      --card: #fffaf2;
+      --primary: #711328;
+      --primary-2: #9a1e3d;
+      --gold: #caa35d;
+      --text: #2f2a27;
+      --muted: #7c736b;
+      --line: #eedfc9;
+      --shadow: 0 8px 24px rgba(113, 19, 40, 0.1);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 10% 0%, #fff9ef, #f3ebdf 46%, #ecdfce 100%);
+      color: var(--text);
+    }
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+      position: relative;
+    }
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px 12px;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      background: linear-gradient(140deg, #4f0f22 0%, #7b1730 62%, #a93d57 100%);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(62, 16, 31, 0.24);
+    }
+    .top-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-link {
+      text-decoration: none;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .title { text-align: center; font-size: 16px; font-weight: 700; letter-spacing: .4px; }
+    .sub {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #f5e8da;
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .content { padding: 12px; display: grid; gap: 12px; }
+    .summary {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+    .summary .n { font-size: 18px; color: var(--primary); font-weight: 800; }
+    .summary .t { font-size: 11px; color: #756b63; }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .tab {
+      border: 1px solid #e8d7bd;
+      background: #fff;
+      border-radius: 999px;
+      height: 34px;
+      font-size: 12px;
+      color: #635a52;
+      font-weight: 600;
+    }
+    .tab.active {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #7a0f28 0%, #9b1b3a 100%);
+    }
+
+    .list { display: grid; gap: 10px; }
+    .coupon {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      min-height: 118px;
+    }
+    .coupon::before,
+    .coupon::after {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg);
+      left: 101px;
+      z-index: 2;
+      border: 1px solid var(--line);
+    }
+    .coupon::before { top: -8px; }
+    .coupon::after { bottom: -8px; }
+
+    .left {
+      border-right: 1px dashed #e7d4b6;
+      padding: 12px 8px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 4px;
+      background: linear-gradient(145deg, #fdf5e8, #f3e3c9);
+    }
+    .amount {
+      color: #9b1f3e;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 800;
+    }
+    .amount small { font-size: 14px; font-weight: 700; }
+    .coupon-type {
+      font-size: 11px;
+      color: #7c4f28;
+      background: #fbefde;
+      border: 1px solid #ebd5b2;
+      border-radius: 999px;
+      padding: 2px 7px;
+    }
+
+    .right {
+      padding: 10px;
+      display: grid;
+      align-content: space-between;
+      gap: 8px;
+    }
+    .name {
+      font-size: 14px;
+      color: #3d1921;
+      font-weight: 700;
+      margin: 0;
+    }
+    .meta {
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: #6a6159;
+      line-height: 1.5;
+    }
+    .meta span { color: #8f3f4c; font-weight: 600; }
+    .bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .date { font-size: 11px; color: #92877d; }
+    .act {
+      border: 0;
+      border-radius: 999px;
+      min-width: 76px;
+      height: 30px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #7a0f28 0%, #9b1b3a 100%);
+    }
+    .act:active { transform: scale(.98); }
+    .act.used { background: #b5aca3; }
+    .act.expired { background: #c8beb4; }
+
+    .empty {
+      text-align: center;
+      color: #8a8178;
+      font-size: 12px;
+      padding: 24px 10px;
+      border: 1px dashed #e6d7c0;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      background: rgba(48, 28, 20, .92);
+      color: #fff;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      opacity: 0;
+      transition: .22s ease;
+      pointer-events: none;
+      z-index: 60;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: 100%;
+      max-width: 375px;
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid #eadfcd;
+      background: rgba(255, 250, 242, 0.98);
+      box-shadow: 0 -6px 18px rgba(85, 53, 24, 0.08);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      z-index: 40;
+    }
+    .bottom-nav a {
+      text-decoration: none;
+      text-align: center;
+      font-size: 11px;
+      color: #6f665f;
+      line-height: 1.4;
+    }
+    .bottom-nav a.active { color: var(--primary); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <header class="top">
+      <div class="top-row">
+        <a class="btn-link" href="home.html">返回</a>
+        <div class="title">优惠券中心</div>
+        <a class="btn-link" href="cart.html">去使用</a>
+      </div>
+      <div class="sub">覆盖满减券、品牌券、品鉴专享券、瑕疵酒专区券、会员专属券。领取后可在结算页自动匹配。</div>
+    </header>
+
+    <main class="content">
+      <section class="summary" id="summary"></section>
+
+      <section class="tabs" id="tabs">
+        <button class="tab active" data-tab="available" type="button">可领取</button>
+        <button class="tab" data-tab="mine" type="button">我的券</button>
+        <button class="tab" data-tab="expired" type="button">已过期</button>
+      </section>
+
+      <section class="list" id="couponList"></section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <nav class="bottom-nav">
+      <a href="home.html">首页</a>
+      <a href="category.html">分类</a>
+      <a class="active" href="coupon-center.html">活动</a>
+      <a href="digital-cellar.html">酒窖</a>
+      <a href="member-center.html">我的</a>
+    </nav>
+  </div>
+
+  <script>
+    const state = { tab: 'available' };
+
+    const coupons = [
+      {
+        id: 'c1',
+        type: '满减券',
+        name: '满299减40 全场通用',
+        amount: 40,
+        threshold: '满299可用',
+        scope: '适用范围：红酒/白酒/威士忌（特价商品除外）',
+        expire: '有效期：2026-04-18 至 2026-05-18',
+        status: 'available',
+        claimed: false
+      },
+      {
+        id: 'c2',
+        type: '品牌券',
+        name: '奔富品牌专享券',
+        amount: 80,
+        threshold: '满599可用',
+        scope: '适用范围：奔富 BIN 系列、蔻兰山系列',
+        expire: '有效期：2026-04-18 至 2026-04-30',
+        status: 'available',
+        claimed: false
+      },
+      {
+        id: 'c3',
+        type: '品鉴专享券',
+        name: '周末品鉴会专享',
+        amount: 60,
+        threshold: '满399可用',
+        scope: '适用范围：品鉴会推荐酒单专区',
+        expire: '有效期：2026-04-19 至 2026-04-26',
+        status: 'available',
+        claimed: false
+      },
+      {
+        id: 'c4',
+        type: '瑕疵酒专区券',
+        name: '瑕疵酒专区叠加券',
+        amount: 20,
+        threshold: '满99可用',
+        scope: '适用范围：瑕疵酒专区（仅限自饮）',
+        expire: '有效期：2026-04-18 至 2026-05-10',
+        status: 'available',
+        claimed: false
+      },
+      {
+        id: 'c5',
+        type: '会员专属券',
+        name: '金卡会员月度券',
+        amount: 100,
+        threshold: '满799可用',
+        scope: '适用范围：会员酒柜精选商品',
+        expire: '有效期：2026-04-01 至 2026-04-30',
+        status: 'mine',
+        claimed: true
+      },
+      {
+        id: 'c6',
+        type: '满减券',
+        name: '上月活动满减券',
+        amount: 50,
+        threshold: '满399可用',
+        scope: '适用范围：全场（不含礼品卡）',
+        expire: '有效期：2026-03-01 至 2026-03-31',
+        status: 'expired',
+        claimed: true
+      }
+    ];
+
+    function showToast(text) {
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 1700);
+    }
+
+    function summaryCount() {
+      const available = coupons.filter(c => c.status === 'available').length;
+      const mine = coupons.filter(c => c.status === 'mine' || (c.status === 'available' && c.claimed)).length;
+      const expired = coupons.filter(c => c.status === 'expired').length;
+      document.getElementById('summary').innerHTML = `
+        <div><div class="n">${available}</div><div class="t">可领取</div></div>
+        <div><div class="n">${mine}</div><div class="t">我的券</div></div>
+        <div><div class="n">${expired}</div><div class="t">已过期</div></div>
+      `;
+    }
+
+    function getTabData() {
+      if (state.tab === 'available') return coupons.filter(c => c.status === 'available' && !c.claimed);
+      if (state.tab === 'mine') return coupons.filter(c => c.status === 'mine' || (c.status === 'available' && c.claimed));
+      return coupons.filter(c => c.status === 'expired');
+    }
+
+    function actionBtn(c) {
+      if (state.tab === 'available') return `<button class="act" data-id="${c.id}">立即领取</button>`;
+      if (state.tab === 'mine') return `<button class="act used" data-id="${c.id}">去使用</button>`;
+      return `<button class="act expired" data-id="${c.id}">已过期</button>`;
+    }
+
+    function renderList() {
+      const list = document.getElementById('couponList');
+      const data = getTabData();
+      if (!data.length) {
+        list.innerHTML = '<div class="empty">当前暂无可展示优惠券</div>';
+        return;
+      }
+
+      list.innerHTML = data.map(c => `
+        <article class="coupon">
+          <div class="left">
+            <div class="amount"><small>￥</small>${c.amount}</div>
+            <div class="coupon-type">${c.type}</div>
+          </div>
+          <div class="right">
+            <div>
+              <p class="name">${c.name}</p>
+              <p class="meta"><span>${c.threshold}</span></p>
+              <p class="meta">${c.scope}</p>
+            </div>
+            <div class="bottom">
+              <span class="date">${c.expire}</span>
+              ${actionBtn(c)}
+            </div>
+          </div>
+        </article>
+      `).join('');
+
+      list.querySelectorAll('.act').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          const target = coupons.find(c => c.id === id);
+          if (!target) return;
+
+          if (state.tab === 'available') {
+            target.claimed = true;
+            showToast('领取成功，已放入“我的券”');
+            render();
+            return;
+          }
+
+          if (state.tab === 'mine') {
+            showToast('已为你跳转结算页（原型演示）');
+            setTimeout(() => { location.href = 'checkout.html'; }, 600);
+            return;
+          }
+
+          showToast('该优惠券已过期');
+        });
+      });
+    }
+
+    function bindTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          state.tab = tab.dataset.tab;
+          document.querySelectorAll('.tab').forEach(i => i.classList.remove('active'));
+          tab.classList.add('active');
+          renderList();
+        });
+      });
+    }
+
+    function render() {
+      summaryCount();
+      renderList();
+    }
+
+    bindTabs();
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,535 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>酒屿 Home</title>
+  <style>
+    :root {
+      --bg: #f7f3ef;
+      --surface: #fffaf4;
+      --wine-900: #1c1917;
+      --wine-700: #3f2d2a;
+      --wine-500: #7c4b45;
+      --gold: #ca8a04;
+      --gold-soft: #f6deb0;
+      --text: #0c0a09;
+      --muted: #6b5e58;
+      --card-border: rgba(202, 138, 4, 0.18);
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --shadow: 0 10px 24px rgba(35, 23, 19, 0.12);
+      --safe-bottom: calc(74px + env(safe-area-inset-bottom));
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(90% 60% at 0% 0%, rgba(202,138,4,0.18), transparent 60%),
+        radial-gradient(70% 50% at 100% 20%, rgba(124,75,69,0.2), transparent 70%),
+        var(--bg);
+      color: var(--text);
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      background: rgba(255, 250, 244, 0.92);
+      backdrop-filter: blur(6px);
+      padding-bottom: var(--safe-bottom);
+      position: relative;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 10px 14px 12px;
+      background: linear-gradient(180deg, rgba(28,25,23,0.94), rgba(28,25,23,0.82));
+      border-bottom: 1px solid rgba(246, 222, 176, 0.2);
+    }
+
+    .status-title {
+      color: #fdf7ea;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 10px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 40px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search {
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid rgba(246, 222, 176, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 13px;
+      padding: 0 14px;
+      outline: none;
+    }
+
+    .search::placeholder { color: rgba(255, 243, 221, 0.7); }
+
+    .msg-btn {
+      width: 40px;
+      height: 38px;
+      border: 1px solid rgba(246, 222, 176, 0.35);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #f8e5c0;
+      text-decoration: none;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .content { padding: 12px 12px 0; display: grid; gap: 12px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 14px;
+      background:
+        linear-gradient(120deg, rgba(28,25,23,0.92), rgba(63,45,42,0.82)),
+        radial-gradient(circle at 80% 20%, rgba(246,222,176,0.35), transparent 45%);
+      color: #fff7e8;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -16px;
+      bottom: -18px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(202,138,4,0.45), rgba(202,138,4,0));
+      pointer-events: none;
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      line-height: 1.2;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero p {
+      margin: 0 0 12px;
+      color: rgba(255, 242, 220, 0.88);
+      font-size: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid rgba(246, 222, 176, 0.35);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .section {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .head h2 { margin: 0; font-size: 16px; }
+    .head span { font-size: 12px; color: var(--muted); }
+
+    .category-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .category-item {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid rgba(124,75,69,0.15);
+      padding: 8px 4px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--wine-900);
+      cursor: pointer;
+      transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+    }
+
+    .category-item:active { transform: scale(.98); }
+
+    .category-item b { display: block; font-size: 11px; margin-top: 4px; }
+
+    .story {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      background: linear-gradient(145deg, #fff7eb, #fffaf4);
+      border: 1px solid rgba(202,138,4,0.22);
+      border-radius: var(--radius-md);
+      padding: 12px;
+    }
+
+    .story p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    .tag {
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: #8a5a0a;
+      border: 1px solid rgba(202,138,4,0.35);
+      background: rgba(246, 222, 176, 0.45);
+    }
+
+    .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .mini-card {
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid rgba(28,25,23,0.08);
+      padding: 10px;
+      min-height: 88px;
+    }
+
+    .mini-card h3 { margin: 0; font-size: 13px; }
+    .mini-card p { margin: 6px 0 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+    .taste-bars { display: grid; gap: 8px; }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 28px;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .track {
+      height: 6px;
+      border-radius: 999px;
+      background: #efe7df;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7c4b45, #ca8a04);
+      width: 0;
+      transition: width .6s var(--ease);
+    }
+
+    .drink-window {
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid rgba(124,75,69,0.15);
+      padding: 10px;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .timeline div {
+      border-radius: 10px;
+      padding: 8px 6px;
+      font-size: 11px;
+      text-align: center;
+      border: 1px solid rgba(124,75,69,0.13);
+      background: #fffaf2;
+    }
+
+    .timeline .active {
+      border-color: rgba(202,138,4,0.5);
+      background: linear-gradient(135deg, #fff1d4, #fff7eb);
+      color: #845507;
+      font-weight: 600;
+    }
+
+    .entry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .entry {
+      border-radius: 14px;
+      padding: 10px;
+      text-decoration: none;
+      color: #fef8ec;
+      min-height: 82px;
+      display: grid;
+      align-content: space-between;
+      border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+      transition: transform .2s var(--ease), filter .2s var(--ease);
+    }
+
+    .entry:active { transform: scale(.98); }
+
+    .entry h4 { margin: 0; font-size: 13px; }
+    .entry small { font-size: 11px; opacity: .92; line-height: 1.4; }
+
+    .e-sale { background: linear-gradient(140deg, #6e1212, #9a2d2d); }
+    .e-box { background: linear-gradient(140deg, #5a340e, #9e5b16); }
+    .e-cellar { background: linear-gradient(140deg, #122842, #1f4d73); }
+    .e-ai { background: linear-gradient(140deg, #2f2144, #5f3d84); }
+    .e-nfc { background: linear-gradient(140deg, #264533, #3f6e53); }
+    .e-defect { background: linear-gradient(140deg, #4d2f2a, #7b5149); }
+
+    .bottom-nav {
+      position: fixed;
+      width: min(100vw, 375px);
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(28, 25, 23, 0.94);
+      border-top: 1px solid rgba(246, 222, 176, 0.24);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      backdrop-filter: blur(10px);
+      z-index: 50;
+    }
+
+    .tab {
+      text-align: center;
+      text-decoration: none;
+      color: rgba(255,244,226,0.78);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .tab b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+
+    .tab.active { color: #f7d8a0; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .45s var(--ease), transform .45s var(--ease);
+    }
+
+    .reveal.on {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .fill, .category-item, .entry { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="status-title">酒屿精选 · 今日适饮</div>
+      <div class="search-row">
+        <input class="search" placeholder="搜索酒款 / 产区 / 品牌故事" aria-label="搜索酒款" />
+        <a class="msg-btn" href="member-center.html" aria-label="消息中心">◎</a>
+      </div>
+    </header>
+
+    <section class="content">
+      <article class="card hero reveal">
+        <h1>波尔多左岸<br>本周开瓶推荐</h1>
+        <p>Chateau Lumiere Reserve 2018 · 醒酒 35 分钟后风味最佳</p>
+        <div class="hero-meta">
+          <span class="pill">会员价 ¥429</span>
+          <span class="pill">适饮窗口 2026-2031</span>
+          <span class="pill">评分 4.8 / 5</span>
+        </div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>酒类分类</h2><span>今日上新 18 款</span></div>
+        <div class="category-row" id="categoryRow"></div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>品牌故事</h2><span>葡萄藤 119 年</span></div>
+        <div class="story">
+          <div>
+            <strong>Lumiere Cellars</strong>
+            <p>1907 年创立于梅多克。第四代酿酒师沿用旧藤低产法，突出黑樱桃与雪松层次。</p>
+          </div>
+          <span class="tag">庄园直采</span>
+        </div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>热门产区地图</h2><span>3 大产区</span></div>
+        <div class="grid-two" id="regionGrid"></div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>搭餐建议</h2><span>侍酒师精选</span></div>
+        <div class="grid-two" id="pairingGrid"></div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>口感档案</h2><span>Napa Ridge Cabernet 2020</span></div>
+        <div class="taste-bars" id="tasteBars"></div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>本周适饮推荐</h2><span>温度 16-18°C</span></div>
+        <div class="drink-window">
+          <strong>开瓶节奏</strong>
+          <div class="timeline">
+            <div>0-15 分钟<br>果香释放</div>
+            <div class="active">15-45 分钟<br>风味峰值</div>
+            <div>45+ 分钟<br>单宁渐柔</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card section reveal">
+        <div class="head"><h2>活动与功能入口</h2><span>营销 + 酒类场景</span></div>
+        <div class="entry-grid">
+          <a class="entry e-sale" href="flash-sale.html"><h4>限时折扣</h4><small>今晚 20:00 稀缺酒款秒杀</small></a>
+          <a class="entry e-box" href="blind-box.html"><h4>福袋盲盒</h4><small>低价入手，酒款未知</small></a>
+          <a class="entry e-cellar" href="digital-cellar.html"><h4>数字酒窖</h4><small>藏酒编号 / 提酒 / 转赠</small></a>
+          <a class="entry e-ai" href="ai-sommelier.html"><h4>AI 侍酒师</h4><small>口味偏好一键配酒</small></a>
+          <a class="entry e-nfc" href="nfc-redpacket.html"><h4>NFC 互动</h4><small>触碰开局，多人瓜分红包</small></a>
+          <a class="entry e-defect" href="defect-wine.html"><h4>瑕疵酒专区</h4><small>自饮优选，介意者慎拍</small></a>
+        </div>
+      </article>
+    </section>
+
+    <nav class="bottom-nav" aria-label="底部导航">
+      <a class="tab active" href="home.html"><b>●</b>首页</a>
+      <a class="tab" href="category.html"><b>◻</b>分类</a>
+      <a class="tab" href="group-buy.html"><b>◆</b>活动</a>
+      <a class="tab" href="digital-cellar.html"><b>◉</b>酒窖</a>
+      <a class="tab" href="member-center.html"><b>◌</b>我的</a>
+    </nav>
+  </main>
+
+  <script>
+    const categories = [
+      { icon: '红', name: '红酒' },
+      { icon: '白', name: '白酒' },
+      { icon: '威', name: '威士忌' },
+      { icon: '香', name: '香槟' },
+      { icon: '酿', name: '精酿' }
+    ];
+
+    const regions = [
+      { title: '波尔多左岸', desc: '砾石土壤 · 单宁结构感强' },
+      { title: '纳帕谷', desc: '阳光成熟度高 · 黑果风味' },
+      { title: '勃艮第', desc: '石灰岩风土 · 酸度优雅' },
+      { title: '宁夏贺兰山东麓', desc: '昼夜温差大 · 香气集中' }
+    ];
+
+    const pairings = [
+      { title: '战斧牛排', desc: '搭配赤霞珠，突出黑胡椒与橡木香' },
+      { title: '熟成奶酪拼盘', desc: '搭配香槟，提升坚果与黄油层次' }
+    ];
+
+    const tastes = [
+      { name: '酸度', val: 62 },
+      { name: '甜度', val: 18 },
+      { name: '单宁', val: 74 },
+      { name: '酒体', val: 68 },
+      { name: '香气', val: 83 }
+    ];
+
+    const categoryRow = document.getElementById('categoryRow');
+    categoryRow.innerHTML = categories.map(item => `
+      <a class="category-item" href="category.html" aria-label="${item.name}">
+        <span>${item.icon}</span>
+        <b>${item.name}</b>
+      </a>
+    `).join('');
+
+    const regionGrid = document.getElementById('regionGrid');
+    regionGrid.innerHTML = regions.map(item => `
+      <article class="mini-card">
+        <h3>${item.title}</h3>
+        <p>${item.desc}</p>
+      </article>
+    `).join('');
+
+    const pairingGrid = document.getElementById('pairingGrid');
+    pairingGrid.innerHTML = pairings.map(item => `
+      <article class="mini-card">
+        <h3>${item.title}</h3>
+        <p>${item.desc}</p>
+      </article>
+    `).join('');
+
+    const tasteBars = document.getElementById('tasteBars');
+    tasteBars.innerHTML = tastes.map(item => `
+      <div class="bar-row">
+        <span>${item.name}</span>
+        <div class="track"><div class="fill" data-width="${item.val}%"></div></div>
+        <strong>${item.val}</strong>
+      </div>
+    `).join('');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('on');
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.fill').forEach(el => {
+        el.style.width = el.dataset.width;
+      });
+    });
+  </script>
+</body>
+</html>

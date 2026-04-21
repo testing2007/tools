@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><title>购物车</title>
+<style>
+:root{--bg:#f4ede3;--card:#fffaf2;--p:#711328;--t:#2f2a27;--l:#ead9bf;--s:0 8px 24px rgba(113,19,40,.1)}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 10% 0%,#fff9ef,#f3ebdf 46%,#ecdfce 100%);color:var(--t)}.phone{max-width:375px;margin:0 auto;min-height:100vh;padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;padding:10px 12px;background:linear-gradient(135deg,#6f1125,#9a1e3d);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;position:sticky}.top a{position:absolute;left:12px;color:#fff;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);border-radius:999px;padding:6px 10px}.main{padding:12px;display:grid;gap:10px}.item{background:var(--card);border:1px solid var(--l);border-radius:12px;box-shadow:var(--s);padding:9px;display:grid;grid-template-columns:78px 1fr;gap:9px}.img{border-radius:9px;background:linear-gradient(145deg,#f9ecd8,#e7c491)}.n{margin:0 0 4px;font-size:14px}.m{margin:0;font-size:12px;color:#6f665f}.q{margin-top:6px;display:flex;justify-content:space-between;align-items:center}.price{color:#9a1f3d;font-weight:800}
+.sum{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:375px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,250,242,.98);border-top:1px solid #eadfcd;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.btn{height:38px;border:0;border-radius:999px;color:#fff;font-weight:700;padding:0 16px;background:linear-gradient(135deg,#7a0f28,#9b1b3a)}
+
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style></head><body><div class="phone"><header class="top"><a href="home.html">返回</a>购物车</header><main class="main"><article class="item"><div class="img"></div><div><h4 class="n">Chateau Montclair 2019</h4><p class="m">批次 MC-2019-04-A7 · 支持真伪溯源</p><div class="q"><span class="price">￥299</span><span>数量 1</span></div></div></article><article class="item"><div class="img"></div><div><h4 class="n">山崎12年单一麦芽</h4><p class="m">推荐搭餐：烟熏烤肉 · 口感偏厚重</p><div class="q"><span class="price">￥699</span><span>数量 1</span></div></div></article></main></div><footer class="sum"><div><b>合计：</b><span style="color:#9a1f3d;font-weight:800">￥998</span><div style="font-size:11px;color:#756b63">已选 2 件，可用券 1 张</div></div><button class="btn" onclick="location.href='checkout.html'">去结算</button></footer></body></html>
+
+

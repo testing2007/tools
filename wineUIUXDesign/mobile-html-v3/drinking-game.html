@@ -1,0 +1,604 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>酒局游戏</title>
+  <style>
+    :root {
+      --bg: #13090e;
+      --panel: rgba(255, 248, 245, 0.96);
+      --ink: #241016;
+      --muted: #8f7480;
+      --wine: #9f1239;
+      --rose: #fb7185;
+      --gold: #f59e0b;
+      --blue: #3b82f6;
+      --safe-bottom: calc(96px + env(safe-area-inset-bottom));
+      --shadow: 0 20px 40px rgba(10, 4, 8, .34);
+      --shadow-soft: 0 14px 28px rgba(97, 24, 40, .16);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      display: flex;
+      justify-content: center;
+      background:
+        radial-gradient(900px 260px at 10% 0%, rgba(251, 113, 133, .18), transparent 55%),
+        radial-gradient(700px 220px at 90% 8%, rgba(59, 130, 246, .16), transparent 55%),
+        linear-gradient(180deg, #16090d 0%, #12070b 54%, #170911 100%);
+      color: var(--ink);
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(180deg, rgba(255,255,255,.018) 0, rgba(255,255,255,.018) 1px, transparent 1px, transparent 6px);
+      mix-blend-mode: screen;
+      opacity: .65;
+    }
+    .app { width: min(100vw, 375px); min-height: 100vh; padding-bottom: var(--safe-bottom); position: relative; isolation: isolate; }
+    .topbar {
+      position: sticky; top: 0; z-index: 30; padding: 10px 12px 12px;
+      background: linear-gradient(180deg, rgba(18, 7, 11, .96), rgba(18, 7, 11, .86));
+      backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .bar { display: grid; grid-template-columns: 34px 1fr 34px; gap: 8px; align-items: center; }
+    .title { text-align: center; color: #fff8f6; font: 800 16px/1 "Inter", "PingFang SC", sans-serif; letter-spacing: .02em; }
+    .iconbtn {
+      height: 34px; border-radius: 11px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.06);
+      display: grid; place-items: center; color: #fff8f6; text-decoration: none; box-shadow: 0 6px 14px rgba(0,0,0,.12);
+    }
+    .icon { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .hero {
+      margin: 12px 12px 0; border-radius: 28px; overflow: hidden; color: #fff; box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(8, 2, 5, .92), rgba(155, 18, 57, .78) 56%, rgba(59, 130, 246, .62)),
+        url("https://images.unsplash.com/photo-1514361892635-eae31e2f7d32?auto=format&fit=crop&w=1200&q=80") center/cover;
+      position: relative;
+    }
+    .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(0,0,0,.12)); }
+    .hero-inner { padding: 16px; position: relative; z-index: 1; }
+    .hero-kicker {
+      display: inline-flex; gap: 6px; align-items: center; padding: 5px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); font-size: 11px;
+    }
+    .hero-kicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,.14); }
+    .hero-title { margin: 12px 0 6px; font: 900 24px/1.08 "Inter", "PingFang SC", sans-serif; letter-spacing: .02em; }
+    .hero-sub { margin: 0; font-size: 12px; line-height: 1.75; color: rgba(255, 248, 246, .9); max-width: 30ch; }
+    .hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .hero-card { padding: 12px; border-radius: 16px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); }
+    .hero-card small { display: block; font-size: 10px; color: rgba(255,255,255,.76); }
+    .hero-card strong { display: block; margin-top: 5px; font: 900 18px/1 "Inter", sans-serif; }
+    .section { margin: 12px; border-radius: 24px; border: 1px solid rgba(255,255,255,.08); background: var(--panel); box-shadow: var(--shadow-soft); overflow: hidden; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-end; padding: 14px 14px 10px; }
+    .section-head h2 { margin: 0; font: 900 16px/1 "Inter", "PingFang SC", sans-serif; color: #31111c; }
+    .section-head span { font-size: 11px; color: var(--muted); }
+    .room-setup { padding: 0 12px 12px; display: grid; gap: 10px; }
+    .setup-box { padding: 12px; border-radius: 18px; background: linear-gradient(180deg, #fff, #fff7f8); border: 1px solid rgba(155,18,57,.08); display: grid; gap: 10px; }
+    .setup-box h3 { margin: 0; font-size: 14px; color: #30121b; }
+    .setup-box p { margin: 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+    .form-grid { display: grid; grid-template-columns: 1.3fr .9fr; gap: 8px; }
+    .input, .select { height: 42px; width: 100%; border-radius: 13px; border: 1px solid rgba(155,18,57,.12); background: #fff; padding: 0 12px; font-size: 12px; color: #31111b; outline: none; }
+    .select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #9f1239 50%), linear-gradient(135deg, #9f1239 50%, transparent 50%), linear-gradient(to right, #fff, #fff); background-position: calc(100% - 18px) 17px, calc(100% - 12px) 17px, 100% 0; background-size: 6px 6px, 6px 6px, 2.6em 2.6em; background-repeat: no-repeat; padding-right: 28px; }
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { border: 1px solid rgba(155,18,57,.12); background: #fff; color: #86183b; font-size: 11px; padding: 6px 11px; border-radius: 999px; cursor: pointer; transition: .2s ease; }
+    .chip.active { background: linear-gradient(135deg, #fff1f3, #ffe4e9); border-color: rgba(155,18,57,.24); box-shadow: 0 8px 20px rgba(155,18,57,.08); }
+    .actions-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .btn { height: 42px; border: none; border-radius: 13px; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s ease, opacity .2s ease, box-shadow .2s ease; }
+    .btn:active, .chip:active, .room-card:active, .mode-card:active, .seat:active, .room-action:active { transform: translateY(1px); }
+    .btn-primary { background: linear-gradient(135deg, var(--wine), var(--rose)); color: #fff; box-shadow: 0 14px 24px rgba(225,29,72,.18); }
+    .btn-secondary { background: #fff; color: #86183b; border: 1px solid rgba(155,18,57,.12); }
+    .room-list { padding: 0 12px 12px; display: grid; gap: 10px; }
+    .room-card {
+      padding: 12px; border-radius: 20px; color: #fff; border: 1px solid rgba(255,255,255,.08); background-size: cover; background-position: center;
+      position: relative; overflow: hidden; box-shadow: 0 16px 28px rgba(76, 12, 28, .18); cursor: pointer;
+    }
+    .room-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(10,2,5,.9), rgba(155,18,57,.82) 55%, rgba(59,130,246,.46)); }
+    .room-card > * { position: relative; z-index: 1; }
+    .room-card.selected { outline: 2px solid rgba(255,255,255,.78); }
+    .room-card.full::after { content: "已满员"; position: absolute; top: 12px; right: 12px; z-index: 1; font-size: 10px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.16); }
+    .room-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+    .room-head h3 { margin: 0 0 4px; font-size: 16px; }
+    .room-head p { margin: 0; font-size: 11px; line-height: 1.65; color: rgba(255,255,255,.88); max-width: 22ch; }
+    .room-action { border: none; border-radius: 11px; background: rgba(255,255,255,.94); color: #9f1239; padding: 8px 10px; font-size: 11px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,.12); }
+    .room-action.disabled { opacity: .5; cursor: not-allowed; }
+    .room-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .tag { padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.12); font-size: 10px; }
+    .room-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; }
+    .room-foot strong { font: 900 18px/1 "Inter", sans-serif; }
+    .room-foot span { font-size: 11px; color: rgba(255,255,255,.82); }
+    .joinbar { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 0 12px 12px; }
+    .joinbar input { height: 42px; border-radius: 13px; border: 1px solid rgba(155,18,57,.12); background: #fff; padding: 0 12px; font-size: 12px; color: #31111b; outline: none; }
+    .joinbar button { height: 42px; border: none; border-radius: 13px; background: linear-gradient(135deg, var(--gold), #f97316); color: #fff; font-size: 12px; font-weight: 900; box-shadow: 0 14px 24px rgba(249,115,22,.18); cursor: pointer; }
+    .seat-wrap { padding: 0 12px 12px; }
+    .seat-note { margin: 0 0 10px; font-size: 11px; line-height: 1.6; color: var(--muted); }
+    .seat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .seat { min-height: 74px; border-radius: 16px; border: 1px solid rgba(155,18,57,.1); background: linear-gradient(180deg, #fff, #fff7f8); display: grid; place-items: center; gap: 4px; padding: 8px 4px; cursor: pointer; position: relative; overflow: hidden; }
+    .seat.occupied { background: linear-gradient(180deg, #fff4f6, #ffe6ec); }
+    .seat.selected { outline: 2px solid rgba(155,18,57,.3); box-shadow: 0 10px 20px rgba(155,18,57,.1); }
+    .seat.mine::after { content: "我"; position: absolute; top: 6px; right: 6px; font-size: 10px; padding: 2px 6px; border-radius: 999px; background: #9f1239; color: #fff; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 8px 16px rgba(0,0,0,.12); background: linear-gradient(135deg, #9f1239, #fb7185); }
+    .seat .n { font: 900 12px/1 "Inter", sans-serif; color: #9f1239; }
+    .seat .name { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.2; }
+    .seat.empty { border-style: dashed; color: #b68d97; }
+    .mode-wrap { padding: 0 12px 12px; display: grid; gap: 8px; }
+    .mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .mode-card { min-height: 98px; border-radius: 18px; border: 1px solid rgba(155,18,57,.1); background: #fff; padding: 12px; text-align: left; cursor: pointer; position: relative; overflow: hidden; }
+    .mode-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0), rgba(251,113,133,.12)); opacity: 0; transition: opacity .2s ease; }
+    .mode-card.active { border-color: rgba(155,18,57,.24); background: linear-gradient(180deg, #fff5f7, #fff); box-shadow: 0 10px 22px rgba(155,18,57,.08); }
+    .mode-card.active::before { opacity: 1; }
+    .mode-card b { display: block; font-size: 13px; margin-bottom: 4px; color: #31111b; }
+    .mode-card small { display: block; font-size: 10px; line-height: 1.6; color: var(--muted); }
+    .mode-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 4px 8px; border-radius: 999px; background: rgba(155,18,57,.08); color: #9f1239; font-size: 10px; font-weight: 800; }
+    .logic-wrap { padding: 0 12px 12px; display: grid; gap: 10px; }
+    .logic-shell { border-radius: 22px; background: linear-gradient(180deg, #fff, #fff7f7); border: 1px solid rgba(155,18,57,.08); overflow: hidden; }
+    .logic-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 12px 10px; border-bottom: 1px solid rgba(155,18,57,.08); }
+    .phase { padding: 5px 10px; border-radius: 999px; background: #fff1f3; color: #9f1239; font-size: 10px; font-weight: 900; }
+    .timer { font: 900 18px/1 "Inter", sans-serif; color: #9f1239; letter-spacing: .04em; }
+    .logic-card { padding: 12px; }
+    .logic-head { display: flex; gap: 12px; align-items: center; }
+    .logic-avatar { width: 52px; height: 52px; border-radius: 18px; display: grid; place-items: center; color: #fff; font-size: 18px; font-weight: 900; background: linear-gradient(135deg, #9f1239, #fb7185); box-shadow: 0 14px 20px rgba(155,18,57,.2); flex: none; }
+    .logic-meta h3 { margin: 0 0 4px; font-size: 16px; color: #31111b; }
+    .logic-meta p { margin: 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+    .logic-desc { margin-top: 10px; font-size: 12px; line-height: 1.7; color: #4b2a35; }
+    .task-box { margin-top: 12px; padding: 12px; border-radius: 16px; background: linear-gradient(135deg, #fff0f4, #fff8f2); border: 1px dashed rgba(155,18,57,.16); }
+    .task-box small { display: block; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+    .task-box strong { display: block; font-size: 14px; line-height: 1.6; color: #7e102d; }
+    .option-list { display: grid; gap: 8px; margin-top: 12px; }
+    .opt { min-height: 44px; border-radius: 14px; border: 1px solid rgba(155,18,57,.1); background: #fff; padding: 10px 12px; text-align: left; font-size: 12px; color: #34141c; cursor: pointer; transition: .2s ease; }
+    .opt.selected { background: linear-gradient(135deg, #fff1f3, #ffe4ea); border-color: rgba(155,18,57,.22); box-shadow: 0 8px 18px rgba(155,18,57,.08); }
+    .logic-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+    .board { padding: 0 12px 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .box { padding: 12px; border-radius: 16px; background: #fff; border: 1px solid rgba(155,18,57,.08); }
+    .box small { display: block; font-size: 10px; color: var(--muted); }
+    .box strong { display: block; margin-top: 4px; font: 900 18px/1 "Inter", sans-serif; color: #9f1239; }
+    .reward { padding: 0 12px 12px; display: grid; gap: 8px; }
+    .reward-row, .rank-item { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; padding: 10px; border-radius: 16px; background: #fff; border: 1px solid rgba(155,18,57,.08); }
+    .rank { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 12px; background: linear-gradient(135deg, #9f1239, #fb7185); }
+    .reward-row h4, .rank-item h5 { margin: 0 0 2px; font-size: 12px; color: #2f111b; }
+    .reward-row p, .rank-item p { margin: 0; font-size: 11px; line-height: 1.55; color: var(--muted); }
+    .reward-row span, .rank-item span { font: 900 12px/1 "Inter", sans-serif; color: #c2410c; }
+    .ranking { padding: 0 12px 12px; display: grid; gap: 8px; }
+    .rank-num { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 12px; background: linear-gradient(135deg, #3b82f6, #fb7185); }
+    .footer-note { margin: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.93); border: 1px solid rgba(255,255,255,.08); box-shadow: var(--shadow-soft); }
+    .footer-note h3 { margin: 0 0 6px; font-size: 13px; color: #31111b; }
+    .footer-note p { margin: 0; font-size: 11px; line-height: 1.75; color: var(--muted); }
+    .toast {
+      position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(18px); padding: 10px 14px;
+      border-radius: 999px; background: rgba(16, 9, 13, .88); color: #fff; font-size: 11px;
+      box-shadow: 0 16px 28px rgba(0,0,0,.22); opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; z-index: 80; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .floating{
+      position:fixed;
+      right:calc(50% - min(100vw,375px)/2 + 12px);
+      bottom:calc(88px + env(safe-area-inset-bottom));
+      z-index:30;
+      border-radius:999px;
+      background:linear-gradient(145deg,#2d2448,#5e4c8d);
+      color:#f5f7ff;
+      border:1px solid rgba(173,191,241,.35);
+      box-shadow:0 12px 22px rgba(24,39,74,.22);
+      padding:10px 12px;
+      font-size:12px;
+      text-decoration:none;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .floating svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .floating::after{content:"AI 侍酒师"}
+    .bottomnav { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(100vw, 375px); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(18, 7, 11, .96); backdrop-filter: blur(16px); border-top: 1px solid rgba(255,255,255,.08); z-index: 25; }
+    .tabnav { text-decoration: none; color: rgba(255, 248, 246, .64); font-size: 11px; display: grid; justify-items: center; gap: 3px; }
+    .tabnav svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .tabnav.active { color: #fff; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="home.html" aria-label="返回首页"><svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></a>
+        <div class="title">酒局游戏</div>
+        <a class="iconbtn" href="ai-sommelier.html" aria-label="AI侍酒师"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7"/><path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z"/></svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="hero-kicker">多人互动 · 房间逻辑 · 酒桌社交</span>
+        <h1 class="hero-title">先建房，再选座，酒局才正式开始</h1>
+        <p class="hero-sub">这页做的是“加入房间后的游戏逻辑”：房主先设定人数上限，房间满员后不能再进；进入后按座位分配编号，随后可以换座、选模式、触发任务和惩罚。</p>
+        <div class="hero-grid">
+          <div class="hero-card"><small>当前房间</small><strong id="heroRoom">今晚猜酒局</strong></div>
+          <div class="hero-card"><small>参与人数</small><strong id="heroCount">10</strong></div>
+          <div class="hero-card"><small>当前得分</small><strong id="heroScore">0</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>创建与加入</h2><span>先设人数，再开局</span></div>
+      <div class="room-setup">
+        <div class="setup-box">
+          <h3>创建房间</h3>
+          <p>房主先设置最大人数，房间达到上限后自动锁定。进入后会自动分配座位编号，之后还能继续手动换座位。</p>
+          <div class="form-grid">
+            <input class="input" id="createRoomName" value="今晚猜酒局" aria-label="房间名称" />
+            <select class="select" id="maxPlayers">
+              <option value="4">最多 4 人</option>
+              <option value="6">最多 6 人</option>
+              <option value="8">最多 8 人</option>
+              <option value="10">最多 10 人</option>
+              <option value="12" selected>最多 12 人</option>
+            </select>
+          </div>
+          <div class="chip-row" id="modeChips">
+            <button class="chip active" data-mode="dice" type="button">骰子局</button>
+            <button class="chip" data-mode="truth" type="button">真心话</button>
+            <button class="chip" data-mode="dare" type="button">大冒险</button>
+            <button class="chip" data-mode="wheel" type="button">大转盘</button>
+          </div>
+          <div class="actions-row">
+            <button class="btn btn-secondary" id="inviteBtn" type="button">邀请好友</button>
+            <button class="btn btn-primary" id="createBtn" type="button">创建房间</button>
+          </div>
+        </div>
+      </div>
+      <div class="room-list" id="roomList"></div>
+      <div class="joinbar">
+        <input id="roomCode" value="WINE-2408" aria-label="房间码" />
+        <button id="joinRoomBtn" type="button">输入房间码加入</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>座位分配</h2><span>进入后可选座位</span></div>
+      <div class="seat-wrap">
+        <p class="seat-note">已占用的座位会显示头像与昵称，空座位可以点击换座。房主固定显示为 1 号座，当前你的位置会标记出来。</p>
+        <div class="seat-grid" id="seatGrid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>游戏模式</h2><span>点一下就切换</span></div>
+      <div class="mode-wrap">
+        <div class="mode-grid" id="modeGrid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>房间内逻辑</h2><span>轮次 / 任务 / 惩罚</span></div>
+      <div class="logic-wrap">
+        <div class="logic-shell">
+          <div class="logic-top">
+            <span class="phase" id="phaseTag">等待进房</span>
+            <span class="timer" id="turnTimer">01:30</span>
+          </div>
+          <div class="logic-card">
+            <div class="logic-head">
+              <div class="logic-avatar" id="targetAvatar">阿</div>
+              <div class="logic-meta">
+                <h3 id="taskTitle">先加入一个房间，再开始出题</h3>
+                <p id="taskMeta">房主设定人数上限后，进入房间的人会自动获得座位编号，之后可以切换座位、模式和任务。</p>
+              </div>
+            </div>
+            <div class="logic-desc" id="taskDesc">当前还没有开始游戏。你可以先创建房间，或者直接加入已有房间，系统会为你生成对应的任务内容。</div>
+            <div class="task-box">
+              <small>当前任务</small>
+              <strong id="taskAction">等待房间就绪</strong>
+            </div>
+            <div class="option-list" id="optionList"></div>
+            <div class="logic-actions">
+              <button class="btn btn-primary" id="submitBtn" type="button">提交结果</button>
+              <button class="btn btn-secondary" id="nextBtn" type="button">下一轮</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>状态面板</h2><span>实时演示</span></div>
+      <div class="board">
+        <div class="box"><small>当前轮次</small><strong id="roundValue">1</strong></div>
+        <div class="box"><small>我的得分</small><strong id="scoreValue">0</strong></div>
+        <div class="box"><small>当前人数</small><strong id="countValue">10</strong></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>奖励与排行</h2><span>酒局气氛组</span></div>
+      <div class="reward">
+        <div class="reward-row">
+          <div class="rank">1</div>
+          <div><h4>团体奖：免单酒券</h4><p>完成 5 轮后可参与团体抽奖，酒券与红酒礼盒随机掉落。</p></div>
+          <span>1 名</span>
+        </div>
+        <div class="reward-row">
+          <div class="rank">2</div>
+          <div><h4>互动奖：积分 +88</h4><p>前 3 名会得到积分加成，可兑换品鉴券或第二天的折扣券。</p></div>
+          <span>3 名</span>
+        </div>
+        <div class="reward-row">
+          <div class="rank">3</div>
+          <div><h4>参与奖：开瓶券</h4><p>只要进房并完成一次任务，就能拿到基础参与奖励，不会空手而归。</p></div>
+          <span>全员</span>
+        </div>
+      </div>
+      <div class="ranking">
+        <div class="rank-item">
+          <div class="rank-num">1</div>
+          <div><h5>老周</h5><p>连续答对 6 题，暂时领先。</p></div>
+          <span>18 分</span>
+        </div>
+        <div class="rank-item">
+          <div class="rank-num">2</div>
+          <div><h5>小苏</h5><p>刚换到 3 号座，手气很稳。</p></div>
+          <span>15 分</span>
+        </div>
+        <div class="rank-item">
+          <div class="rank-num">3</div>
+          <div><h5>我</h5><p>已经进入房间，可以随时换座开局。</p></div>
+          <span id="rankScore">0 分</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h3>页面定位</h3>
+      <p>这是“加入房间后的酒局游戏逻辑页”，重点是把建房、人数上限、满员限制、座位编号、模式切换、任务与惩罚串成一条完整流程，方便后续直接给程序员开发。</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24"><path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7"/><path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z"/></svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>分类</a>
+    <a class="tabnav active" href="group-buy.html"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14M5 5h14v14H5z"/></svg>活动</a>
+    <a class="tabnav" href="digital-cellar.html"><svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6"/></svg>酒窖</a>
+    <a class="tabnav" href="member-center.html"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0"/></svg>我的</a>
+  </nav>
+
+  <script>
+    const joinRoomBtn = document.getElementById('joinRoomBtn');
+    const roomCode = document.getElementById('roomCode');
+    const roomListEl = document.getElementById('roomList');
+    const seatGridEl = document.getElementById('seatGrid');
+    const modeGridEl = document.getElementById('modeGrid');
+    const modeChips = [...document.querySelectorAll('#modeChips .chip')];
+    const optionListEl = document.getElementById('optionList');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const createBtn = document.getElementById('createBtn');
+    const inviteBtn = document.getElementById('inviteBtn');
+    const createRoomName = document.getElementById('createRoomName');
+    const maxPlayers = document.getElementById('maxPlayers');
+    const toast = document.getElementById('toast');
+
+    const heroRoom = document.getElementById('heroRoom');
+    const heroCount = document.getElementById('heroCount');
+    const heroScore = document.getElementById('heroScore');
+    const phaseTag = document.getElementById('phaseTag');
+    const turnTimer = document.getElementById('turnTimer');
+    const targetAvatar = document.getElementById('targetAvatar');
+    const taskTitle = document.getElementById('taskTitle');
+    const taskMeta = document.getElementById('taskMeta');
+    const taskDesc = document.getElementById('taskDesc');
+    const taskAction = document.getElementById('taskAction');
+    const roundValue = document.getElementById('roundValue');
+    const scoreValue = document.getElementById('scoreValue');
+    const countValue = document.getElementById('countValue');
+    const rankScore = document.getElementById('rankScore');
+
+    const seatColors = ['linear-gradient(135deg,#9f1239,#fb7185)', 'linear-gradient(135deg,#3b82f6,#22c55e)', 'linear-gradient(135deg,#f59e0b,#fb7185)', 'linear-gradient(135deg,#7c3aed,#f472b6)'];
+
+    const modeMap = {
+      dice: { label: '骰子局', title: '骰子决定谁喝酒', meta: '掷到的点数会对应不同任务，从喝一杯到再来一次，节奏最快。', desc: '骰子局适合做热场，规则简单但惩罚丰富。点数越大，任务越轻；点数越小，任务越重。', action: '掷出 1-6，触发喝酒 / 再来一次 / 指定别人喝', options: ['1 点：喝一杯', '2 点：再来一次', '3 点：说第一次喝酒经历', '4 点：给大家做 10 秒酒评', '5 点：指定 1 位继续喝', '6 点：免罚并加 2 分'], reward: 6, color: '#9f1239' },
+      truth: { label: '真心话', title: '真心话轮盘', meta: '说出秘密、初恋、最尴尬的喝酒经历，偏社交与聊天。', desc: '真心话模式适合让气氛从热闹变成更有故事感，适合朋友局和熟人局。', action: '回答一个私密问题，说完就加分。', options: ['说出你的初恋', '最近一次最想撤回的消息', '最难忘的一次喝醉经历'], reward: 4, color: '#3b82f6' },
+      dare: { label: '大冒险', title: '大冒险挑战', meta: '适合互动性强的局：模仿、表演、发红包、找人互动。', desc: '大冒险会把某一位玩家推到台前，行动感更强，适合拍照和现场围观。', action: '完成一个现场任务，失败就喝酒补罚。', options: ['模仿一位品牌侍酒师', '给好友发一条语音夸奖', '对右边的人说一句夸张台词'], reward: 8, color: '#f59e0b' },
+      wheel: { label: '大转盘', title: '随机惩罚转盘', meta: '把骰子、真心话、大冒险混合到一个随机池里，结果更刺激。', desc: '转盘模式最适合后半场，任务不可预测，适合让房间继续保持悬念。', action: '转到什么就执行什么，房间里的人都能围观。', options: ['喝一杯', '再来一次', '说出初恋', '指定一人喝', '表演 5 秒', '免罚并加分'], reward: 10, color: '#7c3aed' }
+    };
+
+    let rooms = [
+      { id: 'room-night', code: 'WINE-2408', name: '今晚猜酒局', theme: '猜酒', owner: '阿凯', currentMode: 'dice', maxPlayers: 12, occupants: [{ seat: 1, name: '阿凯' }, { seat: 2, name: '小苏' }, { seat: 3, name: '老周' }, { seat: 4, name: '阿宁' }, { seat: 5, name: 'Mia' }, { seat: 6, name: 'Leo' }, { seat: 7, name: '小夏' }, { seat: 8, name: '阿远' }, { seat: 9, name: 'Nina' }, { seat: 10, name: 'Rita' }], bg: 'url(\"https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=1200&q=80\")', intro: '围绕酒标、产区和口感出题，适合懂酒的朋友局。' },
+      { id: 'room-birthday', code: 'BIRTH-2026', name: '生日碰杯局', theme: '碰杯', owner: '小苏', currentMode: 'truth', maxPlayers: 8, occupants: [{ seat: 1, name: '小苏' }, { seat: 2, name: '阿远' }, { seat: 3, name: 'Nina' }, { seat: 4, name: '阿木' }, { seat: 5, name: 'Rita' }, { seat: 6, name: '老周' }, { seat: 7, name: 'Leo' }, { seat: 8, name: '阿云' }], bg: 'url(\"https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1200&q=80\")', intro: '轻松聊天和真心话更多，适合寿星主场。' },
+      { id: 'room-full', code: 'FULL-7777', name: '周末满员局', theme: '转盘', owner: '老周', currentMode: 'wheel', maxPlayers: 6, occupants: [{ seat: 1, name: '老周' }, { seat: 2, name: 'Mia' }, { seat: 3, name: '小夏' }, { seat: 4, name: '阿凯' }, { seat: 5, name: '阿宁' }, { seat: 6, name: 'Leo' }], bg: 'url(\"https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=1200&q=80\")', intro: '房间已经满员，不能再进入。' }
+    ];
+
+    let state = { selectedRoomId: 'room-night', selectedSeat: 1, mySeat: 1, selectedMode: 'dice', selectedOption: null, round: 1, score: 0, timer: 90, timerHandle: null, playerName: '我' };
+
+    function toastMessage(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(toast._timer); toast._timer = setTimeout(() => toast.classList.remove('show'), 1800); }
+    function initials(name) { const s = (name || '').trim(); if (!s) return '我'; if (/^[A-Za-z]/.test(s)) return s.slice(0, 1).toUpperCase(); return s.slice(0, 1); }
+    function currentRoom() { return rooms.find(r => r.id === state.selectedRoomId) || rooms[0]; }
+    function occupiedCount(room) { return room.occupants.length; }
+    function formatTimer(total) { const m = String(Math.floor(total / 60)).padStart(2, '0'); const s = String(total % 60).padStart(2, '0'); return `${m}:${s}`; }
+    function hexToRgba(hex, alpha) { const raw = hex.replace('#', ''); const value = raw.length === 3 ? raw.split('').map(s => s + s).join('') : raw; const num = parseInt(value, 16); return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`; }
+    function setTimer(reset = true) { clearInterval(state.timerHandle); if (reset) state.timer = 90; turnTimer.textContent = formatTimer(state.timer); state.timerHandle = setInterval(() => { state.timer -= 1; if (state.timer <= 0) { state.timer = 0; turnTimer.textContent = '00:00'; phaseTag.textContent = '本轮结束'; taskDesc.textContent = '本轮时间到，系统自动结算并等待下一轮。'; clearInterval(state.timerHandle); toastMessage('本轮已结束，点击下一轮继续'); return; } turnTimer.textContent = formatTimer(state.timer); }, 1000); }
+
+    function syncHero(room) { heroRoom.textContent = room.name; heroCount.textContent = occupiedCount(room); countValue.textContent = occupiedCount(room); taskTitle.textContent = room.name; taskMeta.textContent = `${room.owner} 在管理房间 · ${room.maxPlayers} 人上限 · ${occupiedCount(room)} 人已在座`; }
+
+    function renderRooms() {
+      roomListEl.innerHTML = rooms.map(room => {
+        const count = occupiedCount(room);
+        const isSelected = room.id === state.selectedRoomId;
+        const full = count >= room.maxPlayers;
+        const actionText = full ? '已满员' : (isSelected ? '已选择' : '加入');
+        const actionClass = full ? 'room-action disabled' : 'room-action';
+        const tags = [room.theme, `${count}/${room.maxPlayers}`, modeMap[room.currentMode].label];
+        return `
+          <div class="room-card ${isSelected ? 'selected' : ''} ${full ? 'full' : ''}" data-room="${room.id}" style="background-image:${room.bg};">
+            <div class="room-head">
+              <div>
+                <h3>${room.name}</h3>
+                <p>${room.intro}</p>
+              </div>
+              <button class="${actionClass}" data-action="room-btn" data-room="${room.id}" ${full ? 'disabled' : ''}>${actionText}</button>
+            </div>
+            <div class="room-meta">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+            <div class="room-foot"><strong>${count} 人</strong><span>房主 · ${room.owner} · ${room.code}</span></div>
+          </div>`;
+      }).join('');
+      roomListEl.querySelectorAll('.room-card').forEach(card => card.addEventListener('click', (e) => { if (e.target && e.target.dataset.action === 'room-btn') return; selectRoom(card.dataset.room); }));
+      roomListEl.querySelectorAll('[data-action="room-btn"]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); joinRoom(btn.dataset.room); }));
+    }
+
+    function selectRoom(roomId) { state.selectedRoomId = roomId; const room = currentRoom(); state.selectedSeat = state.mySeat || 1; syncHero(room); renderRooms(); renderSeats(); updateLogic(); }
+
+    function renderSeats() {
+      const room = currentRoom();
+      const occupiedMap = new Map(room.occupants.map(item => [item.seat, item.name]));
+      seatGridEl.innerHTML = Array.from({ length: room.maxPlayers }, (_, idx) => {
+        const seatNo = idx + 1;
+        const name = occupiedMap.get(seatNo);
+        const isOccupied = Boolean(name);
+        const isMine = state.mySeat === seatNo && room.id === state.selectedRoomId;
+        const selected = state.selectedSeat === seatNo;
+        const color = seatColors[idx % seatColors.length];
+        return `
+          <button class="seat ${isOccupied ? 'occupied' : 'empty'} ${selected ? 'selected' : ''} ${isMine ? 'mine' : ''}" data-seat="${seatNo}" type="button">
+            ${isOccupied ? `<div class="avatar" style="background:${color}">${initials(name)}</div>` : `<div class="avatar" style="background:linear-gradient(135deg,#e7c4cf,#f5d9df);color:#8c4e61">+</div>`}
+            <div class="n">${seatNo} 号</div>
+            <div class="name">${isOccupied ? name : '空位'}</div>
+          </button>`;
+      }).join('');
+      seatGridEl.querySelectorAll('.seat').forEach(btn => btn.addEventListener('click', () => handleSeatSelect(Number(btn.dataset.seat))));
+    }
+
+    function handleSeatSelect(seatNo) {
+      const room = currentRoom();
+      const has = room.occupants.find(item => item.seat === seatNo);
+      if (has && state.mySeat !== seatNo) { toastMessage(`第 ${seatNo} 号座位已被 ${has.name} 占用`); return; }
+      if (state.mySeat && state.mySeat !== seatNo) {
+        const old = room.occupants.findIndex(item => item.seat === state.mySeat);
+        if (old >= 0) room.occupants.splice(old, 1);
+      }
+      const exist = room.occupants.find(item => item.seat === seatNo);
+      if (!exist) room.occupants.push({ seat: seatNo, name: state.playerName });
+      else exist.name = state.playerName;
+      state.mySeat = seatNo;
+      state.selectedSeat = seatNo;
+      state.selectedRoomId = room.id;
+      toastMessage(`已切换到 ${seatNo} 号座位`);
+      renderRooms(); renderSeats(); updateLogic();
+    }
+
+    function renderModes() {
+      modeGridEl.innerHTML = Object.entries(modeMap).map(([mode, item]) => `
+        <button class="mode-card ${state.selectedMode === mode ? 'active' : ''}" data-mode-card="${mode}" type="button">
+          <b>${item.label}</b><small>${item.meta}</small><span class="mode-badge" style="background:${hexToRgba(item.color, .10)};color:${item.color}">任务 +${item.reward}</span>
+        </button>`).join('');
+      modeGridEl.querySelectorAll('[data-mode-card]').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.modeCard)));
+      modeChips.forEach(chip => chip.classList.toggle('active', chip.dataset.mode === state.selectedMode));
+    }
+
+    function setMode(mode) { state.selectedMode = mode; state.selectedOption = null; currentRoom().currentMode = mode; updateLogic(); renderModes(); renderRooms(); toastMessage(`已切换到 ${modeMap[mode].label}`); }
+
+    function renderOptions() {
+      const item = modeMap[state.selectedMode];
+      optionListEl.innerHTML = item.options.map((text, idx) => `<button class="opt ${state.selectedOption === idx ? 'selected' : ''}" data-opt="${idx}" type="button">${text}</button>`).join('');
+      optionListEl.querySelectorAll('.opt').forEach(btn => btn.addEventListener('click', () => { state.selectedOption = Number(btn.dataset.opt); renderOptions(); }));
+    }
+
+    function updateLogic() {
+      const room = currentRoom();
+      const mode = modeMap[state.selectedMode];
+      const targetSeat = state.selectedSeat || state.mySeat || 1;
+      const occupied = room.occupants.find(item => item.seat === targetSeat) || room.occupants[0];
+      const targetName = occupied ? occupied.name : '空位';
+      const seatLabel = occupied ? `第 ${occupied.seat} 号座位 · ${occupied.name}` : `第 ${targetSeat} 号座位`;
+      targetAvatar.textContent = initials(targetName);
+      targetAvatar.style.background = `linear-gradient(135deg, ${mode.color}, ${state.selectedMode === 'wheel' ? '#7c3aed' : '#fb7185'})`;
+      phaseTag.textContent = room.occupants.length >= room.maxPlayers ? '满员开局' : '准备中';
+      taskTitle.textContent = `${mode.label} · ${mode.title}`;
+      taskMeta.textContent = `${seatLabel} · ${occupiedCount(room)}/${room.maxPlayers}`;
+      taskDesc.textContent = mode.desc;
+      taskAction.textContent = `${targetName} 执行：${mode.action}`;
+      roundValue.textContent = state.round;
+      scoreValue.textContent = state.score;
+      heroScore.textContent = state.score;
+      countValue.textContent = occupiedCount(room);
+      rankScore.textContent = `${state.score} 分`;
+      renderOptions();
+    }
+
+    function findNextSeat(room) { const taken = new Set(room.occupants.map(item => item.seat)); for (let i = 1; i <= room.maxPlayers; i += 1) if (!taken.has(i)) return i; return room.maxPlayers; }
+
+    function joinRoom(roomId) {
+      const room = rooms.find(r => r.id === roomId);
+      if (!room) return;
+      if (occupiedCount(room) >= room.maxPlayers) { toastMessage('这个房间已经满员了，不能再进入'); state.selectedRoomId = roomId; renderRooms(); renderSeats(); updateLogic(); return; }
+      const nextSeat = findNextSeat(room);
+      room.occupants.push({ seat: nextSeat, name: state.playerName });
+      state.selectedRoomId = roomId;
+      state.mySeat = nextSeat;
+      state.selectedSeat = nextSeat;
+      syncHero(room);
+      renderRooms(); renderSeats(); updateLogic(); setTimer(true);
+      toastMessage(`已加入 ${room.name}，分配到 ${nextSeat} 号座位`);
+    }
+
+    function createRoom() {
+      const name = createRoomName.value.trim() || '新建酒局';
+      const max = Number(maxPlayers.value) || 12;
+      const mode = state.selectedMode;
+      const roomId = `room-${Date.now()}`;
+      const room = {
+        id: roomId, code: `MY-${String(Math.floor(Math.random() * 9000) + 1000)}`, name, theme: modeMap[mode].label, owner: '我',
+        currentMode: mode, maxPlayers: max, occupants: [{ seat: 1, name: state.playerName }],
+        bg: 'url("https://images.unsplash.com/photo-1527281400683-b1c40f7b16bd?auto=format&fit=crop&w=1200&q=80")',
+        intro: '你创建的房间，人数上限由你决定，座位和模式都从这里开始。'
+      };
+      rooms.unshift(room);
+      state.selectedRoomId = roomId; state.mySeat = 1; state.selectedSeat = 1; state.selectedMode = mode; state.round = 1; state.score = 0; state.timer = 90;
+      syncHero(room); renderRooms(); renderSeats(); renderModes(); updateLogic(); setTimer(true);
+      toastMessage('房间已创建，当前为 1 号座位');
+    }
+
+    function inviteFriends() { toastMessage('邀请链接已复制，好友可扫码进房'); }
+    function submitAction() {
+      const room = currentRoom(); if (!room) return;
+      if (state.selectedOption === null && state.selectedMode !== 'dice') { toastMessage('先选一条任务，再提交结果'); return; }
+      const mode = modeMap[state.selectedMode];
+      const targetSeat = state.selectedSeat || state.mySeat || 1;
+      const target = room.occupants.find(item => item.seat === targetSeat) || room.occupants[0];
+      let message = '';
+      if (state.selectedMode === 'dice') {
+        const dice = Math.floor(Math.random() * 6) + 1;
+        const outcomes = ['喝一杯', '再来一次', '说第一次喝酒经历', '给大家做 10 秒酒评', '指定 1 位继续喝', '免罚加 2 分'];
+        message = `${target.name} 掷出 ${dice} 点，任务：${outcomes[dice - 1]}`;
+        state.score += dice >= 5 ? 8 : 4;
+      } else if (state.selectedMode === 'truth') { message = `${target.name} 回答：${mode.options[state.selectedOption]}`; state.score += 4; }
+      else if (state.selectedMode === 'dare') { message = `${target.name} 执行大冒险：${mode.options[state.selectedOption]}`; state.score += 8; }
+      else { message = `${target.name} 转盘结果：${mode.options[state.selectedOption]}`; state.score += 10; }
+      state.round += 1; state.selectedOption = null; phaseTag.textContent = '已提交'; taskAction.textContent = message; taskDesc.textContent = '已记录当前回合结果，点击下一轮可以继续下一个任务。'; scoreValue.textContent = state.score; heroScore.textContent = state.score; rankScore.textContent = `${state.score} 分`; roundValue.textContent = state.round; renderOptions(); setTimer(true); toastMessage('结果已提交，分数已更新');
+    }
+    function nextRound() { state.round += 1; state.selectedOption = null; taskDesc.textContent = '新一轮已准备好，继续切换模式或换座位即可。'; phaseTag.textContent = '下一轮'; roundValue.textContent = state.round; renderOptions(); setTimer(true); toastMessage('已进入下一轮'); }
+
+    roomCode.addEventListener('change', (e) => { const code = e.target.value.trim(); if (!code) return; const room = rooms.find(item => item.code.toLowerCase() === code.toLowerCase()) || currentRoom(); state.selectedRoomId = room.id; syncHero(room); renderRooms(); renderSeats(); updateLogic(); toastMessage(`已识别房间码 ${room.code}`); });
+    joinRoomBtn.addEventListener('click', () => joinRoom(state.selectedRoomId));
+    createBtn.addEventListener('click', createRoom);
+    inviteBtn.addEventListener('click', inviteFriends);
+    submitBtn.addEventListener('click', submitAction);
+    nextBtn.addEventListener('click', nextRound);
+    modeChips.forEach(chip => chip.addEventListener('click', () => setMode(chip.dataset.mode)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.activeElement === roomCode) joinRoom(state.selectedRoomId); });
+
+    const initRoom = currentRoom();
+    syncHero(initRoom); renderRooms(); renderSeats(); renderModes(); updateLogic(); setTimer(true);
+  </script>
+</body>
+</html>
+
+
+
+

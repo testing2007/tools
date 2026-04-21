@@ -1,0 +1,6 @@
+<view class="container">
+  <view class="card">
+    <view class="title">Cart</view>
+    <view class="sub-title">When N = 3, this button is hidden but page still exists.</view>
+  </view>
+</view>

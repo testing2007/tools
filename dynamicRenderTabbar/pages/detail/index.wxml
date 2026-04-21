@@ -1,0 +1,6 @@
+<view class="container">
+  <view class="card">
+    <view class="title">Detail (non-tab page)</view>
+    <view class="sub-title">Used to show normal non-tab navigation still works.</view>
+  </view>
+</view>

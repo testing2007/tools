@@ -1,0 +1,741 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>订单详情</title>
+  <style>
+    :root {
+      --bg: #f6f2ed;
+      --panel: rgba(255, 250, 244, .96);
+      --ink: #17110f;
+      --muted: #6d6058;
+      --line: rgba(163, 86, 36, .16);
+      --wine: #6c1d18;
+      --wine-2: #a73625;
+      --gold: #d39a36;
+      --shadow: 0 14px 34px rgba(38, 24, 18, .14);
+      --safe-bottom: calc(94px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      background: #666;
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100dvh;
+      padding-bottom: var(--safe-bottom);
+      overflow-x: hidden;
+      background: radial-gradient(72% 42% at 0 0, rgba(249, 115, 22, .14), transparent 68%), radial-gradient(58% 36% at 100% 6%, rgba(163, 54, 37, .16), transparent 70%), linear-gradient(180deg, #fbf7f1 0%, #f7f0e8 54%, #f4ece3 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px 12px;
+      border-bottom: 1px solid rgba(255, 210, 165, .24);
+      background: linear-gradient(180deg, rgba(24, 18, 16, .96), rgba(24, 18, 16, .9));
+      backdrop-filter: blur(10px);
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 218, 180, .32);
+      background: rgba(255, 255, 255, .08);
+      color: #f7e2bf;
+      text-decoration: none
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .title {
+      text-align: center;
+      color: #fff1d8;
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .hero {
+      margin: 10px;
+      border-radius: 18px;
+      padding: 12px;
+      color: #fff6e7;
+      background: linear-gradient(145deg, rgba(14, 11, 10, .86), rgba(110, 28, 22, .76)), url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80') center/cover;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 8px
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2
+    }
+
+    .hero p {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(255, 244, 225, .9);
+      line-height: 1.5
+    }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 224, 192, .26);
+      background: rgba(255, 255, 255, .08)
+    }
+
+    .section {
+      margin: 10px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      padding: 12px 12px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid rgba(163, 86, 36, .08);
+      background: linear-gradient(180deg, rgba(255, 245, 231, .9), rgba(255, 251, 247, .96))
+    }
+
+    .section-head b {
+      font-size: 15px
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .status {
+      padding: 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .state-card {
+      border-radius: 16px;
+      border: 1px solid rgba(163, 86, 36, .14);
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 6px
+    }
+
+    .state-card b {
+      font-size: 15px
+    }
+
+    .state-card p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45
+    }
+
+    .count {
+      border-radius: 999px;
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #7a4b14;
+      background: #fff5df;
+      border: 1px solid rgba(163, 86, 36, .16)
+    }
+
+    .timeline {
+      padding: 10px 12px 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .line {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 8px;
+      align-items: start
+    }
+
+    .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6c1d18, #a73625);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 11px
+    }
+
+    .bubble {
+      border: 1px solid rgba(163, 86, 36, .14);
+      border-radius: 14px;
+      background: #fff;
+      padding: 8px 9px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #4f433c
+    }
+
+    .addr,
+    .info {
+      padding: 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .block {
+      border-radius: 16px;
+      border: 1px solid rgba(163, 86, 36, .14);
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 6px
+    }
+
+    .block b {
+      font-size: 13px
+    }
+
+    .block p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted)
+    }
+
+    .items {
+      padding: 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .item {
+      border-radius: 16px;
+      border: 1px solid rgba(163, 86, 36, .14);
+      background: #fff;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      padding: 10px
+    }
+
+    .photo {
+      width: 74px;
+      height: 98px;
+      border-radius: 12px;
+      object-fit: cover
+    }
+
+    .meta {
+      display: grid;
+      gap: 6px
+    }
+
+    .meta h3 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.35
+    }
+
+    .text {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45
+    }
+
+    .tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 10px;
+      border: 1px solid rgba(163, 86, 36, .15);
+      background: #fff7eb;
+      color: #80520f
+    }
+
+    .tag.bad {
+      background: #ffecef;
+      color: #8f2f3a;
+      border-color: rgba(143, 47, 58, .18)
+    }
+
+    .tag.pool {
+      background: #eaf7f0;
+      color: #1f6d4f;
+      border-color: rgba(31, 109, 79, .16)
+    }
+
+    .info-grid {
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr
+    }
+
+    .info-card {
+      border-radius: 14px;
+      border: 1px solid rgba(163, 86, 36, .14);
+      background: #fff;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit
+    }
+
+    .info-card img {
+      width: 100%;
+      height: 88px;
+      object-fit: cover;
+      display: block
+    }
+
+    .info-card .txt {
+      padding: 8px
+    }
+
+    .info-card b {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 3px
+    }
+
+    .info-card small {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4
+    }
+
+    .order-info {
+      padding: 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .op-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px
+    }
+
+    .op {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(163, 86, 36, .16);
+      background: #fff;
+      font-size: 11px;
+      color: #5f524b
+    }
+
+    .bottom {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(24, 18, 16, .96);
+      border-top: 1px solid rgba(250, 226, 184, .24);
+      z-index: 20
+    }
+
+    .tab {
+      text-decoration: none;
+      color: rgba(255, 242, 218, .78);
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 2px
+    }
+
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8
+    }
+
+    .tab.active {
+      color: #f6d69f
+    }
+
+    .sticky {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(24, 18, 16, .96);
+      border-top: 1px solid rgba(250, 226, 184, .24);
+      z-index: 30
+    }
+
+    .sticky-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center
+    }
+
+    .summary {
+      color: #f6e7c7;
+      font-size: 12px;
+      line-height: 1.45
+    }
+
+    .summary b {
+      color: #ffd98f
+    }
+
+    .submit {
+      height: 40px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6c1d18, #a73625);
+      color: #fff6e7;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 14px
+    }
+
+    .sheet {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%) translateY(110%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      z-index: 40;
+      border-radius: 18px 18px 0 0;
+      background: #fffdf8;
+      border: 1px solid rgba(163, 86, 36, .18);
+      padding: 12px;
+      box-shadow: 0 -12px 30px rgba(36, 24, 18, .18);
+      transition: transform .25s cubic-bezier(.22, 1, .36, 1);
+      max-height: 72dvh;
+      overflow: auto
+    }
+
+    .sheet.show {
+      transform: translateX(-50%) translateY(0)
+    }
+
+    .sheet h3 {
+      margin: 0 0 8px;
+      font-size: 15px
+    }
+
+    .sheet p {
+      margin: 0;
+      font-size: 12px;
+      color: #5b4f48;
+      line-height: 1.55
+    }
+
+    .sheet-actions {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px
+    }
+
+    .sheet-btn {
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid rgba(163, 86, 36, .22);
+      background: #fff;
+      font-size: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .sheet-btn.primary {
+      border: 0;
+      background: linear-gradient(135deg, #6c1d18, #a73625);
+      color: #fff6e7
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="icon-btn" href="order-list.html" aria-label="返回列表">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </a>
+      <div class="title">订单详情</div>
+      <a class="icon-btn" href="index.html" aria-label="返回导航">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>
+      </a>
+    </header>
+
+    <section class="hero">
+      <span class="chip">交易信息 + 酒类专业信息</span>
+      <h1>订单 YJ202604210089</h1>
+      <p>你可以在这里查看物流、收货、批次、溯源、入窖和酒类建议。</p>
+      <div class="chips">
+        <span class="chip">待支付倒计时</span>
+        <span class="chip">瑕疵酒确认</span>
+        <span class="chip">盲盒机会限制</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>订单状态</b>
+        <span>待支付</span>
+      </div>
+      <div class="status">
+        <div class="state-card">
+          <b>请在 00:18:42 内完成支付</b>
+          <p>支付超时后订单将自动关闭，建议先确认酒款、瑕疵说明与配送信息。</p>
+          <div class="count">待支付订单</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>物流 / 配送</b>
+        <span>冷链配送中</span>
+      </div>
+      <div class="timeline">
+        <div class="line">
+          <div class="dot">1</div>
+          <div class="bubble">04-21 10:26 · 订单已创建，等待支付。</div>
+        </div>
+        <div class="line">
+          <div class="dot">2</div>
+          <div class="bubble">04-21 12:10 · 酒庄出库，已进入恒温包装流程。</div>
+        </div>
+        <div class="line">
+          <div class="dot">3</div>
+          <div class="bubble">预计 04-22 18:00 送达，支持冷链签收。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>收货地址</b>
+        <span>可复制 / 可修改</span>
+      </div>
+      <div class="addr">
+        <div class="block">
+          <b>张先生 138****2109</b>
+          <p>上海市浦东新区锦绣路 1888 号 10-602 · 晚上 18:00 后可收货</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>商品详情</b>
+        <span>酒名 / 品牌 / 产区 / 年份 / 数量</span>
+      </div>
+      <div class="items">
+        <article class="item">
+          <img class="photo"
+            src="https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=500&q=80"
+            alt="Chateau Lumiere Reserve 2018" />
+          <div class="meta">
+            <h3>Chateau Lumiere Reserve 2018</h3>
+            <div class="text">Lumiere Cellars · 波尔多左岸 · 数量 x1 · 成交价 ¥399</div>
+            <div class="tags">
+              <span class="tag">黑樱桃</span>
+              <span class="tag">单宁明显</span>
+              <span class="tag">适饮 2026-2031</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="item">
+          <img class="photo"
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=500&q=80"
+            alt="左岸干红 2019" />
+          <div class="meta">
+            <h3>左岸干红 2019（标签微瑕）</h3>
+            <div class="text">Lumiere Cellars · 波尔多左岸 · 数量 x1 · 成交价 ¥189</div>
+            <div class="tags">
+              <span class="tag bad">瑕疵酒</span>
+              <span class="tag">自饮优选</span>
+              <span class="tag">介意者慎拍</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>酒类专属信息</b>
+        <span>下单前再次确认</span>
+      </div>
+      <div class="info-grid">
+        <a class="info-card" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=700&q=80"
+            alt="品牌故事" />
+          <div class="txt"><b>品牌故事</b><small>酒庄历史与酿造理念</small></div>
+        </a>
+        <a class="info-card" href="traceability.html">
+          <img src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=700&q=80"
+            alt="产区地图" />
+          <div class="txt"><b>产区地图</b><small>风土和口感关系</small></div>
+        </a>
+        <a class="info-card" href="ai-sommelier.html">
+          <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80"
+            alt="搭餐建议" />
+          <div class="txt"><b>搭餐建议</b><small>按今晚菜品给推荐</small></div>
+        </a>
+        <a class="info-card" href="digital-cellar.html">
+          <img src="https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&w=700&q=80"
+            alt="溯源入口" />
+          <div class="txt"><b>真伪 / 数字酒窖</b><small>批次、入窖、提酒入口</small></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>订单信息</b>
+        <span>交易凭证</span>
+      </div>
+      <div class="info">
+        <div class="block">
+          <b>订单号：YJ202604210089</b>
+          <p>支付方式：微信支付 · 下单时间：2026-04-21 10:26 · 发票：电子发票</p>
+        </div>
+        <div class="block">
+          <b>买家留言</b>
+          <p>请优先联系门卫，酒品轻放，收到后请先验真。</p>
+        </div>
+        <div class="block">
+          <b>瑕疵 / 盲盒说明</b>
+          <p>含标签微瑕批次，介意者慎拍；如为盲盒商品，购买次数限制以订单页规则为准。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <b>操作与售后</b>
+        <span>可点击确认</span>
+      </div>
+      <div class="op-row">
+        <button class="op">去支付</button>
+        <button class="op">取消订单</button>
+        <button class="op">再来一单</button>
+        <button class="op">申请售后</button>
+        <button class="op">确认收货</button>
+        <button class="op">评价晒单</button>
+      </div>
+    </section>
+
+    <div class="bottom">
+      <a class="tab" href="home.html"><svg viewBox="0 0 24 24">
+          <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+        </svg>首页</a>
+      <a class="tab" href="category.html"><svg viewBox="0 0 24 24">
+          <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+        </svg>分类</a>
+      <a class="tab" href="group-buy.html"><svg viewBox="0 0 24 24">
+          <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+        </svg>活动</a>
+      <a class="tab" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+          <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+        </svg>酒窖</a>
+      <a class="tab active" href="member-center.html"><svg viewBox="0 0 24 24">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+        </svg>我的</a>
+    </div>
+
+    <footer class="sticky">
+      <div class="sticky-row">
+        <div class="summary">应付金额：<b>¥548</b><br />支付时间：待支付，倒计时进行中</div>
+        <button class="submit" id="payBtn">去支付</button>
+      </div>
+    </footer>
+  </main>
+
+  <section class="sheet" id="sheet"></section>
+
+  <script>
+    const sheet = document.getElementById('sheet');
+    document.querySelectorAll('.op').forEach(btn => {
+      btn.onclick = () => openSheet(btn.textContent, '这里会弹出对应的订单操作确认层或说明层。');
+    });
+    document.getElementById('payBtn').onclick = () => openSheet('去支付', '确认订单信息后即可跳转支付。');
+    function openSheet(title, body) {
+      sheet.innerHTML = `
+        <h3>${title}</h3>
+        <p>${body}</p>
+        <div class="sheet-actions">
+          <button class="sheet-btn" id="closeSheet">我知道了</button>
+          <a class="sheet-btn primary" href="order-list.html">返回列表</a>
+        </div>
+      `;
+      sheet.classList.add('show');
+      document.getElementById('closeSheet').onclick = () => sheet.classList.remove('show');
+    }
+  </script>
+</body>
+
+</html>

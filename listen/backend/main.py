@@ -24,7 +24,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Nginx static folder (Windows only) - files are synced here and deleted from UPLOAD_DIR
 NGINX_UPLOADS_DIR = None
 if platform.system().lower() == 'windows':
-    NGINX_UPLOADS_DIR = r"F:\client\dbsass\tools\listen\uploads"
+    NGINX_UPLOADS_DIR = r"F:\client\tools\listen\uploads"
 
 # Initialize FastAPI
 app = FastAPI(title="Listen API", version="1.0.0")

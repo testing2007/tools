@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <title>后台原型导航</title>
+  <style>
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #222831;
+  --muted: #7b828f;
+  --line: #e7e9ee;
+  --brand: #7a1028;
+  --brand-2: #9f1d3c;
+  --ok: #1f8a62;
+  --warn: #a46a14;
+  --danger: #b73245;
+  --shadow: 0 10px 24px rgba(20, 24, 35, 0.06);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); }
+.layout { min-height: 100vh; display: grid; grid-template-columns: 240px 1fr; }
+.sidebar { background: #141b25; color: #e8edf6; padding: 16px 12px; border-right: 1px solid #242c3a; position: sticky; top: 0; height: 100vh; overflow: auto; }
+.brand { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+.brand-sub { font-size: 12px; color: #96a3b8; margin-bottom: 14px; }
+.nav { display: grid; gap: 6px; }
+.nav a { text-decoration: none; color: #cbd5e5; font-size: 13px; padding: 8px 10px; border-radius: 8px; transition: 0.2s ease; }
+.nav a:hover { background: #1f2836; }
+.nav a.active { color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2)); }
+.main { display: grid; grid-template-rows: 56px 1fr; min-width: 0; }
+.topbar { background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+.topbar b { font-size: 15px; }
+.topbar span { color: var(--muted); font-size: 12px; }
+.content { padding: 18px; display: grid; gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px; }
+.metric .k { font-size: 12px; color: var(--muted); }
+.metric .v { margin-top: 4px; font-size: 22px; font-weight: 700; }
+.filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+input, select, textarea { width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font-size: 13px; background: #fff; }
+textarea { height: auto; padding: 8px 10px; }
+.btn { border: 0; height: 34px; border-radius: 8px; padding: 0 12px; color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2)); font-size: 13px; }
+.btn.subtle { background: #fff; color: #4e5562; border: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; }
+th { color: #67707e; font-weight: 600; background: #fafbfc; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; cursor: pointer; }
+.badge.ok { color: var(--ok); background: #eaf8f2; border-color: #bde6d4; }
+.badge.warn { color: var(--warn); background: #fff6e7; border-color: #f0ddb8; }
+.badge.danger { color: var(--danger); background: #feeff2; border-color: #f4cad3; }
+.body-grid { display: grid; grid-template-columns: 1fr 320px; gap: 12px; }
+.drawer { position: fixed; right: -360px; top: 0; width: 340px; height: 100vh; background: #fff; border-left: 1px solid var(--line); box-shadow: -12px 0 30px rgba(0,0,0,.08); padding: 14px; transition: .25s ease; z-index: 30; }
+.drawer.show { right: 0; }
+.modal-mask { position: fixed; inset: 0; background: rgba(13,18,28,.35); display: none; align-items: center; justify-content: center; z-index: 40; }
+.modal-mask.show { display: flex; }
+.modal { width: min(680px, 92vw); background: #fff; border-radius: 12px; border: 1px solid var(--line); padding: 14px; }
+.quick-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.quick-links a { text-decoration: none; color: #222831; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fff; }
+@media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .body-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class='layout'>
+    <aside class='sidebar'>
+      <div class='brand'>Wine Admin</div>
+      <div class='brand-sub'>酒类电商后台原型 · 1440 设计</div>
+      <nav class='nav' id='nav'>
+<a href='index.html' data-path='index.html'>后台原型导航</a>
+<a href='dashboard.html' data-path='dashboard.html'>仪表盘</a>
+<a href='product-list.html' data-path='product-list.html'>商品列表</a>
+<a href='product-edit.html' data-path='product-edit.html'>商品编辑</a>
+<a href='order-list.html' data-path='order-list.html'>订单列表</a>
+<a href='order-detail.html' data-path='order-detail.html'>订单详情</a>
+<a href='user-list.html' data-path='user-list.html'>用户列表</a>
+<a href='member-level.html' data-path='member-level.html'>会员等级配置</a>
+<a href='points-config.html' data-path='points-config.html'>积分与商城配置</a>
+<a href='group-buy-manage.html' data-path='group-buy-manage.html'>拼团活动管理</a>
+<a href='coupon-manage.html' data-path='coupon-manage.html'>优惠券管理</a>
+<a href='flash-sale-manage.html' data-path='flash-sale-manage.html'>限时折扣管理</a>
+<a href='gift-card-manage.html' data-path='gift-card-manage.html'>企业礼品卡管理</a>
+<a href='drinking-game-manage.html' data-path='drinking-game-manage.html'>酒局游戏管理</a>
+<a href='grape-plan-manage.html' data-path='grape-plan-manage.html'>葡萄酒养成计划管理</a>
+<a href='nfc-activity-manage.html' data-path='nfc-activity-manage.html'>NFC红包活动管理</a>
+<a href='ar-content-manage.html' data-path='ar-content-manage.html'>AR内容管理</a>
+<a href='digital-cellar-manage.html' data-path='digital-cellar-manage.html'>数字酒窖管理</a>
+<a href='blind-box-manage.html' data-path='blind-box-manage.html'>福袋盲盒规则管理</a>
+<a href='defect-wine-manage.html' data-path='defect-wine-manage.html'>瑕疵酒专区管理</a>
+<a href='traceability-manage.html' data-path='traceability-manage.html'>真伪/批次溯源管理</a>
+<a href='brand-story-manage.html' data-path='brand-story-manage.html'>品牌故事管理</a>
+<a href='region-map-manage.html' data-path='region-map-manage.html'>产区地图管理</a>
+<a href='pairing-manage.html' data-path='pairing-manage.html'>搭餐建议管理</a>
+<a href='taste-profile-manage.html' data-path='taste-profile-manage.html'>口感档案管理</a>
+<a href='drink-window-manage.html' data-path='drink-window-manage.html'>适饮窗口管理</a>
+<a href='ai-sommelier-manage.html' data-path='ai-sommelier-manage.html'>AI侍酒师配置</a>
+      </nav>
+    </aside>
+    <section class='main'>
+      <header class='topbar'>
+        <b>后台原型导航</b>
+        <span>当前账号：运营管理员 · mock 模式</span>
+      </header>
+      <main class='content'>
+<div class='card'>
+  <div class='row'><b>后台页面总览</b><span style='color:#7b828f;font-size:12px;'>共 27 个页面</span></div>
+  <div class='quick-links' style='margin-top:10px;'>
+<a href='index.html'><b>后台原型导航</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>index.html</div></a>
+<a href='dashboard.html'><b>仪表盘</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>dashboard.html</div></a>
+<a href='product-list.html'><b>商品列表</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>product-list.html</div></a>
+<a href='product-edit.html'><b>商品编辑</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>product-edit.html</div></a>
+<a href='order-list.html'><b>订单列表</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>order-list.html</div></a>
+<a href='order-detail.html'><b>订单详情</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>order-detail.html</div></a>
+<a href='user-list.html'><b>用户列表</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>user-list.html</div></a>
+<a href='member-level.html'><b>会员等级配置</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>member-level.html</div></a>
+<a href='points-config.html'><b>积分与商城配置</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>points-config.html</div></a>
+<a href='group-buy-manage.html'><b>拼团活动管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>group-buy-manage.html</div></a>
+<a href='coupon-manage.html'><b>优惠券管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>coupon-manage.html</div></a>
+<a href='flash-sale-manage.html'><b>限时折扣管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>flash-sale-manage.html</div></a>
+<a href='gift-card-manage.html'><b>企业礼品卡管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>gift-card-manage.html</div></a>
+<a href='drinking-game-manage.html'><b>酒局游戏管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>drinking-game-manage.html</div></a>
+<a href='grape-plan-manage.html'><b>葡萄酒养成计划管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>grape-plan-manage.html</div></a>
+<a href='nfc-activity-manage.html'><b>NFC红包活动管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>nfc-activity-manage.html</div></a>
+<a href='ar-content-manage.html'><b>AR内容管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>ar-content-manage.html</div></a>
+<a href='digital-cellar-manage.html'><b>数字酒窖管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>digital-cellar-manage.html</div></a>
+<a href='blind-box-manage.html'><b>福袋盲盒规则管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>blind-box-manage.html</div></a>
+<a href='defect-wine-manage.html'><b>瑕疵酒专区管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>defect-wine-manage.html</div></a>
+<a href='traceability-manage.html'><b>真伪/批次溯源管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>traceability-manage.html</div></a>
+<a href='brand-story-manage.html'><b>品牌故事管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>brand-story-manage.html</div></a>
+<a href='region-map-manage.html'><b>产区地图管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>region-map-manage.html</div></a>
+<a href='pairing-manage.html'><b>搭餐建议管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>pairing-manage.html</div></a>
+<a href='taste-profile-manage.html'><b>口感档案管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>taste-profile-manage.html</div></a>
+<a href='drink-window-manage.html'><b>适饮窗口管理</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>drink-window-manage.html</div></a>
+<a href='ai-sommelier-manage.html'><b>AI侍酒师配置</b><div style='font-size:12px;color:#7b828f;margin-top:4px;'>ai-sommelier-manage.html</div></a>
+  </div>
+</div>
+<div class='card'>
+  <b>说明</b>
+  <div style='margin-top:8px;font-size:13px;color:#5f6673;line-height:1.6;'>
+    本目录为酒类电商后台 HTML 原型，统一采用左侧菜单 + 顶部栏 + 主内容区布局，包含 mock 统计、筛选、表格、状态切换、弹窗和抽屉示意。
+  </div>
+</div>
+      </main>
+    </section>
+  </div>
+
+  <div class='drawer' id='drawer'>
+    <div class='row' style='margin-bottom:10px;'>
+      <b>配置抽屉示意</b>
+      <button class='btn subtle' onclick='toggleDrawer(false)'>关闭</button>
+    </div>
+    <div style='display:grid;gap:8px;'>
+      <input value='规则名称：春季名庄活动' />
+      <select><option>状态：启用</option><option>状态：停用</option></select>
+      <textarea rows='5'>说明：该区域为抽屉配置示意，用于演示后台交互，不依赖后端。</textarea>
+      <button class='btn'>保存配置</button>
+    </div>
+  </div>
+
+  <div class='modal-mask' id='modal'>
+    <div class='modal'>
+      <div class='row' style='margin-bottom:8px;'>
+        <b>详情弹窗示意</b>
+        <button class='btn subtle' onclick='toggleModal(false)'>关闭</button>
+      </div>
+      <div style='font-size:13px;color:#5f6673;line-height:1.6;'>
+        这里用于展示详情、审核、风控提示等后台弹窗交互。数据为 mock，仅用于原型演示。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var file = 'index.html';
+      document.querySelectorAll('#nav a').forEach(function(a) {
+        if (a.getAttribute('data-path') === file) a.classList.add('active');
+      });
+    })();
+    function toggleDrawer(show) { document.getElementById('drawer').classList[show ? 'add' : 'remove']('show'); }
+    function toggleModal(show) { document.getElementById('modal').classList[show ? 'add' : 'remove']('show'); }
+    function toggleStatus(el) {
+      if (el.classList.contains('ok')) { el.className = 'badge warn'; el.textContent = '待审核'; return; }
+      if (el.classList.contains('warn')) { el.className = 'badge danger'; el.textContent = '停用'; return; }
+      el.className = 'badge ok'; el.textContent = '启用';
+    }
+  </script>
+</body>
+</html>

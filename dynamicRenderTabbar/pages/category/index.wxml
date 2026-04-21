@@ -1,0 +1,36 @@
+<view class="category-page">
+  <view class="category-head card">
+    <view class="title">Category Linkage Demo</view>
+    <view class="sub-title">Left: first-level categories. Right: second-level data.</view>
+    <view class="sub-title">Active: {{activeParentName}} | Right Scroll: {{rightScrollSnapshot}} px</view>
+  </view>
+
+  <view class="category-body">
+    <scroll-view class="left-panel" scroll-y="true">
+      <view
+        wx:for="{{parentList}}"
+        wx:key="id"
+        class="left-item {{index === activeParentIndex ? 'active' : ''}}"
+        data-index="{{index}}"
+        bindtap="selectParent"
+      >
+        {{item.name}}
+      </view>
+    </scroll-view>
+
+    <scroll-view
+      class="right-panel"
+      scroll-y="true"
+      scroll-top="{{rightScrollTop}}"
+      bindscroll="onRightScroll"
+    >
+      <view class="right-list">
+        <view wx:for="{{rightList}}" wx:key="id" class="right-card">
+          <view class="right-title">{{item.title}}</view>
+          <view class="right-intro">{{item.intro}}</view>
+          <view class="right-stats">{{item.stats}}</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

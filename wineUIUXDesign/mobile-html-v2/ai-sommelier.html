@@ -1,0 +1,457 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AI侍酒师</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --card: #fffaf2;
+      --primary: #711328;
+      --primary-2: #9a1e3d;
+      --gold: #caa35d;
+      --text: #2f2a27;
+      --muted: #7c736b;
+      --shadow: 0 8px 24px rgba(113, 19, 40, 0.1);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 10% 0%, #fffaf2, #f3ebdf 46%, #efe5d8 100%);
+      color: var(--text);
+    }
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      padding-bottom: calc(86px + env(safe-area-inset-bottom));
+    }
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(113, 19, 40, 0.98) 0%, rgba(113, 19, 40, 0.86) 100%);
+      padding: 10px 12px 12px;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      box-shadow: 0 6px 18px rgba(113, 19, 40, 0.16);
+      color: #fff;
+    }
+    .top-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .back, .profile-entry {
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      height: 30px;
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .sub {
+      margin-top: 8px;
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #f7e7d4;
+    }
+    .quick-wrap {
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .quick-title {
+      font-size: 12px;
+      color: #6a6057;
+      margin-bottom: 2px;
+      padding-left: 2px;
+    }
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .quick-btn {
+      border: 1px solid #ebd8bd;
+      background: #fffaf2;
+      color: #53372d;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      text-align: left;
+      line-height: 1.45;
+      box-shadow: 0 4px 14px rgba(113, 19, 40, 0.06);
+    }
+    .quick-btn:active { transform: scale(.99); }
+    .chat {
+      padding: 0 12px 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .msg {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      animation: rise .22s ease;
+    }
+    .msg.user { justify-content: flex-end; }
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .avatar.ai {
+      background: linear-gradient(135deg, #f8e8cf, #dbb47a);
+      border: 1px solid #e7cc9f;
+    }
+    .avatar.user {
+      background: linear-gradient(135deg, #7b1730, #ac2b4f);
+      color: #fff;
+    }
+    .bubble {
+      max-width: 76%;
+      border-radius: 14px;
+      padding: 10px 11px;
+      font-size: 13px;
+      line-height: 1.58;
+      box-shadow: var(--shadow);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .bubble.ai {
+      background: var(--card);
+      border: 1px solid #edd9b8;
+      color: #3b322c;
+      border-bottom-left-radius: 6px;
+    }
+    .bubble.user {
+      background: linear-gradient(135deg, #711328, #9f2341);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+    .typing {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      height: 16px;
+    }
+    .typing span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #96745f;
+      animation: pulse .9s infinite;
+    }
+    .typing span:nth-child(2){ animation-delay: .15s; }
+    .typing span:nth-child(3){ animation-delay: .3s; }
+
+    .input-wrap {
+      position: fixed;
+      width: 100%;
+      max-width: 375px;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      background: rgba(255, 250, 242, 0.98);
+      border-top: 1px solid #eadfcd;
+      box-shadow: 0 -6px 18px rgba(85, 53, 24, 0.08);
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      z-index: 40;
+    }
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 62px;
+      gap: 8px;
+    }
+    .input {
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid #e7d7c1;
+      background: #fff;
+      padding: 0 14px;
+      font-size: 13px;
+      outline: none;
+      color: #3f362f;
+    }
+    .send {
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 700;
+      background: linear-gradient(135deg, #7a0f28 0%, #9b1b3a 100%);
+    }
+    .send:active { transform: scale(.98); }
+    .links {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .links a {
+      text-decoration: none;
+      text-align: center;
+      font-size: 11px;
+      color: #6e665f;
+      background: #fff;
+      border: 1px solid #ebdfcd;
+      border-radius: 999px;
+      padding: 5px 0;
+    }
+    .links a.active {
+      color: var(--primary);
+      border-color: #d8b27a;
+      font-weight: 700;
+    }
+    @keyframes pulse {
+      0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+      40% { transform: translateY(-2px); opacity: 1; }
+    }
+    @keyframes rise {
+      from { transform: translateY(4px); opacity: .4; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header class="top">
+      <div class="top-row">
+        <a class="back" href="home.html">返回</a>
+        <div class="title">AI侍酒师</div>
+        <a class="profile-entry" href="member-center.html">侍酒师档案</a>
+      </div>
+      <div class="sub">专业侍酒建议基于酒款信息、年份、产区与饮用场景生成。当前为原型演示，回复使用 mock 数据。</div>
+    </header>
+
+    <section class="quick-wrap">
+      <div class="quick-title">推荐提问</div>
+      <div class="quick-grid" id="quickGrid"></div>
+    </section>
+
+    <section class="chat" id="chatList"></section>
+
+    <footer class="input-wrap">
+      <div class="input-row">
+        <input id="askInput" class="input" placeholder="输入酒款或问题，如：这瓶适合配什么菜？" />
+        <button id="sendBtn" class="send" type="button">发送</button>
+      </div>
+      <div class="links">
+        <a href="home.html">首页</a>
+        <a href="product-detail.html">商品详情</a>
+        <a class="active" href="ai-sommelier.html">AI侍酒师</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const quickQuestions = [
+      '这瓶酒适合配什么菜？',
+      '现在适合喝吗？',
+      '这酒口感偏酸还是偏甜？',
+      '新手适合买这款吗？'
+    ];
+
+    const answerMap = {
+      '这瓶酒适合配什么菜？': '推荐搭配：\n1. 黑椒牛排 / 炭烤羊排（提升果香和单宁层次）\n2. 陈年硬质芝士（平衡酸度）\n3. 烟熏蘑菇意面（增强橡木与香料风味）\n建议饮用温度 16-18℃，先醒酒 20 分钟。',
+      '现在适合喝吗？': '如果是 2018-2021 年份的赤霞珠混酿，目前通常在适饮窗口中段，今晚可饮。\n建议观察：开瓶后 5 分钟闻香是否有明显闭塞感；若偏紧，可继续醒酒 10-15 分钟。',
+      '这酒口感偏酸还是偏甜？': '整体风格偏干型，甜度低。\n感知上会先有中等酸度，再出现成熟黑果与香草风味，收尾单宁中高。\n如果你不喜欢“涩感”，建议搭配油脂感食物一起喝。',
+      '新手适合买这款吗？': '适合入门，但建议从半瓶或小规格试饮开始。\n理由：风味辨识度高、品牌稳定、搭餐范围广。\n如果更偏好柔和口感，也可先尝试梅洛或黑皮诺风格。'
+    };
+
+    const chatList = document.getElementById('chatList');
+    const quickGrid = document.getElementById('quickGrid');
+    const askInput = document.getElementById('askInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function addMessage(role, text, typing = false) {
+      const item = document.createElement('div');
+      item.className = `msg ${role}`;
+      if (role === 'ai') {
+        item.innerHTML = `
+          <div class="avatar ai">🍷</div>
+          <div class="bubble ai">${typing ? '<span class="typing"><span></span><span></span><span></span></span>' : text}</div>
+        `;
+      } else {
+        item.innerHTML = `
+          <div class="bubble user">${text}</div>
+          <div class="avatar user">我</div>
+        `;
+      }
+      chatList.appendChild(item);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      return item;
+    }
+
+    function aiReply(question) {
+      const normalized = question.trim();
+      return answerMap[normalized] || `关于“${normalized}”，侍酒建议如下：\n1. 先确认酒款年份与产区，再决定是否醒酒。\n2. 若是红酒，建议 16-18℃；白葡萄酒 8-12℃。\n3. 搭餐优先“风味强度匹配”，重口菜配酒体更饱满的酒。\n你也可以继续问我：适饮窗口、真伪溯源或新手入门推荐。`;
+    }
+
+    function sendQuestion(text) {
+      const question = text.trim();
+      if (!question) return;
+      addMessage('user', question);
+
+      const typingNode = addMessage('ai', '', true);
+      setTimeout(() => {
+        const bubble = typingNode.querySelector('.bubble');
+        bubble.textContent = aiReply(question);
+      }, 620);
+    }
+
+    function initQuick() {
+      quickGrid.innerHTML = quickQuestions
+        .map(q => `<button class="quick-btn" type="button">${q}</button>`)
+        .join('');
+      quickGrid.querySelectorAll('.quick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => sendQuestion(btn.textContent || ''));
+      });
+    }
+
+    sendBtn.addEventListener('click', () => {
+      sendQuestion(askInput.value);
+      askInput.value = '';
+      askInput.focus();
+    });
+
+    askInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    function bootstrap() {
+      initQuick();
+      addMessage('ai', '你好，我是你的 AI 侍酒师。\n我可以根据酒款、场景和口味偏好，给你搭餐、醒酒和适饮建议。');
+      addMessage('ai', '你可以点击上方推荐提问，或者直接输入：\n“预算 300 元，推荐一款聚会红酒”。');
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,674 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>优惠券中心</title>
+  <style>
+    :root {
+      --bg: #f8fbff;
+      --panel: #ffffff;
+      --ink: #1f2430;
+      --muted: #667085;
+      --line: rgba(37, 99, 235, .12);
+      --shadow: 0 14px 30px rgba(31, 36, 48, .08);
+      --primary: #2563eb;
+      --secondary: #06b6d4;
+      --cta: #f97316;
+      --safe: calc(88px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      background:
+        radial-gradient(900px 240px at 0% 0%, rgba(37, 99, 235, .12), transparent 52%),
+        radial-gradient(720px 240px at 100% 0%, rgba(6, 182, 212, .14), transparent 50%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(251, 253, 255, .93);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(37, 99, 235, .1)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(37, 99, 235, .12);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(31, 36, 48, .05)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(17, 24, 39, .94), rgba(37, 99, 235, .82) 58%, rgba(6, 182, 212, .76)),
+        url("https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #f8fbff
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #67e8f9;
+      box-shadow: 0 0 0 4px rgba(103, 232, 249, .16)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch;
+      color: rgba(248, 251, 255, .92)
+    }
+
+    .wallet {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .wallet-card {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12);
+      backdrop-filter: blur(8px)
+    }
+
+    .wallet-card small {
+      display: block;
+      font-size: 10px;
+      color: rgba(248, 251, 255, .82)
+    }
+
+    .wallet-card strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #fff
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px
+    }
+
+    .tab {
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(37, 99, 235, .12);
+      background: #fff;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(31, 36, 48, .05)
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: #fff;
+      border-color: transparent
+    }
+
+    .section {
+      margin: 0 12px 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .filters {
+      padding: 0 14px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #f6f9ff;
+      color: #36557d;
+      border: 1px solid rgba(37, 99, 235, .12)
+    }
+
+    .chip.hot {
+      background: #eff6ff;
+      color: #1d4ed8
+    }
+
+    .list {
+      padding: 0 12px 14px;
+      display: grid;
+      gap: 12px
+    }
+
+    .coupon {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 96px;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid rgba(37, 99, 235, .12);
+      box-shadow: 0 10px 20px rgba(31, 36, 48, .05);
+      overflow: hidden
+    }
+
+    .coupon::before,
+    .coupon::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid rgba(37, 99, 235, .08)
+    }
+
+    .coupon::before {
+      left: -9px
+    }
+
+    .coupon::after {
+      right: -9px
+    }
+
+    .coupon .left {
+      min-width: 0
+    }
+
+    .value {
+      display: flex;
+      align-items: baseline;
+      gap: 6px
+    }
+
+    .value strong {
+      font: 800 28px/1 "Rubik", sans-serif;
+      color: #1d4ed8
+    }
+
+    .value span {
+      font-size: 12px;
+      color: #36557d
+    }
+
+    .coupon h3 {
+      margin: 6px 0 4px;
+      font-size: 14px
+    }
+
+    .coupon p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted)
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #eef6ff;
+      color: #1d4ed8;
+      border: 1px solid rgba(37, 99, 235, .1)
+    }
+
+    .time {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #5470a5
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 8px
+    }
+
+    .badge {
+      align-self: flex-start;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0f766e;
+      font-size: 10px;
+      font-weight: 800
+    }
+
+    .claim {
+      margin-top: auto;
+      height: 38px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--cta), #fb923c);
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 10px 18px rgba(249, 115, 22, .18)
+    }
+
+    .claimed {
+      background: linear-gradient(135deg, #0f172a, #334155);
+      box-shadow: none
+    }
+
+    .used {
+      background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+      box-shadow: none
+    }
+
+    .expired {
+      opacity: .7
+    }
+
+    .mini-banner {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      color: #fff;
+      box-shadow: var(--shadow)
+    }
+
+    .mini-banner h3 {
+      margin: 0 0 5px;
+      font-size: 14px
+    }
+
+    .mini-banner p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, .9)
+    }
+
+    .empty {
+      display: none;
+      padding: 24px 14px;
+      text-align: center;
+      color: var(--muted)
+    }
+
+    .empty h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--ink)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(37, 99, 235, .1);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: #6b7280;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #2563eb
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="home.html" aria-label="返回首页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">优惠券中心</div>
+        <a class="iconbtn" href="member-center.html" aria-label="我的券包"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M20 6H4v12h16z" />
+            <path d="M8 6v12" />
+            <path d="M16 6v12" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">券包钱包 · 酒类专享</span>
+        <h1 class="hero-title">优惠券不是堆列表，而是下单时的最优组合</h1>
+        <p class="hero-sub">可领取、可叠加、可过期提醒，覆盖满减券、品牌券、品鉴专享券、瑕疵酒专区券和会员专属券。</p>
+        <div class="wallet">
+          <div class="wallet-card"><small>可领取</small><strong>8</strong></div>
+          <div class="wallet-card"><small>我的券</small><strong>16</strong></div>
+          <div class="wallet-card"><small>将过期</small><strong>3</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-status="claimable">可领取</button>
+      <button class="tab" data-status="mine">我的券</button>
+      <button class="tab" data-status="expired">已过期</button>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>券类型</h2>
+        <span>酒类场景化筛选</span>
+      </div>
+      <div class="filters">
+        <span class="chip hot">满减券</span>
+        <span class="chip">品牌券</span>
+        <span class="chip">品鉴券</span>
+        <span class="chip">瑕疵酒券</span>
+        <span class="chip">会员专属</span>
+        <span class="chip">数字酒窖</span>
+      </div>
+    </section>
+
+    <div class="mini-banner">
+      <h3>一键组合建议</h3>
+      <p>先领品牌券，再叠加满减券；如果你买的是瑕疵酒专区，优先使用专区券，折扣会更明显。</p>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>优惠券列表</h2>
+        <span>按标签筛选展示</span>
+      </div>
+      <div class="list" id="couponList">
+        <article class="coupon" data-status="claimable">
+          <div class="left">
+            <div class="value"><strong>¥80</strong><span>满 399 可用</span></div>
+            <h3>进口红酒通用满减券</h3>
+            <p>适用于红酒、香槟、起泡酒、礼盒装等商品，适合节庆囤货。</p>
+            <div class="meta"><span class="tag">全场可叠加</span><span class="tag">7 天内有效</span></div>
+            <div class="time">有效期至 2026-05-03</div>
+          </div>
+          <div class="actions">
+            <span class="badge">可领取</span>
+            <button class="claim">立即领取</button>
+          </div>
+        </article>
+
+        <article class="coupon" data-status="claimable">
+          <div class="left">
+            <div class="value"><strong>¥50</strong><span>指定品牌可用</span></div>
+            <h3>波尔多庄园品牌券</h3>
+            <p>适合 Chateau 系列红酒，用于提升单次购买性价比。</p>
+            <div class="meta"><span class="tag">品牌限定</span><span class="tag">可叠加积分</span></div>
+            <div class="time">有效期至 2026-04-30</div>
+          </div>
+          <div class="actions">
+            <span class="badge">热门</span>
+            <button class="claim">立即领取</button>
+          </div>
+        </article>
+
+        <article class="coupon" data-status="mine">
+          <div class="left">
+            <div class="value"><strong>¥120</strong><span>满 699 可用</span></div>
+            <h3>品鉴专享券</h3>
+            <p>适用于高端品鉴装、试饮课程及数字酒窖体验。</p>
+            <div class="meta"><span class="tag">品鉴专区</span><span class="tag">仅会员</span></div>
+            <div class="time">剩余 3 天 12 小时</div>
+          </div>
+          <div class="actions">
+            <span class="badge">我的券</span>
+            <button class="claim claimed">去使用</button>
+          </div>
+        </article>
+
+        <article class="coupon" data-status="mine">
+          <div class="left">
+            <div class="value"><strong>¥30</strong><span>瑕疵酒专区可用</span></div>
+            <h3>瑕疵酒专区折扣券</h3>
+            <p>适合自饮、餐酒搭配场景，折扣明确，页面已提示介意者慎拍。</p>
+            <div class="meta"><span class="tag">专区专享</span><span class="tag">低门槛</span></div>
+            <div class="time">剩余 6 天 04 小时</div>
+          </div>
+          <div class="actions">
+            <span class="badge">推荐</span>
+            <button class="claim claimed">去使用</button>
+          </div>
+        </article>
+
+        <article class="coupon expired" data-status="expired">
+          <div class="left">
+            <div class="value"><strong>¥20</strong><span>满 199 可用</span></div>
+            <h3>会员生日券</h3>
+            <p>生日当月发放，常用于购买酒具、小样和礼盒补差价。</p>
+            <div class="meta"><span class="tag">已失效</span><span class="tag">会员权益</span></div>
+            <div class="time">已于 2026-04-12 过期</div>
+          </div>
+          <div class="actions">
+            <span class="badge">已过期</span>
+            <button class="claim used">查看规则</button>
+          </div>
+        </article>
+      </div>
+
+      <div class="empty" id="empty">
+        <h3>当前分类没有券</h3>
+        <p>换一个标签，或者先去领一张满减券再回来看看。</p>
+      </div>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tabnav" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tabnav" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+      </svg>酒窖</a>
+    <a class="tabnav active" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+
+  <script>
+    const tabs = [...document.querySelectorAll('.tab')];
+    const items = [...document.querySelectorAll('.coupon')];
+    const empty = document.getElementById('empty');
+    function render(status) {
+      let visible = 0;
+      items.forEach(item => {
+        const show = item.dataset.status === status;
+        item.style.display = show ? 'grid' : 'none';
+        if (show) visible += 1;
+      });
+      empty.style.display = visible ? 'none' : 'block';
+    }
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      render(tab.dataset.status);
+    }));
+    render('claimable');
+  </script>
+</body>
+
+</html>

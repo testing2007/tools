@@ -1,0 +1,556 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>瑕疵酒专区</title>
+  <style>
+    :root {
+      --bg: #fff8f1;
+      --panel: #ffffff;
+      --ink: #2b1814;
+      --muted: #7b635a;
+      --line: rgba(180, 90, 44, .14);
+      --shadow: 0 16px 34px rgba(86, 43, 28, .12);
+      --primary: #c2410c;
+      --accent: #f59e0b;
+      --safe: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666;
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe);
+      background:
+        radial-gradient(900px 280px at 0% 0%, rgba(245, 158, 11, .12), transparent 55%),
+        radial-gradient(760px 220px at 100% 0%, rgba(194, 65, 12, .12), transparent 52%),
+        linear-gradient(180deg, #fffaf5 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(255, 250, 245, .94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(180, 90, 44, .1)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(180, 90, 44, .12);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(86, 43, 28, .06)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(135deg, rgba(79, 33, 15, .96), rgba(194, 65, 12, .84) 54%, rgba(245, 158, 11, .72)),
+        url("https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff8ef
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 4px rgba(253, 230, 138, .14)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 24px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 30ch;
+      color: rgba(255, 248, 240, .92)
+    }
+
+    .warn {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .warn b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px
+    }
+
+    .warn p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.65;
+      color: rgba(255, 248, 240, .92)
+    }
+
+    .section {
+      margin: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .intro {
+      padding: 0 14px 12px
+    }
+
+    .intro p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .cards {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .card {
+      display: grid;
+      grid-template-columns: 104px 1fr;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff, #fff8f1);
+      border: 1px solid rgba(180, 90, 44, .1);
+      text-decoration: none;
+      color: inherit
+    }
+
+    .card img {
+      width: 104px;
+      height: 118px;
+      border-radius: 14px;
+      object-fit: cover
+    }
+
+    .card h3 {
+      margin: 2px 0 4px;
+      font-size: 14px
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #a2674a
+    }
+
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 7px 0
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #fff4e6;
+      color: #b45309;
+      border: 1px solid rgba(180, 90, 44, .12)
+    }
+
+    .price {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      margin-top: 8px
+    }
+
+    .price strong {
+      font: 800 20px/1 "Rubik", sans-serif;
+      color: #c2410c
+    }
+
+    .price del {
+      display: block;
+      font-size: 11px;
+      color: #b39a8f;
+      margin-top: 3px
+    }
+
+    .buy {
+      padding: 8px 10px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--primary), #ea580c);
+      color: #fff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800
+    }
+
+    .note {
+      padding: 0 12px 12px;
+      display: grid;
+      gap: 10px
+    }
+
+    .note-box {
+      padding: 12px;
+      border-radius: 18px;
+      background: #fff7ef;
+      border: 1px solid rgba(180, 90, 44, .1)
+    }
+
+    .note-box h4 {
+      margin: 0 0 5px;
+      font-size: 13px
+    }
+
+    .note-box p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.65;
+      color: var(--muted)
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 0 12px 12px
+    }
+
+    .tab {
+      height: 38px;
+      border-radius: 13px;
+      border: 1px solid rgba(180, 90, 44, .12);
+      background: #fff;
+      color: #76472e;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #c2410c, #fb923c);
+      color: #fff;
+      border-color: transparent
+    }
+
+    .hint {
+      margin: 0 12px 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff7ed, #fff1e6);
+      border: 1px solid rgba(180, 90, 44, .08)
+    }
+
+    .hint b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px
+    }
+
+    .hint p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted)
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(180, 90, 44, .1);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: #7b6b67;
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #c2410c
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="category.html" aria-label="返回分类页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">瑕疵酒专区</div>
+        <a class="iconbtn" href="traceability.html" aria-label="去溯源"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M4 6h16v12H4z" />
+            <path d="M8 10h8" />
+            <path d="M8 14h4" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">个人自饮专区</span>
+        <h1 class="hero-title">适合酒友自饮，不适合盲买送礼</h1>
+        <p class="hero-sub">外观可能有轻微瑕疵，香气与口感通常正常。页面会明确标注瑕疵类型、折扣和介意者慎拍提示。</p>
+        <div class="warn">
+          <b>购买前请先看这条</b>
+          <p>若你在意酒标破损、外箱压痕、轻微渗漏痕迹，请不要下单。适合自己喝、搭餐喝、先试后买。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>瑕疵酒卡片</h2>
+        <span>自饮优先</span>
+      </div>
+      <div class="cards">
+        <a class="card" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80"
+            alt="瑕疵红酒" loading="lazy" />
+          <div>
+            <div class="meta">法国波尔多 · 2019</div>
+            <h3>左岸赤霞珠干红</h3>
+            <div class="tags"><span class="tag">酒标轻微褶皱</span><span class="tag">自饮推荐</span></div>
+            <div class="price">
+              <div><strong>￥128</strong><del>￥198</del></div>
+              <a class="buy" href="checkout.html">去买一瓶</a>
+            </div>
+          </div>
+        </a>
+        <a class="card" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1528823872057-9c018a7f2955?auto=format&fit=crop&w=900&q=80"
+            alt="瑕疵香槟" loading="lazy" />
+          <div>
+            <div class="meta">法国香槟区 · 2020</div>
+            <h3>珍藏年份香槟</h3>
+            <div class="tags"><span class="tag">外盒压痕</span><span class="tag">节庆自饮</span></div>
+            <div class="price">
+              <div><strong>￥218</strong><del>￥328</del></div>
+              <a class="buy" href="checkout.html">去买一瓶</a>
+            </div>
+          </div>
+        </a>
+        <a class="card" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=900&q=80"
+            alt="瑕疵威士忌" loading="lazy" />
+          <div>
+            <div class="meta">苏格兰高地 · 单一麦芽</div>
+            <h3>雪莉桶威士忌</h3>
+            <div class="tags"><span class="tag">轻微渗漏痕迹</span><span class="tag">介意者慎拍</span></div>
+            <div class="price">
+              <div><strong>￥258</strong><del>￥398</del></div>
+              <a class="buy" href="checkout.html">去买一瓶</a>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>专区说明</h2>
+        <span>看清再下单</span>
+      </div>
+      <div class="note">
+        <div class="note-box">
+          <h4>瑕疵说明</h4>
+          <p>展示的是轻微外观瑕疵，不影响正常饮用和基础口感。为了降低预期偏差，页面把问题说得非常直白。</p>
+        </div>
+        <div class="note-box">
+          <h4>推荐场景</h4>
+          <p>适合朋友小聚、餐酒搭配、自己喝，不太适合送礼和收藏展示。</p>
+        </div>
+        <div class="note-box">
+          <h4>风险提示</h4>
+          <p>若你对酒标、包装或外观较为敏感，请谨慎下单；下单后默认接受轻微瑕疵说明。</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="tabs">
+      <button class="tab active">自饮优先</button>
+      <button class="tab">轻瑕疵</button>
+      <button class="tab">高折扣</button>
+    </div>
+
+    <section class="hint">
+      <b>一句话结论</b>
+      <p>这个专区不是“捡漏送礼”，而是“对外观不敏感的人，买到更划算的酒”。</p>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav">
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tabnav" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tabnav active" href="digital-cellar.html"><svg viewBox="0 0 24 24">
+        <path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h6" />
+      </svg>酒窖</a>
+    <a class="tabnav" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+</body>
+
+</html>

@@ -1,0 +1,6 @@
+<view class="container">
+  <view class="card">
+    <view class="title">Discover</view>
+    <view class="sub-title">This page stays in tabBar.list, whether button is shown depends on N.</view>
+  </view>
+</view>

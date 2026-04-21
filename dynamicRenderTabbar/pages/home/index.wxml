@@ -1,0 +1,29 @@
+<view class="home-page">
+  <view class="home-head card">
+    <view class="title">Dynamic Tabbar Demo</view>
+    <view class="sub-title">Current N: {{visibleTabCount}} (N &gt; 2 and N &lt;= 5)</view>
+    <view class="sub-title">Scroll Snapshot: {{scrollSnapshot}} px</view>
+
+    <view class="btn-row">
+      <button class="button small" data-count="3" bindtap="setTabCount">N=3</button>
+      <button class="button small" data-count="4" bindtap="setTabCount">N=4</button>
+      <button class="button small" data-count="5" bindtap="setTabCount">N=5</button>
+    </view>
+    <button class="button" bindtap="gotoDetail">Open non-tab detail page</button>
+  </view>
+
+  <scroll-view
+    class="home-scroll"
+    scroll-y="true"
+    scroll-top="{{feedScrollTop}}"
+    bindscroll="onFeedScroll"
+  >
+    <view class="feed-list">
+      <view wx:for="{{feedItems}}" wx:key="id" class="feed-card">
+        <view class="feed-title">{{item.title}}</view>
+        <view class="feed-desc">{{item.desc}}</view>
+        <view class="feed-tag">{{item.tag}}</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

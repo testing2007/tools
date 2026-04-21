@@ -1,0 +1,435 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>数字酒窖</title>
+  <style>
+    :root {
+      --bg: #f4ede3;
+      --card: #fffaf2;
+      --primary: #711328;
+      --primary-2: #9a1e3d;
+      --gold: #caa35d;
+      --text: #2f2a27;
+      --muted: #7c736b;
+      --line: #ead9bf;
+      --ok: #1e6e52;
+      --warn: #8f5f16;
+      --run: #285c87;
+      --shadow: 0 8px 24px rgba(113, 19, 40, 0.1);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 10% 0%, #fff9ef, #f3ebdf 46%, #ecdfce 100%);
+      color: var(--text);
+    }
+    .phone {
+      width: 100%;
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+      position: relative;
+    }
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px 12px;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      background: linear-gradient(145deg, #3f1122 0%, #6e1a2f 58%, #6f4a24 100%);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(62, 16, 31, 0.24);
+    }
+    .top-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-link {
+      text-decoration: none;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .title { text-align: center; font-size: 16px; font-weight: 700; letter-spacing: .4px; }
+    .sub {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #f5e8da;
+      background: rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .content { padding: 12px; display: grid; gap: 12px; }
+
+    .asset {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .metric {
+      background: #fff;
+      border: 1px solid #ecdabf;
+      border-radius: 10px;
+      padding: 9px;
+    }
+    .metric .k { font-size: 11px; color: #796f67; }
+    .metric .v { margin-top: 3px; font-size: 18px; font-weight: 800; color: #411a22; }
+    .metric .v small { font-size: 12px; font-weight: 600; color: #7e5a2f; }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #3d1921;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section h3 span { font-size: 11px; color: #7d746c; font-weight: 500; }
+
+    .list { display: grid; gap: 10px; }
+    .wine {
+      background: #fff;
+      border: 1px solid #ead8bc;
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 10px;
+    }
+    .thumb {
+      border-radius: 10px;
+      background: linear-gradient(145deg, #f9ecd8, #e7c491);
+      position: relative;
+      overflow: hidden;
+    }
+    .thumb::after {
+      content: "CELLAR";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: .8px;
+      color: rgba(66, 42, 23, .62);
+      background: rgba(255,255,255,.28);
+      padding: 3px 0;
+    }
+    .name { margin: 0 0 5px; font-size: 14px; color: #3d1921; }
+    .meta {
+      margin: 0;
+      font-size: 12px;
+      color: #675d55;
+      line-height: 1.45;
+    }
+    .status {
+      margin-top: 6px;
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid;
+      font-weight: 700;
+    }
+    .s-ok { color: var(--ok); background: #ebf8f2; border-color: #bfe6d5; }
+    .s-run { color: var(--run); background: #ebf4ff; border-color: #c5daf8; }
+    .s-warn { color: var(--warn); background: #fff5e7; border-color: #f0dbb7; }
+
+    .actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      border: 0;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn.take {
+      color: #fff;
+      background: linear-gradient(135deg, #7a0f28 0%, #9b1b3a 100%);
+    }
+    .btn.gift {
+      color: var(--primary);
+      background: #fff;
+      border: 1px solid #dbc1a0;
+    }
+    .btn:active { transform: scale(.98); }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tab {
+      border: 1px solid #e8d7bd;
+      background: #fff;
+      border-radius: 999px;
+      height: 32px;
+      font-size: 12px;
+      color: #635a52;
+      font-weight: 600;
+    }
+    .tab.active {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #7a0f28 0%, #9b1b3a 100%);
+    }
+
+    .record-list { display: grid; gap: 8px; }
+    .record {
+      background: #fff;
+      border: 1px solid #eadbc3;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #665d55;
+      line-height: 1.5;
+    }
+    .record b { color: #3d1921; }
+    .record .time { color: #978d83; font-size: 11px; margin-top: 3px; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      background: rgba(48, 28, 20, .92);
+      color: #fff;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      opacity: 0;
+      transition: .22s ease;
+      pointer-events: none;
+      z-index: 60;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: 100%;
+      max-width: 375px;
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      border-top: 1px solid #eadfcd;
+      background: rgba(255, 250, 242, 0.98);
+      box-shadow: 0 -6px 18px rgba(85, 53, 24, 0.08);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      z-index: 40;
+    }
+    .bottom-nav a {
+      text-decoration: none;
+      text-align: center;
+      font-size: 11px;
+      color: #6f665f;
+      line-height: 1.4;
+    }
+    .bottom-nav a.active { color: var(--primary); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <header class="top">
+      <div class="top-row">
+        <a class="btn-link" href="home.html">返回</a>
+        <div class="title">数字酒窖</div>
+        <a class="btn-link" href="traceability.html">溯源凭证</a>
+      </div>
+      <div class="sub">展示你的数字藏酒资产，支持按批次查看仓储状态，并进行提酒与转赠。</div>
+    </header>
+
+    <main class="content">
+      <section class="asset" id="asset"></section>
+
+      <section class="section">
+        <h3>我的藏酒 <span>按批次管理</span></h3>
+        <div class="list" id="wineList"></div>
+      </section>
+
+      <section class="section">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="detail" type="button">藏酒详情</button>
+          <button class="tab" data-tab="out" type="button">出库记录</button>
+          <button class="tab" data-tab="consume" type="button">消费记录</button>
+        </div>
+        <div class="record-list" id="recordList"></div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <nav class="bottom-nav">
+      <a href="home.html">首页</a>
+      <a href="category.html">分类</a>
+      <a href="group-buy.html">活动</a>
+      <a class="active" href="digital-cellar.html">酒窖</a>
+      <a href="member-center.html">我的</a>
+    </nav>
+  </div>
+
+  <script>
+    const assets = {
+      totalBottles: 26,
+      totalValue: 12860,
+      canTake: 9,
+      inStorage: 14,
+      shipping: 3
+    };
+
+    const wines = [
+      {
+        name: 'Chateau Montclair Reserve',
+        year: 2019,
+        batch: 'MC-2019-04-A7',
+        location: '上海保税仓 A区 12排-03',
+        status: '可提酒',
+        statusClass: 's-ok'
+      },
+      {
+        name: '奔富 BIN 389',
+        year: 2021,
+        batch: 'PF-2021-09-C2',
+        location: '杭州恒温仓 B区 03排-11',
+        status: '在仓储',
+        statusClass: 's-warn'
+      },
+      {
+        name: '路易王妃香槟 NV',
+        year: 2020,
+        batch: 'LP-NV-20-02',
+        location: '运输中（上海 → 苏州）',
+        status: '运输中',
+        statusClass: 's-run'
+      }
+    ];
+
+    const records = {
+      detail: [
+        { title: '蒙克莱尔珍藏 2019', desc: '编号：DC-8891027 · 储存条件：12℃恒温 / 70%湿度', time: '更新于 2026-04-17 16:32' },
+        { title: '奔富 BIN 389 2021', desc: '编号：DC-8891081 · 储存条件：13℃恒温 / 防震箱', time: '更新于 2026-04-16 09:45' }
+      ],
+      out: [
+        { title: '已出库：獭祭45 720ml', desc: '出库方式：自提配送 · 目的地：上海徐汇', time: '2026-04-10 11:20' },
+        { title: '已出库：里奥哈陈酿 2018', desc: '出库方式：冷链快递 · 签收完成', time: '2026-03-22 18:06' }
+      ],
+      consume: [
+        { title: '消费：提酒服务费', desc: '订单号：CO-204812 · 金额：￥18', time: '2026-04-10 11:21' },
+        { title: '消费：转赠手续费', desc: '订单号：CO-203991 · 金额：￥5', time: '2026-03-30 14:09' }
+      ]
+    };
+
+    const state = { tab: 'detail' };
+
+    function toast(text) {
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 1600);
+    }
+
+    function renderAssets() {
+      document.getElementById('asset').innerHTML = `
+        <div class="metric"><div class="k">我的藏酒总数</div><div class="v">${assets.totalBottles}<small> 瓶</small></div></div>
+        <div class="metric"><div class="k">总估值</div><div class="v">¥${assets.totalValue.toLocaleString()}</div></div>
+        <div class="metric"><div class="k">可提酒数量</div><div class="v">${assets.canTake}<small> 瓶</small></div></div>
+        <div class="metric"><div class="k">在仓数量 / 运输中</div><div class="v">${assets.inStorage}<small> / ${assets.shipping}</small></div></div>
+      `;
+    }
+
+    function renderWines() {
+      const list = document.getElementById('wineList');
+      list.innerHTML = wines.map((w, idx) => `
+        <article class="wine">
+          <div class="thumb" style="background:linear-gradient(145deg,#f8ecd8,${idx % 2 ? '#dcb78a' : '#e8c894'});"></div>
+          <div>
+            <h4 class="name">${w.name}</h4>
+            <p class="meta">年份：${w.year}</p>
+            <p class="meta">批次号：${w.batch}</p>
+            <p class="meta">仓储位置：${w.location}</p>
+            <span class="status ${w.statusClass}">${w.status}</span>
+            <div class="actions">
+              <button class="btn take" type="button" data-act="take" data-name="${w.name}">提酒</button>
+              <button class="btn gift" type="button" data-act="gift" data-name="${w.name}">转赠</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+
+      list.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-act');
+          const name = btn.getAttribute('data-name');
+          if (act === 'take') {
+            toast('已创建提酒申请：' + name);
+          } else {
+            toast('已进入转赠流程：' + name);
+          }
+        });
+      });
+    }
+
+    function renderRecords() {
+      const data = records[state.tab] || [];
+      const list = document.getElementById('recordList');
+      list.innerHTML = data.map(r => `
+        <div class="record">
+          <b>${r.title}</b>
+          <div>${r.desc}</div>
+          <div class="time">${r.time}</div>
+        </div>
+      `).join('');
+    }
+
+    function bindTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          state.tab = tab.dataset.tab;
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          renderRecords();
+        });
+      });
+    }
+
+    renderAssets();
+    renderWines();
+    bindTabs();
+    renderRecords();
+  </script>
+</body>
+</html>

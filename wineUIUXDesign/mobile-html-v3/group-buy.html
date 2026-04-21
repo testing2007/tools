@@ -1,0 +1,704 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>拼团专区</title>
+  <style>
+    :root {
+      --bg: #fff7f3;
+      --panel: #ffffff;
+      --ink: #33110d;
+      --muted: #7a5d57;
+      --line: rgba(177, 83, 57, .14);
+      --shadow: 0 16px 34px rgba(94, 36, 25, .12);
+      --primary: #8b1e26;
+      --accent: #f97316;
+      --gold: #d6a23a;
+      --safe: calc(92px + env(safe-area-inset-bottom));
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #666666;
+      /*  */
+      font-family: "Nunito Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink)
+    }
+
+    body {
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      background:
+        radial-gradient(900px 260px at 0% 0%, rgba(139, 30, 38, .14), transparent 54%),
+        radial-gradient(720px 220px at 100% 10%, rgba(249, 115, 22, .12), transparent 50%),
+        linear-gradient(180deg, #fffaf7 0%, var(--bg) 100%);
+      width: min(100vw, 375px);
+      min-height: 100vh;
+      padding-bottom: var(--safe)
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 10px 12px;
+      background: rgba(23, 17, 15, .95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(242, 217, 166, .24)
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title {
+      text-align: center;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif;
+      letter-spacing: .4px
+    }
+
+    .iconbtn {
+      height: 34px;
+      border-radius: 11px;
+      border: 1px solid rgba(242, 217, 166, .34);
+      background: rgba(255, 255, 255, .12);
+      display: grid;
+      place-items: center;
+      color: #fbe8bf;
+      text-decoration: none;
+      box-shadow: 0 6px 14px rgba(94, 36, 25, .06)
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 12px 0;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(39, 15, 13, .94), rgba(139, 30, 38, .78) 54%, rgba(249, 115, 22, .82)),
+        url("https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=1200&q=80") center/cover;
+      color: #fff8ef;
+      box-shadow: var(--shadow)
+    }
+
+    .hero-inner {
+      padding: 16px
+    }
+
+    .label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 4px rgba(253, 230, 138, .16)
+    }
+
+    .hero-title {
+      margin: 12px 0 6px;
+      font: 800 25px/1.08 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .hero-sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 28ch;
+      color: rgba(255, 248, 237, .92)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .stat small {
+      display: block;
+      font-size: 10px;
+      color: rgba(255, 248, 239, .84)
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #fffaf3
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px
+    }
+
+    .tab {
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(139, 30, 38, .12);
+      background: #fff;
+      color: #6c3d38;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(94, 36, 25, .06)
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--primary), #a61f32);
+      color: #fff7f0;
+      border-color: transparent
+    }
+
+    .section {
+      margin: 0 12px 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      padding: 14px 14px 10px
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 800 16px/1 "Rubik", "PingFang SC", sans-serif
+    }
+
+    .section-head span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .overview {
+      padding: 0 14px 14px;
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 10px
+    }
+
+    .overview-card {
+      border-radius: 18px;
+      padding: 12px;
+      border: 1px solid rgba(139, 30, 38, .1);
+      background: linear-gradient(180deg, #fff, #fff8f6)
+    }
+
+    .overview-card h3 {
+      margin: 0 0 5px;
+      font-size: 14px
+    }
+
+    .overview-card p {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted)
+    }
+
+    .ticker {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #8f4f40
+    }
+
+    .ticker strong {
+      font: 800 18px/1 "Rubik", sans-serif;
+      color: #9b1f2a
+    }
+
+    .list {
+      padding: 0 12px 14px;
+      display: grid;
+      gap: 10px
+    }
+
+    .card {
+      display: none;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid rgba(139, 30, 38, .1);
+      box-shadow: 0 8px 18px rgba(94, 36, 25, .05);
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden
+    }
+
+    .card.active {
+      display: grid
+    }
+
+    .card img {
+      width: 100%;
+      height: 150px;
+      border-radius: 20px 20px 0 0;
+      object-fit: cover
+    }
+
+    .info {
+      padding: 12px;
+      display: grid;
+      gap: 6px
+    }
+
+    .info h3 {
+      margin: 0;
+      font-size: 14px
+    }
+
+    .brand {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 6px 0
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #fff5f0;
+      border: 1px solid rgba(139, 30, 38, .1);
+      color: #a23d33
+    }
+
+    .price {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      align-items: start;
+      margin-top: 8px
+    }
+
+    .price strong {
+      font: 800 19px/1 "Rubik", sans-serif;
+      color: #b6242f
+    }
+
+    .price del {
+      display: block;
+      font-size: 11px;
+      color: #9f8b84;
+      margin-top: 4px
+    }
+
+    .price small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .join {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "people btn"
+        "count btn";
+      gap: 6px 8px;
+      align-items: center;
+    }
+
+    .countdown {
+      grid-area: count;
+      font-size: 11px;
+      color: #d26932;
+      font-weight: 800;
+      white-space: nowrap
+    }
+
+    .countdown span {
+      display: inline-block;
+      padding: 3px 6px;
+      margin: 0 2px;
+      border-radius: 6px;
+      background: #fff2ea;
+      color: #c24f1f
+    }
+
+    .joinbtn {
+      grid-area: btn;
+      min-width: 74px;
+      padding: 8px 11px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent), #fb923c);
+      color: #fff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 18px rgba(249, 115, 22, .18)
+    }
+
+    .people {
+      grid-area: people;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-start
+    }
+
+    .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffd7c9, #f8a36d);
+      border: 2px solid #fff;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      color: #7f261a;
+      font-weight: 800;
+      margin-left: -7px
+    }
+
+    .note {
+      margin: 0 12px 14px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff, #fff8f5);
+      border: 1px solid rgba(139, 30, 38, .1)
+    }
+
+    .note h3 {
+      margin: 0 0 6px;
+      font-size: 14px
+    }
+
+    .note ul {
+      margin: 0;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7
+    }
+
+    .bottomnav {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(23, 17, 15, .95);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(242, 217, 166, .25);
+      z-index: 25
+    }
+
+    .tabnav {
+      text-decoration: none;
+      color: rgba(255, 244, 222, .78);
+      font-size: 11px;
+      display: grid;
+      justify-items: center;
+      gap: 3px
+    }
+
+    .tabnav svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .tabnav.active {
+      color: #f6d69f
+    }
+
+    .floating {
+      position: fixed;
+      right: calc(50% - min(100vw, 375px)/2 + 12px);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 30;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #2d2448, #5e4c8d);
+      color: #f5f7ff;
+      border: 1px solid rgba(173, 191, 241, .35);
+      box-shadow: 0 12px 22px rgba(24, 39, 74, .22);
+      padding: 10px 12px;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .floating svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .floating::after {
+      content: "AI 侍酒师"
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bar">
+        <a class="iconbtn" href="home.html" aria-label="返回首页"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="title">拼团专区</div>
+        <a class="iconbtn" href="cart.html" aria-label="购物车"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M6 6h15l-2 8H8L6 6z" />
+            <path d="M6 6 5 3H2" />
+            <circle cx="9" cy="20" r="1.6" />
+            <circle cx="18" cy="20" r="1.6" />
+          </svg></a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="label">好友成团 · 低价抢酒</span>
+        <h1 class="hero-title">和朋友拼一箱，喝到更好的产区酒</h1>
+        <p class="hero-sub">拼团不是简单降价，而是围绕产区、年份、口感偏好建立更适合多人下单的酒类购买路径。</p>
+        <div class="stats">
+          <div class="stat"><small>今日开团</small><strong>128</strong></div>
+          <div class="stat"><small>已成团</small><strong>74</strong></div>
+          <div class="stat"><small>平均省</small><strong>31%</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-status="ongoing">开团中</button>
+      <button class="tab" data-status="soon">即将开始</button>
+      <button class="tab" data-status="ended">已结束</button>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>本场焦点</h2>
+        <span>酒类拼团更看重库存节奏</span>
+      </div>
+      <div class="overview">
+        <div class="overview-card">
+          <h3>热团正在刷新</h3>
+          <p>主打法国波尔多、西班牙里奥哈和苏格兰威士忌，适合家庭宴请和朋友聚会。</p>
+          <div class="ticker"><span>限时成团</span><strong>02:18:46</strong></div>
+        </div>
+        <div class="overview-card">
+          <h3>拼团玩法</h3>
+          <p>3 人成团更稳，5 人成团更划算；适合先锁库存再决定箱数。</p>
+          <div class="ticker"><span>推荐人数</span><strong>3-5</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>拼团列表</h2>
+        <span>按状态筛选展示</span>
+      </div>
+      <div class="list" id="groupList">
+        <a class="card active" data-status="ongoing" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=900&q=80"
+            alt="波尔多干红拼团" loading="lazy" />
+          <div class="info">
+            <div class="brand">Chateau Lumiere · 法国波尔多</div>
+            <h3>左岸赤霞珠干红 2019</h3>
+            <div class="meta"><span class="tag">单宁中高</span><span class="tag">牛排搭餐</span><span class="tag">成团送酒具</span>
+            </div>
+            <div class="price">
+              <div><strong>￥198</strong><del>￥298</del><small>已参团 24 人 · 还差 1 人</small></div>
+              <div class="join">
+                <div class="people"><span class="avatar">王</span><span class="avatar">李</span><span
+                    class="avatar">周</span></div>
+                <span class="countdown">剩余 <span>05</span>:<span>42</span>:<span>18</span></span>
+                <span class="joinbtn">去参团</span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <a class="card active" data-status="ongoing" href="product-detail.html">
+          <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=900&q=80"
+            alt="葡萄酒礼盒拼团" loading="lazy" />
+          <div class="info">
+            <div class="brand">Marea Vineyards · 新西兰马尔堡</div>
+            <h3>长相思礼盒双支装</h3>
+            <div class="meta"><span class="tag">清爽柑橘香</span><span class="tag">海鲜搭餐</span><span class="tag">拼团包邮</span>
+            </div>
+            <div class="price">
+              <div><strong>￥159</strong><del>￥239</del><small>已参团 15 人 · 还差 2 人</small></div>
+              <div class="join">
+                <div class="people"><span class="avatar">陈</span><span class="avatar">赵</span><span
+                    class="avatar">沈</span></div>
+                <span class="countdown">剩余 <span>03</span>:<span>26</span>:<span>07</span></span>
+                <span class="joinbtn">去参团</span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <a class="card active" data-status="soon" href="flash-sale.html">
+          <img src="https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=900&q=80"
+            alt="威士忌拼团预告" loading="lazy" />
+          <div class="info">
+            <div class="brand">Highland Reserve · 苏格兰高地</div>
+            <h3>雪莉桶单一麦芽威士忌</h3>
+            <div class="meta"><span class="tag">烟熏甜香</span><span class="tag">晚间场</span><span class="tag">即将开团</span>
+            </div>
+            <div class="price">
+              <div><strong>￥268</strong><del>￥358</del><small>预热中 · 28 分钟后开团</small></div>
+              <div class="join">
+                <div class="people"><span class="avatar">预</span><span class="avatar">热</span></div>
+                <span class="countdown">开团 <span>28</span> 分钟</span>
+                <span class="joinbtn">预约开团</span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        <a class="card active" data-status="ended" href="order-list.html">
+          <img src="https://images.unsplash.com/photo-1528823872057-9c018a7f2955?auto=format&fit=crop&w=900&q=80"
+            alt="香槟拼团已结束" loading="lazy" />
+          <div class="info">
+            <div class="brand">Maison Aurelia · 法国香槟区</div>
+            <h3>珍藏年份香槟双支装</h3>
+            <div class="meta"><span class="tag">气泡细腻</span><span class="tag">庆祝场景</span><span class="tag">已成团</span>
+            </div>
+            <div class="price">
+              <div><strong>￥328</strong><del>￥468</del><small>已满团 50 单 · 已售罄</small></div>
+              <div class="join">
+                <div class="people"><span class="avatar">已</span><span class="avatar">结</span></div>
+                <span class="countdown">活动已结束</span>
+                <span class="joinbtn">查看结果</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="note">
+      <h3>拼团提醒</h3>
+      <ul>
+        <li>拼团更适合箱装酒、礼盒和节庆酒款。</li>
+        <li>查看口感标签和搭餐建议，避免只看价格做决定。</li>
+        <li>同一款酒若有瑕疵标识，请确认是否介意再参团。</li>
+      </ul>
+    </section>
+  </main>
+
+  <a class="floating" href="ai-sommelier.html" aria-label="AI侍酒师">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 3v3M8 5.5l2 2M16 5.5l-2 2M4.5 12h3M16.5 12h3M7 17c1.4-1.8 3.1-2.7 5-2.7s3.6.9 5 2.7" />
+      <path d="M12 10.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+    </svg>
+  </a>
+
+  <nav class="bottomnav" aria-label="底部导航">
+    <a class="tabnav" href="index.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>导航</a>
+    <a class="tabnav" href="home.html"><svg viewBox="0 0 24 24">
+        <path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z" />
+      </svg>首页</a>
+    <a class="tabnav" href="category.html"><svg viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </svg>分类</a>
+    <a class="tabnav active" href="group-buy.html"><svg viewBox="0 0 24 24">
+        <path d="M5 12h14M12 5v14" />
+        <path d="M5 5h14v14H5z" />
+      </svg>活动</a>
+    <a class="tabnav" href="member-center.html"><svg viewBox="0 0 24 24">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+        <path d="M4 20a8 8 0 0 1 16 0" />
+      </svg>我的</a>
+  </nav>
+
+  <script>
+    const tabs = [...document.querySelectorAll('.tab')];
+    const cards = [...document.querySelectorAll('.card')];
+    function filter(status) {
+      cards.forEach(card => {
+        card.classList.toggle('active', card.dataset.status === status);
+      });
+    }
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      filter(tab.dataset.status);
+    }));
+  </script>
+</body>
+
+</html>

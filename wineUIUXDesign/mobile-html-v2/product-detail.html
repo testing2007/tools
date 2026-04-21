@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /><title>酒类商品详情</title>
+<style>
+:root{--bg:#f4ede3;--card:#fffaf2;--p:#711328;--t:#2f2a27;--m:#7c736b;--l:#ead9bf;--s:0 8px 24px rgba(113,19,40,.1)}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(circle at 10% 0%,#fff9ef,#f3ebdf 46%,#ecdfce 100%);color:var(--t)}.phone{max-width:375px;margin:0 auto;min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:20;padding:10px 12px;background:rgba(113,19,40,.95);color:#fff}.row{display:flex;justify-content:space-between;align-items:center}.back{text-decoration:none;color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);border-radius:999px;padding:6px 10px;font-size:12px}
+.main{padding:12px;display:grid;gap:12px}.hero{height:210px;border-radius:14px;background:linear-gradient(135deg,#fff4ea 0%,#ffd4a1 52%,#ff6a7e 120%);position:relative;overflow:hidden}.sticker{position:absolute;left:12px;top:12px;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:800;color:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.24);background:linear-gradient(135deg,rgba(255,77,109,.92),rgba(255,184,107,.82));box-shadow:0 10px 22px rgba(255,77,109,.18);transform:rotate(-2deg)}.dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px}.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.65)}.dot.a{background:#fff}
+.card{background:var(--card);border:1px solid var(--l);border-radius:14px;box-shadow:var(--s);padding:10px}.name{margin:0;font-size:17px;color:#3d1921}.sub{margin:5px 0 0;font-size:12px;color:#6d645c}.rate{margin-top:6px;font-size:12px;color:#8a8078}
+.price{margin-top:8px;display:flex;align-items:baseline;gap:8px}.now{font-size:24px;color:#9a1f3d;font-weight:800}.old{text-decoration:line-through;color:#968c83;font-size:12px}.vip{font-size:12px;color:#7b4f2a;background:#f9efdf;border:1px solid #ead7bb;border-radius:999px;padding:2px 8px}
+.warn{font-size:12px;color:#7a1f34;background:#fff1f4;border:1px solid #f0c4cf;border-radius:10px;padding:8px;line-height:1.5}
+.sec h3{margin:0 0 8px;font-size:15px}.bar{height:6px;background:#f0e5d6;border-radius:999px;overflow:hidden;margin:4px 0 8px}.fill{height:100%;background:linear-gradient(90deg,#8b1732,#cb4c6f)}.line{font-size:12px;color:#5f554d;background:#fff;border:1px dashed #ead5b0;border-radius:10px;padding:8px;margin-bottom:7px}
+.links{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.lk{text-decoration:none;text-align:center;background:#fff;border:1px solid #ecdabf;border-radius:10px;padding:8px;font-size:12px;color:#3d1921}
+.review{font-size:12px;color:#5f554d;background:#fff;border:1px solid #ecdabf;border-radius:10px;padding:8px;margin-bottom:7px}
+.buy{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:375px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,250,242,.98);border-top:1px solid #eadfcd;display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{height:38px;border:0;border-radius:999px;font-size:13px;font-weight:700}.btn.a{color:var(--p);background:#fff;border:1px solid #dbc1a0}.btn.b{color:#fff;background:linear-gradient(135deg,#7a0f28,#9b1b3a)}
+
+/* v2 theme overrides: youthful light-lux */
+:root{
+  --bg:#fbf7f1;
+  --card:rgba(255,255,255,.84);
+  --p:#6c0f2a;
+  --t:#231d20;
+  --m:#72686c;
+  --l:rgba(108,15,42,.14);
+  --s:0 14px 30px rgba(108,15,42,.12);
+  --radius:18px;
+
+  --primary:#6c0f2a;
+  --primary-2:#ff4d6d;
+  --gold:#ffb86b;
+  --text:#231d20;
+  --muted:#72686c;
+  --shadow:0 14px 30px rgba(108,15,42,.12);
+
+  --wine-bg:#fbf7f1;
+  --wine-card:rgba(255,255,255,.86);
+  --wine-primary:#6c0f2a;
+  --wine-gold:#ffb86b;
+  --wine-text:#231d20;
+  --wine-sub:#72686c;
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(255,77,109,.22), transparent 60%),
+    radial-gradient(700px 520px at 96% 6%, rgba(255,184,107,.20), transparent 62%),
+    radial-gradient(700px 520px at 20% 96%, rgba(108,15,42,.12), transparent 58%),
+    linear-gradient(180deg,#fff9f3 0%,#fbf3ea 55%,#f8efe6 100%);
+}
+
+.phone{position:relative}
+
+/* Global cards */
+.card,.section,.item{
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  border:1px solid var(--l) !important;
+  background:var(--card) !important;
+  backdrop-filter:blur(10px);
+}
+
+/* Top bars */
+.top,.topbar{
+  background:linear-gradient(135deg,#4f0b1f 0%, #7b1234 48%, #ff4d6d 120%) !important;
+}
+
+/* Buttons */
+.btn,.msg-btn,button{
+  transition:transform .08s ease, filter .18s ease, box-shadow .18s ease;
+}
+.btn{box-shadow:0 12px 22px rgba(108,15,42,.18)}
+.btn:active,.msg-btn:active,button:active{transform:translateY(1px) scale(.99);filter:saturate(1.08)}
+
+/* Links as chips */
+.lk,.item{
+  border:1px solid rgba(108,15,42,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78)) !important;
+}
+
+/* Subtle sticker accents on hero/banner blocks if present */
+.banner,.hero{
+  position:relative;
+  overflow:hidden;
+}
+.banner::before,.hero::before{
+  content:"";
+  position:absolute;
+  top:-36px;
+  right:-46px;
+  width:140px;
+  height:140px;
+  border-radius:42px;
+  background:linear-gradient(135deg, rgba(255,184,107,.78), rgba(255,77,109,.62));
+  filter:blur(.2px);
+  transform:rotate(16deg);
+  opacity:.55;
+}
+.banner::after,.hero::after{
+  content:"";
+  position:absolute;
+  left:-56px;
+  bottom:-62px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  opacity:.45;
+}
+
+/* Reduce "old-school" heavy text */
+.title h3,h1,h2,h3{letter-spacing:.2px}
+</style></head><body>
+<div class="phone"><header class="top"><div class="row"><a class="back" href="home.html">返回</a><div style="font-size:15px;font-weight:700">商品详情</div><a class="back" href="cart.html">购物车</a></div></header>
+<main class="main"><section class="hero"><div class="sticker">今夜推荐</div><div class="dots"><span class="dot a"></span><span class="dot"></span><span class="dot"></span></div></section>
+<section class="card"><h1 class="name">Chateau Montclair Reserve 2019</h1><p class="sub">副标题：左岸风格干红 · 品牌 Montclair · 年份 2019</p><p class="rate">评分 4.8 · 销量 2,139</p><div class="price"><span class="now">￥299</span><span class="old">市场价￥469</span><span class="vip">会员价￥269</span></div><div class="warn" style="margin-top:8px">瑕疵说明：本批次部分酒标可能轻微褶皱，不影响正常饮用。介意者慎拍，适合自饮。</div></section>
+<section class="card sec"><h3>口感档案</h3><div style="font-size:12px">酸度 62</div><div class="bar"><div class="fill" style="width:62%"></div></div><div style="font-size:12px">甜度 18</div><div class="bar"><div class="fill" style="width:18%"></div></div><div style="font-size:12px">单宁 74</div><div class="bar"><div class="fill" style="width:74%"></div></div><div style="font-size:12px">酒体 68</div><div class="bar"><div class="fill" style="width:68%"></div></div><div style="font-size:12px">香气 80</div><div class="bar"><div class="fill" style="width:80%"></div></div></section>
+<section class="card sec"><h3>适饮窗口</h3><div class="line">2025-2029 年为最佳适饮期，建议醒酒 20 分钟，饮用温度 16-18℃。</div></section>
+<section class="card sec"><h3>产区地图</h3><div class="line">法国梅多克 AOC，砾石土壤，海洋性气候，适合赤霞珠生长。</div></section>
+<section class="card sec"><h3>品牌故事</h3><div class="line">Montclair 酒庄始于 1863 年，长期坚持分区酿造与可持续葡萄园管理。</div></section>
+<section class="card sec"><h3>搭餐建议</h3><div class="line">黑椒牛排、烤羊排、陈年硬质芝士，能平衡单宁并放大果香。</div></section>
+<section class="card"><div class="links"><a class="lk" href="traceability.html">真伪/批次溯源</a><a class="lk" href="digital-cellar.html">数字酒窖入口</a><a class="lk" href="ai-sommelier.html">AI侍酒师入口</a></div></section>
+<section class="card sec"><h3>用户评价</h3><div class="review">「黑莓和香草香气明显，醒酒后更顺，适合周末配牛排。」</div><div class="review">「有轻微标贴褶皱，但自饮性价比很高。」</div></section></main>
+</div><footer class="buy"><button class="btn a" onclick="location.href='cart.html'">加入购物车</button><button class="btn b" onclick="location.href='checkout.html'">立即购买</button></footer>
+</body></html>
+
+

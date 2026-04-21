@@ -1,0 +1,343 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AI 侍酒师</title>
+  <style>
+    :root {
+      --bg: #f5f2ee;
+      --panel: #fffaf3;
+      --ink: #14110f;
+      --muted: #6b5f57;
+      --gold: #b98931;
+      --line: rgba(185, 137, 49, .2);
+      --safe: calc(80px + env(safe-area-inset-bottom));
+      --shadow: 0 10px 24px rgba(30, 21, 16, .12)
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: #666;
+      /* background: radial-gradient(70% 45% at 0 0, rgba(185, 137, 49, .2), transparent 70%), radial-gradient(65% 40% at 100% 6%, rgba(69, 50, 48, .16), transparent 70%), var(--bg); */
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      display: flex;
+      justify-content: center
+    }
+
+    .app {
+      width: min(100vw, 375px);
+      min-height: 100dvh;
+      background: linear-gradient(180deg, rgba(255, 250, 243, .95), rgba(255, 247, 241, .98));
+      padding-bottom: var(--safe)
+    }
+
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(250, 226, 184, .25);
+      background: linear-gradient(180deg, rgba(22, 18, 16, .95), rgba(22, 18, 16, .88))
+    }
+
+    .r {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      align-items: center;
+      gap: 8px
+    }
+
+    .ttl {
+      text-align: center;
+      color: #fff2d7;
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .ib {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(250, 226, 184, .32);
+      background: rgba(255, 255, 255, .08);
+      display: grid;
+      place-items: center;
+      color: #fcebc7;
+      text-decoration: none
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .hero {
+      margin: 10px 10px 0;
+      min-height: 160px;
+      border-radius: 16px;
+      padding: 12px;
+      color: #fff4de;
+      display: grid;
+      align-content: end;
+      gap: 7px;
+      background-image: linear-gradient(150deg, rgba(20, 15, 13, .72), rgba(20, 15, 13, .35)), url('https://images.unsplash.com/photo-1488992783499-418eb1f62d08?auto=format&fit=crop&w=1200&q=80');
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 14px 34px rgba(30, 21, 16, .24)
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 21px
+    }
+
+    .hero p {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(255, 242, 220, .92)
+    }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .chip {
+      font-size: 11px;
+      border: 1px solid rgba(249, 219, 160, .45);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, .1)
+    }
+
+    .section {
+      margin: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 10px
+    }
+
+    .h {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px
+    }
+
+    .h b {
+      font-size: 14px
+    }
+
+    .h span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .quick {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px
+    }
+
+    .q {
+      border: 1px solid rgba(141, 105, 48, .2);
+      border-radius: 11px;
+      background: #fff;
+      padding: 8px;
+      font-size: 12px;
+      color: #4f433c;
+      cursor: pointer
+    }
+
+    .chat {
+      display: grid;
+      gap: 8px
+    }
+
+    .msg {
+      border-radius: 12px;
+      padding: 9px 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 88%
+    }
+
+    .msg.bot {
+      background: #fff;
+      border: 1px solid rgba(141, 105, 48, .2)
+    }
+
+    .msg.user {
+      background: linear-gradient(135deg, #6f222a, #96323c);
+      color: #fff4df;
+      justify-self: end
+    }
+
+    .reco {
+      display: grid;
+      gap: 7px
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      border: 1px solid rgba(141, 105, 48, .2);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden
+    }
+
+    .item img {
+      width: 74px;
+      height: 74px;
+      object-fit: cover
+    }
+
+    .txt {
+      padding: 7px 8px 7px 0
+    }
+
+    .txt b {
+      display: block;
+      font-size: 12px
+    }
+
+    .txt small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-top: 2px
+    }
+
+    .cta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px
+    }
+
+    .btn {
+      height: 36px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: grid;
+      place-items: center;
+      font-size: 12px
+    }
+
+    .btn.p {
+      background: linear-gradient(135deg, #6f222a, #96323c);
+      color: #fff5e3
+    }
+
+    .btn.g {
+      border: 1px solid rgba(141, 105, 48, .25);
+      background: #fff;
+      color: #4f433c
+    }
+
+    .ask {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 0;
+      width: min(100vw, 375px);
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(22, 18, 16, .95);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      border-top: 1px solid rgba(250, 226, 184, .24)
+    }
+
+    .ask input {
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid rgba(250, 226, 184, .35);
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
+      padding: 0 12px;
+      font-size: 12px;
+      outline: none
+    }
+
+    .ask button {
+      height: 38px;
+      border-radius: 10px;
+      border: 0;
+      background: linear-gradient(135deg, #2b3f73, #4769a8);
+      color: #f2f7ff;
+      padding: 0 12px;
+      font-size: 12px
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="r"><a class="ib" href="home.html"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg></a>
+        <div class="ttl">AI 侍酒师</div><a class="ib" href="member-center.html"><svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+            <path d="M4 20a8 8 0 0 1 16 0" />
+          </svg></a>
+      </div>
+    </header>
+    <section class="hero">
+      <h1>一句话描述你的餐桌</h1>
+      <p>AI 根据预算、菜品与口味偏好，生成可直接下单的酒单。</p>
+      <div class="chips"><span class="chip">4.9 评分</span><span class="chip">可解释推荐</span><span class="chip">支持批次溯源</span>
+      </div>
+    </section>
+    <section class="section">
+      <div class="h"><b>快捷问题</b><span>点一下直接问</span></div>
+      <div class="quick" id="quick"></div>
+    </section>
+    <section class="section">
+      <div class="h"><b>对话记录</b><span>当前会话</span></div>
+      <div class="chat" id="chat"></div>
+    </section>
+    <section class="section">
+      <div class="h"><b>推荐酒单</b><span>匹配度从高到低</span></div>
+      <div class="reco" id="reco"></div>
+    </section>
+    <section class="section">
+      <div class="h"><b>延伸入口</b><span>下单与托管</span></div>
+      <div class="cta"><a class="btn p" href="product-detail.html">查看商品详情</a><a class="btn g"
+          href="digital-cellar.html">加入数字酒窖</a></div>
+    </section>
+  </main>
+  <div class="ask"><input id="askInput" placeholder="例如：预算 300，配牛排和奶酪" /><button id="sendBtn">发送</button></div>
+  <script>
+    const quickData = ['今天海鲜晚餐配什么？', '预算 200-400，喜欢果香', '给我聚会用 3 瓶组合', '想要可入盲盒池酒款'];
+    const chatData = [{role: 'bot', text: '你好，我是 AI 侍酒师。先告诉我你的菜品和预算吧。'}, {role: 'user', text: '今晚牛排 + 奶酪拼盘，预算 500 内。'}, {role: 'bot', text: '推荐以赤霞珠为主，若需要气泡开胃可加一支 Brut 香槟。'}];
+    const recoData = [{name: 'Napa Ridge Cabernet 2020', desc: '匹配度 92% · 黑果与单宁结构适合牛排', img: 'https://images.unsplash.com/photo-1569919659476-f0852f6834b7?auto=format&fit=crop&w=500&q=80'}, {name: 'Maison Etoile Brut', desc: '匹配度 88% · 搭配奶酪与前菜更平衡', img: 'https://images.unsplash.com/photo-1609951651556-5334e2706168?auto=format&fit=crop&w=500&q=80'}];
+    const quick = document.getElementById('quick'); quick.innerHTML = quickData.map(t => `<button class="q">${t}</button>`).join('');
+    const chat = document.getElementById('chat');
+    function renderChat() {chat.innerHTML = chatData.map(m => `<div class="msg ${m.role}">${m.text}</div>`).join('');}
+    renderChat();
+    const reco = document.getElementById('reco'); reco.innerHTML = recoData.map(i => `<article class="item"><img src="${i.img}" alt="${i.name}" loading="lazy"/><div class="txt"><b>${i.name}</b><small>${i.desc}</small></div></article>`).join('');
+    document.querySelectorAll('.q').forEach(btn => btn.addEventListener('click', () => {document.getElementById('askInput').value = btn.textContent;}));
+    document.getElementById('sendBtn').addEventListener('click', () => {const val = document.getElementById('askInput').value.trim(); if (!val) return; chatData.push({role: 'user', text: val}); chatData.push({role: 'bot', text: '已收到，我会优先推荐可溯源、适饮窗口匹配你场景的酒款。'}); renderChat(); document.getElementById('askInput').value = '';});
+  </script>
+</body>
+
+</html>
