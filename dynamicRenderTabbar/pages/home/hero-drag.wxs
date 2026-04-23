@@ -1,0 +1,70 @@
+'use strict';
+/**
+ * hero-drag.wxs
+ * 运行在渲染线程，直接操作样式，不走 JS 通信桥
+ * 仅负责 touchmove 的实时跟手，复杂逻辑回调给 JS
+ */
+
+var _startX   = 0;
+var _lastDxPx = 0;
+var _active   = false;
+
+// touchStart：记录起点，通知 JS 停止自动播放
+function touchStart(e, ins) {
+  // 若 JS 标记正在执行动画则忽略本次触摸
+  if (e.currentTarget.dataset.animating) { return; }
+  _startX   = e.touches[0].clientX;
+  _lastDxPx = 0;
+  _active   = true;
+  ins.callMethod('onWxsStart');
+}
+
+// touchMove：直接在渲染线程 setStyle，无 setData，无闪烁
+function touchMove(e, ins) {
+  if (!_active) { return; }
+
+  var dx     = e.touches[0].clientX - _startX;
+  var stageW = e.currentTarget.dataset.stageW || 351; // px
+  var max    = stageW * 0.55;
+
+  if (dx < -max) { dx = -max; }
+  if (dx >  max) { dx =  max; }
+  _lastDxPx = dx;
+
+  var cur = e.currentTarget.dataset.activeSlide;
+  if (cur === undefined || cur === null) { cur = 0; }
+
+  // 只移动当前 slide 的浮层 wrapper，底图完全不动
+  var el = ins.selectComponent('#float' + cur + 'w');
+  if (el) {
+    el.setStyle({ transform: 'translateX(' + dx.toFixed(1) + 'px)' });
+  }
+}
+
+// touchEnd：将手势数据传给 JS，JS 判断是否翻页
+function touchEnd(e, ins) {
+  if (!_active) { return; }
+  _active = false;
+
+  var endX = e.changedTouches[0].clientX;
+  ins.callMethod('onWxsEnd', {
+    totalDxPx: endX - _startX,
+    lastDxPx:  _lastDxPx
+  });
+}
+
+// onClear：JS 通过 data-clear-version 变化触发，清除 WXS 设置的 inline style
+// 使 WXML 数据绑定重新接管 float wrapper 的 transform
+function onClear(newVal, oldVal, ownerInstance, ins) {
+  var f0 = ownerInstance.selectComponent('#float0w');
+  var f1 = ownerInstance.selectComponent('#float1w');
+  if (f0) { f0.setStyle({ transform: '' }); }
+  if (f1) { f1.setStyle({ transform: '' }); }
+}
+
+module.exports = {
+  touchStart: touchStart,
+  touchMove:  touchMove,
+  touchEnd:   touchEnd,
+  onClear:    onClear
+};

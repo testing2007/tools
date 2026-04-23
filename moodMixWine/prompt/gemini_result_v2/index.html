@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Mix Wine V2 - Spatial UI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app" class="spatial-bg">
+        <!-- View 1: Input & Mixing State -->
+        <section id="view-mixing" class="view active">
+            
+            <!-- (New in V2) AI Input Domain -->
+            <div id="input-state" class="state-container active">
+                <div class="glass-hero-card">
+                    <div class="glow-orb"></div>
+                    <h2>酿成回甘</h2>
+                    <p>把藏在心底的情绪，交给我</p>
+                    <div class="input-wrapper">
+                        <textarea id="emotion-input" placeholder="例如：今天开完会觉得异常紧绷，有些迷茫...说出你此刻的感受。"></textarea>
+                    </div>
+                    <button class="spatial-btn primary" id="btn-start">
+                        <svg class="icon" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        开始深入分析
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis State (Visible after user inputs) -->
+            <div id="analysis-state" class="state-container hidden">
+                <div class="glass-cup-wrapper">
+                    <div class="glass-cup">
+                        <div class="liquid" id="liquid"></div>
+                        <div class="volumetric-light"></div>
+                    </div>
+                </div>
+
+                <div class="tracker-panel">
+                    <div class="tracker-labels">
+                        <span class="label">Deep (深度沉稳)</span>
+                        <span class="label">Bright (明亮活跃)</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="tracker-bar"></div>
+                    </div>
+                    <p class="status-text" id="status-text">提取情绪关键词中...</p>
+                </div>
+
+                <!-- Subtle apple-breathe style ring animation -->
+                <div class="breathing-rings" id="breathe-rings">
+                    <div class="ring ring-1"></div>
+                    <div class="ring ring-2"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- View 2: Result Page -->
+        <section id="view-result" class="view hidden">
+            <div class="result-header">
+                <h1 class="drink-name" id="drink-name">午夜可可 · 轻酿版</h1>
+                <p class="drink-subtitle">Midnight Cacao Mild</p>
+            </div>
+
+            <!-- Dynamic Fluid / Bottle area -->
+            <div class="illustration-stage">
+                <div class="fluid-orb">
+                    <div class="nucleus"></div>
+                </div>
+            </div>
+
+            <!-- Recipe Card (Spatial Bento Style) -->
+            <div class="recipe-card spatial-panel">
+                <div class="panel-header">AI 情绪解构配方</div>
+                <div class="recipe-grid">
+                    <div class="recipe-item">
+                        <div class="tag">基酒</div>
+                        <div class="r-title">Deep Liquor</div>
+                        <div class="r-desc">带一点沉稳与深色调。</div>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="tag">前调</div>
+                        <div class="r-title">柠檬皮 · 迷迭香</div>
+                        <div class="r-desc">来自你语句中的紧绷与急促。</div>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="tag">中调</div>
+                        <div class="r-title">可可 · 麦芽</div>
+                        <div class="r-desc">映射你此刻的压力感。</div>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="tag">尾调</div>
+                        <div class="r-title">橙皮</div>
+                        <div class="r-desc">代表你想缓和的内隐意图。</div>
+                    </div>
+                </div>
+                <div class="metrics-row">
+                    <div class="metric">
+                        <span class="m-val">0.63</span>
+                        <span class="m-label">中度酿制</span>
+                    </div>
+                    <div class="metric highlight">
+                        <span class="m-val" style="color: #ec4899;">Tight</span>
+                        <span class="m-label">紧绷体感</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-footer">
+                <button class="spatial-btn secondary">保存</button>
+                <button class="spatial-btn secondary">分享</button>
+                <button class="spatial-btn" id="btn-restart" style="background: rgba(255,255,255,0.2)">重调一杯</button>
+            </div>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

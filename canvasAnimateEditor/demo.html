@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景圆轨迹可视化编辑器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --page-bg: #09111f;
+            --page-top: #0c162b;
+            --panel-bg: rgba(10, 18, 34, 0.88);
+            --panel-strong: rgba(14, 24, 44, 0.96);
+            --panel-border: rgba(154, 168, 191, 0.14);
+            --panel-shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+            --panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            --tab-bg: rgba(255, 255, 255, 0.04);
+            --tab-active: linear-gradient(135deg, rgba(126, 168, 255, 0.24), rgba(126, 168, 255, 0.12));
+            --accent: #7ea8ff;
+            --accent-soft: rgba(126, 168, 255, 0.18);
+            --text-main: #edf3ff;
+            --text-soft: #a1b1ce;
+            --text-muted: #7584a4;
+            --stage-top: #0b1323;
+            --stage-bottom: #09101d;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --card-border: rgba(255, 255, 255, 0.58);
+            --card-shadow: 0 28px 70px rgba(3, 8, 20, 0.42);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at top, rgba(46, 72, 116, 0.22), transparent 28%),
+                linear-gradient(180deg, var(--page-top) 0%, var(--page-bg) 100%);
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        .workspace {
+            height: 100vh;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: 392px minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        .panel,
+        .preview-shell {
+            min-height: 0;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--panel-border);
+            background: var(--panel-bg);
+            box-shadow: var(--panel-shadow), var(--panel-inset);
+            backdrop-filter: blur(18px);
+            overflow: hidden;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 22px 22px 18px;
+            border-bottom: 1px solid rgba(154, 168, 191, 0.12);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+                rgba(9, 16, 30, 0.5);
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .panel-title {
+            margin: 10px 0 0;
+            font-size: 28px;
+            line-height: 1.15;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .panel-desc {
+            margin: 10px 0 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-soft);
+        }
+
+        .panel-meta {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .meta-card {
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(154, 168, 191, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .meta-card strong {
+            display: block;
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .meta-card span {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .tabbar {
+            padding: 14px 16px 0;
+            border-bottom: 1px solid rgba(154, 168, 191, 0.1);
+            background: rgba(10, 18, 34, 0.58);
+        }
+
+        .tabbar-track {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .tab-btn {
+            position: relative;
+            border: 1px solid rgba(154, 168, 191, 0.08);
+            border-bottom: 0;
+            border-radius: 16px 16px 0 0;
+            padding: 12px 8px 11px;
+            background: var(--tab-bg);
+            color: var(--text-soft);
+            cursor: pointer;
+            transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .tab-btn[aria-selected="true"] {
+            background: var(--tab-active);
+            color: #ffffff;
+            border-color: rgba(126, 168, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .tab-btn small {
+            display: block;
+            margin-top: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .tab-btn[aria-selected="true"] small {
+            color: rgba(225, 235, 255, 0.76);
+        }
+
+        .tab-panels {
+            flex: 1;
+            min-height: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.014), rgba(255, 255, 255, 0));
+        }
+
+        .tab-panel {
+            display: none;
+            height: 100%;
+            min-height: 0;
+            overflow: auto;
+            padding: 18px;
+        }
+
+        .tab-panel.active {
+            display: grid;
+            align-content: start;
+            gap: 16px;
+        }
+
+        .section-block {
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(154, 168, 191, 0.12);
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #dbe6ff;
+        }
+
+        .section-note {
+            margin: 10px 0 0;
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-soft);
+        }
+
+        .control-grid {
+            margin-top: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .control-row {
+            display: grid;
+            gap: 6px;
+        }
+
+        .inline-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .field-label,
+        .field-row label {
+            font-size: 12px;
+            color: var(--text-soft);
+        }
+
+        .field-row {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .field-value {
+            font-size: 11px;
+            color: #e4ecff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(154, 168, 191, 0.14);
+            background: rgba(5, 11, 23, 0.58);
+            color: var(--text-main);
+            padding: 10px 12px;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 42px;
+            border: 0;
+            border-radius: 12px;
+            padding: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        textarea {
+            min-height: 260px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn {
+            border: 1px solid rgba(154, 168, 191, 0.08);
+            border-radius: 999px;
+            padding: 10px 14px;
+            background: rgba(126, 168, 255, 0.14);
+            color: #eff4ff;
+            cursor: pointer;
+            transition: background 180ms ease, transform 180ms ease, border-color 180ms ease;
+        }
+
+        .btn:hover {
+            background: rgba(126, 168, 255, 0.22);
+            border-color: rgba(126, 168, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .hint {
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .segment-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .segment-chip {
+            border: 1px solid rgba(154, 168, 191, 0.12);
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            text-align: left;
+        }
+
+        .segment-chip.active {
+            border-color: rgba(126, 168, 255, 0.24);
+            background: rgba(126, 168, 255, 0.16);
+            color: #ffffff;
+        }
+
+        .segment-chip span,
+        .segment-chip small {
+            display: block;
+        }
+
+        .segment-chip small {
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .segment-chip.active small {
+            color: rgba(228, 237, 255, 0.84);
+        }
+
+        .preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .curve-preset {
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .curve-preset.active {
+            background: rgba(126, 168, 255, 0.22);
+            border-color: rgba(126, 168, 255, 0.24);
+            color: #ffffff;
+        }
+
+        .curve-shell {
+            padding: 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(154, 168, 191, 0.12);
+            background: rgba(7, 13, 24, 0.62);
+        }
+
+        .curve-note {
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .curve-svg {
+            display: block;
+            width: 100%;
+            max-width: 240px;
+            margin: 0 auto;
+            overflow: visible;
+        }
+
+        .curve-grid {
+            stroke: rgba(154, 168, 191, 0.12);
+            stroke-width: 1;
+        }
+
+        .curve-axis {
+            stroke: rgba(154, 168, 191, 0.24);
+            stroke-width: 1.2;
+        }
+
+        .curve-guide {
+            stroke: rgba(126, 168, 255, 0.28);
+            stroke-width: 1.4;
+            stroke-dasharray: 4 4;
+        }
+
+        .curve-path {
+            fill: none;
+            stroke: #8cb2ff;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .curve-anchor {
+            fill: rgba(255, 255, 255, 0.85);
+        }
+
+        .curve-handle {
+            fill: #7ea8ff;
+            stroke: white;
+            stroke-width: 2;
+            cursor: grab;
+        }
+
+        .curve-handle.active {
+            fill: #9bc0ff;
+        }
+
+        .curve-label {
+            fill: rgba(212, 224, 255, 0.78);
+            font-size: 9px;
+        }
+
+        .point-row {
+            display: grid;
+            grid-template-columns: 26px 1fr 1fr 34px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .point-index {
+            width: 26px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .point-row .btn {
+            padding: 8px 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .preview-shell {
+            position: relative;
+            padding: 18px;
+        }
+
+        .preview-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            border-radius: 24px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top, rgba(54, 74, 116, 0.18), transparent 30%),
+                linear-gradient(180deg, var(--stage-top) 0%, var(--stage-bottom) 100%);
+        }
+
+        .preview-stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .scene-layer,
+        .path-layer,
+        .safe-layer {
+            position: absolute;
+            inset: 0;
+        }
+
+        .scene-layer {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .safe-layer {
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .path-layer {
+            z-index: 3;
+            pointer-events: auto;
+        }
+
+        .preview-header {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            right: 18px;
+            z-index: 5;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            pointer-events: none;
+        }
+
+        .preview-label {
+            padding: 12px 14px;
+            border-radius: 18px;
+            background: rgba(9, 16, 30, 0.74);
+            border: 1px solid rgba(154, 168, 191, 0.12);
+            color: #dce7ff;
+            max-width: 360px;
+        }
+
+        .preview-label strong {
+            display: block;
+            font-size: 13px;
+            color: #ffffff;
+        }
+
+        .preview-label span {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--text-soft);
+        }
+
+        .preview-ui {
+            position: relative;
+            z-index: 4;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 86px 34px 38px;
+        }
+
+        .preview-chip {
+            position: absolute;
+            right: 22px;
+            bottom: 22px;
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(15, 25, 46, 0.82);
+            border: 1px solid rgba(154, 168, 191, 0.14);
+            color: #dce7ff;
+            font-size: 12px;
+        }
+
+        .safe-rect {
+            fill: rgba(126, 168, 255, 0.02);
+            stroke: rgba(126, 168, 255, 0.16);
+            stroke-width: 1.5;
+            stroke-dasharray: 8 10;
+        }
+
+        .path-segment {
+            fill: none;
+            stroke: rgba(175, 196, 255, 0.32);
+            stroke-width: 2;
+            transition: stroke 160ms ease;
+        }
+
+        .path-segment.active {
+            stroke: rgba(140, 178, 255, 0.94);
+        }
+
+        .path-hit {
+            stroke: rgba(255, 255, 255, 0);
+            stroke-width: 20;
+            cursor: pointer;
+        }
+
+        .segment-marker {
+            fill: rgba(8, 16, 32, 0.72);
+            stroke: rgba(175, 196, 255, 0.56);
+            stroke-width: 1.6;
+            cursor: pointer;
+        }
+
+        .segment-marker.active {
+            fill: rgba(126, 168, 255, 0.2);
+            stroke: rgba(140, 178, 255, 0.96);
+        }
+
+        .segment-badge {
+            fill: #dce7ff;
+            font-size: 9px;
+            font-weight: 700;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .path-point {
+            fill: rgba(255, 255, 255, 0.95);
+            stroke: rgba(126, 168, 255, 0.72);
+            stroke-width: 2;
+            cursor: grab;
+        }
+
+        .path-point.active {
+            fill: #7ea8ff;
+            stroke: white;
+        }
+
+        @media (max-width: 1180px) {
+            body {
+                overflow: auto;
+            }
+
+            .workspace {
+                height: auto;
+                min-height: 100vh;
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                min-height: 640px;
+            }
+
+            .preview-shell {
+                min-height: 68vh;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .workspace {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .tabbar-track {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .preview-ui {
+                padding: 92px 18px 80px;
+            }
+
+            .preview-chip {
+                left: 18px;
+                right: 18px;
+                justify-content: center;
+                flex-wrap: wrap;
+                border-radius: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="workspace">
+        <aside class="panel">
+            <div class="panel-header">
+                <div class="eyebrow">Motion Editor</div>
+                <h1 class="panel-title">背景圆轨迹可视化编辑器</h1>
+                <p class="panel-desc">左侧专注调参，右侧稳定预览。通过标签页分组，把全局、大圆、小圆、路径点和配置预览拆开，避免长表单把整个界面挤出可视窗口。</p>
+                <div class="panel-meta">
+                    <div class="meta-card">
+                        <strong>实时预览</strong>
+                        <span>拖点、改速率、调半径都会立刻映射到右侧</span>
+                    </div>
+                    <div class="meta-card">
+                        <strong>首屏可控</strong>
+                        <span>每个标签页内部滚动，不影响整体布局稳定性</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabbar" role="tablist" aria-label="参数分组">
+                <div class="tabbar-track">
+                    <button class="tab-btn" type="button" data-tab="global" role="tab" aria-selected="true">
+                        全局
+                        <small>范围与开关</small>
+                    </button>
+                    <button class="tab-btn" type="button" data-tab="blob0" role="tab" aria-selected="false">
+                        大圆
+                        <small>主视觉</small>
+                    </button>
+                    <button class="tab-btn" type="button" data-tab="blob1" role="tab" aria-selected="false">
+                        小圆
+                        <small>辅助层次</small>
+                    </button>
+                    <button class="tab-btn" type="button" data-tab="path" role="tab" aria-selected="false">
+                        关键帧
+                        <small>路径与曲线</small>
+                    </button>
+                    <button class="tab-btn" type="button" data-tab="config" role="tab" aria-selected="false">
+                        配置预览
+                        <small>复制导出</small>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tab-panels">
+                <section class="tab-panel active" id="tab-panel-global" data-panel="global" role="tabpanel">
+                    <div class="section-block">
+                        <h2 class="section-title">全局设置</h2>
+                        <p class="section-note">控制右侧可编辑安全区、圆允许越界的程度，以及路径辅助显示开关。安全区默认覆盖预览可视空间约 80%，并保持居中。</p>
+                        <div class="control-grid">
+                            <div class="inline-grid">
+                                <label class="control-row">
+                                    <span class="field-label">路径显示</span>
+                                    <button type="button" id="togglePathBtn" class="btn secondary">显示编辑路径</button>
+                                </label>
+                                <label class="control-row">
+                                    <span class="field-label">导出配置</span>
+                                    <button type="button" id="exportBtn" class="btn">复制 JSON</button>
+                                </label>
+                            </div>
+                            <div class="field-row">
+                                <div class="field-head">
+                                    <span class="field-label">安全区覆盖率</span>
+                                    <span class="field-value" id="safeAreaRatioLabel"></span>
+                                </div>
+                                <input id="safeAreaRatioInput" type="range" min="0.5" max="0.92" step="0.01">
+                            </div>
+                            <div class="field-row">
+                                <div class="field-head">
+                                    <span class="field-label">圆心可出界比例</span>
+                                    <span class="field-value" id="overflowRatioLabel"></span>
+                                </div>
+                                <input id="overflowRatioInput" type="range" min="0" max="1" step="0.01">
+                            </div>
+                            <p class="hint">控制点始终被约束在右侧安全区域内。圆本身允许部分越过轨迹和画面边缘，但不会整颗完全离开可视范围。</p>
+                        </div>
+                    </div>
+                    <div class="section-block">
+                        <h2 class="section-title">运动节奏</h2>
+                        <p class="section-note">大圆和小圆共享同一条时间轴，不再分别设置独立速度。时间轴由关键帧段落决定，两个圆只是在同一条轨迹上保持固定间距。</p>
+                        <div class="control-grid" id="motionControls"></div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" id="tab-panel-blob0" data-panel="blob0" role="tabpanel">
+                    <div class="section-block">
+                        <h2 class="section-title">大圆参数</h2>
+                        <p class="section-note">建议把大圆作为氛围主体，保持半径更大、透明度更克制。它和小圆共用同一套运动节奏，这里只负责视觉体积与质感。</p>
+                        <div class="control-grid" id="blob0Controls"></div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" id="tab-panel-blob1" data-panel="blob1" role="tabpanel">
+                    <div class="section-block">
+                        <h2 class="section-title">小圆参数</h2>
+                        <p class="section-note">小圆更适合做陪衬层次，可以适当提高亮度或缩小半径。与大圆之间的关系由全局“运动节奏”里的固定间距统一控制。</p>
+                        <div class="control-grid" id="blob1Controls"></div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" id="tab-panel-path" data-panel="path" role="tabpanel">
+                    <div class="section-block">
+                        <h2 class="section-title">关键帧锚点</h2>
+                        <p class="section-note">右侧白色控制点就是关键帧。你可以像早期 Flash 那样先摆关键帧位置，再给关键帧之间的段落定义速度曲线。</p>
+                        <div class="button-row">
+                            <button type="button" id="addPointBtn" class="btn">新增关键帧</button>
+                            <button type="button" id="resetPathBtn" class="btn secondary">恢复默认长方形</button>
+                        </div>
+                        <div class="control-grid" id="pointsEditor"></div>
+                    </div>
+                    <div class="section-block">
+                        <h2 class="section-title">关键帧段落</h2>
+                        <p class="section-note">每一段都可以单独定义时长和 easing。点击右侧线段上的数字圆点，或者在这里切换段落，再去调预设和曲线。</p>
+                        <div class="segment-list" id="segmentPicker"></div>
+                        <div class="control-grid" id="segmentInspector"></div>
+                        <div class="curve-shell" id="curveEditor"></div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" id="tab-panel-config" data-panel="config" role="tabpanel">
+                    <div class="section-block">
+                        <h2 class="section-title">配置预览</h2>
+                        <p class="section-note">这里保留当前状态的完整 JSON，方便复制到你的项目配置里，也方便和默认参数做对比。</p>
+                        <textarea id="configOutput" readonly spellcheck="false"></textarea>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <section class="preview-shell">
+            <div class="preview-stage" id="previewStage">
+                <canvas class="scene-layer" id="sceneCanvas"></canvas>
+                <svg class="safe-layer" id="safeOverlay" aria-hidden="true"></svg>
+                <svg class="path-layer" id="pathOverlay" aria-hidden="true"></svg>
+
+                <div class="preview-header">
+                    <div class="preview-label">
+                        <strong>右侧实时预览</strong>
+                        <span>左侧切换标签页时，右侧保持不动，便于一边调参数，一边观察圆的轨迹、大小、透明度和与卡片之间的关系。</span>
+                    </div>
+                </div>
+
+                <div class="preview-ui">
+                    <section class="user-card" id="userCard">
+                    </section>
+                </div>
+
+                <div class="preview-chip">
+                    <span>控制点限制在安全区内</span>
+                    <span>·</span>
+                    <span>圆允许部分出界但不会整颗消失</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="./js/routeMotion.js"></script>
+    <script>
+        // 画布、预览区与交互层引用
+        const canvas = document.getElementById('sceneCanvas');
+        const ctx = canvas.getContext('2d');
+        const previewStage = document.getElementById('previewStage');
+        const pathOverlay = document.getElementById('pathOverlay');
+        const safeOverlay = document.getElementById('safeOverlay');
+        const userCard = document.getElementById('userCard');
+        const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        const easingPresetOptions = [
+            {id: 'linear', label: 'Linear'},
+            {id: 'ease', label: 'Ease'},
+            {id: 'easeIn', label: 'Ease In'},
+            {id: 'easeOut', label: 'Ease Out'},
+            {id: 'easeInOut', label: 'Ease In Out'}
+        ];
+
+        let activeTab = 'global';
+        let selectedSegmentIndex = 0;
+        let dragPointIndex = null;
+        let dragCurveHandleKey = null;
+
+        function createDefaultSegment(preset = 'easeInOut') {
+            return {
+                duration: 1800,
+                easingPreset: preset,
+                bezier: window.RouteMotion.getPresetBezier(preset)
+            };
+        }
+
+        // 默认状态：
+        // 1. 右侧锚点定义关键帧位置
+        // 2. 关键帧之间的时长与 easing 共同决定速度节奏
+        // 3. 两个圆共享同一条时间轴，只保持固定路径间距
+        const defaultState = {
+            safeAreaRatio: 0.8,
+            overflowRatio: 0.82,
+            showPath: true,
+            motion: {
+                cycleMs: 0,
+                spacing: 0.42,
+                phaseOffset: 0.08
+            },
+            points: [
+                {x: 0.08, y: 0.12},
+                {x: 0.92, y: 0.12},
+                {x: 0.92, y: 0.88},
+                {x: 0.08, y: 0.88}
+            ],
+            segments: [
+                createDefaultSegment('easeInOut'),
+                createDefaultSegment('easeOut'),
+                createDefaultSegment('easeInOut'),
+                createDefaultSegment('easeIn')
+            ],
+            blobs: [
+                {
+                    color: '#6ca1ff',
+                    opacity: 0.28,
+                    glowOpacity: 0.50,
+                    radiusFactor: 0.44,
+                    minRadius: 120,
+                    maxRadius: 156,
+                    shadowBlur: 36
+                },
+                {
+                    color: '#f4f8ff',
+                    opacity: 0.22,
+                    glowOpacity: 0.32,
+                    radiusFactor: 0.28,
+                    minRadius: 74,
+                    maxRadius: 98,
+                    shadowBlur: 24
+                }
+            ]
+        };
+
+        const state = JSON.parse(JSON.stringify(defaultState));
+
+        let viewportWidth = 0;
+        let viewportHeight = 0;
+        let safeRect = null;
+
+        const motionFields = [
+            {key: 'cycleMs', label: '往返周期', type: 'range', min: 0, max: 10000, step: 100},
+            {key: 'spacing', label: '路径间距', type: 'range', min: 0.05, max: 0.8, step: 0.01},
+            {key: 'phaseOffset', label: '起始偏移', type: 'range', min: 0, max: 1, step: 0.01}
+        ];
+
+        const blobFields = [
+            {key: 'radiusFactor', label: '半径比例', type: 'range', min: 0.15, max: 0.7, step: 0.01},
+            {key: 'minRadius', label: '最小半径', type: 'range', min: 20, max: 220, step: 1},
+            {key: 'maxRadius', label: '最大半径', type: 'range', min: 30, max: 260, step: 1},
+            {key: 'opacity', label: '主体透明度', type: 'range', min: 0.04, max: 0.8, step: 0.01},
+            {key: 'glowOpacity', label: '光晕透明度', type: 'range', min: 0.04, max: 0.9, step: 0.01},
+            {key: 'shadowBlur', label: '模糊光晕', type: 'range', min: 0, max: 80, step: 1},
+            {key: 'color', label: '圆颜色', type: 'color'}
+        ];
+
+        function ensureSegmentsSync() {
+            while (state.segments.length < state.points.length) {
+                state.segments.push(createDefaultSegment());
+            }
+
+            if (state.segments.length > state.points.length) {
+                state.segments = state.segments.slice(0, state.points.length);
+            }
+
+            state.segments = state.segments.map((segment) => ({
+                ...createDefaultSegment(segment.easingPreset || 'easeInOut'),
+                ...segment,
+                duration: Math.max(100, Number(segment.duration) || 1800),
+                bezier: window.RouteMotion.normalizeBezier(segment.bezier)
+            }));
+
+            selectedSegmentIndex = window.RouteMotion.clamp(
+                selectedSegmentIndex,
+                0,
+                Math.max(0, state.segments.length - 1)
+            );
+        }
+
+        function hexToRgb(hex) {
+            const normalized = hex.replace('#', '');
+            const full = normalized.length === 3
+                ? normalized.split('').map((char) => char + char).join('')
+                : normalized;
+
+            return {
+                r: parseInt(full.slice(0, 2), 16),
+                g: parseInt(full.slice(2, 4), 16),
+                b: parseInt(full.slice(4, 6), 16)
+            };
+        }
+
+        function rgba(hex, alpha) {
+            const {r, g, b} = hexToRgb(hex);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function getSegmentTitle(index) {
+            const nextIndex = ((index + 1) % state.points.length) + 1;
+            return `关键帧 ${index + 1} → ${nextIndex}`;
+        }
+
+        function setActiveTab(tabName) {
+            activeTab = tabName;
+
+            document.querySelectorAll('.tab-btn').forEach((button) => {
+                const selected = button.dataset.tab === tabName;
+                button.setAttribute('aria-selected', String(selected));
+            });
+
+            document.querySelectorAll('.tab-panel').forEach((panel) => {
+                panel.classList.toggle('active', panel.dataset.panel === tabName);
+            });
+        }
+
+        function buildMotionPath() {
+            return window.RouteMotion.normalizePointsIntoRect(state.points, safeRect);
+        }
+
+        function buildPathData() {
+            return window.RouteMotion.buildClosedPathSegments(buildMotionPath());
+        }
+
+        function resizeCanvas() {
+            const stageRect = previewStage.getBoundingClientRect();
+            viewportWidth = stageRect.width;
+            viewportHeight = stageRect.height;
+
+            canvas.width = Math.round(viewportWidth * dpr);
+            canvas.height = Math.round(viewportHeight * dpr);
+            canvas.style.width = `${viewportWidth}px`;
+            canvas.style.height = `${viewportHeight}px`;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            [pathOverlay, safeOverlay].forEach((svg) => {
+                svg.setAttribute('viewBox', `0 0 ${viewportWidth} ${viewportHeight}`);
+                svg.setAttribute('width', viewportWidth);
+                svg.setAttribute('height', viewportHeight);
+            });
+
+            safeRect = window.RouteMotion.buildSafeViewportRect(
+                viewportWidth,
+                viewportHeight,
+                state.safeAreaRatio
+            );
+
+            renderSafeRect();
+            renderPathEditor();
+            renderSegmentTimelineEditor();
+            renderConfigOutput();
+        }
+
+        function renderSafeRect() {
+            safeOverlay.innerHTML = `
+                <rect
+                    class="safe-rect"
+                    x="${safeRect.x}"
+                    y="${safeRect.y}"
+                    width="${safeRect.width}"
+                    height="${safeRect.height}"
+                    rx="18"
+                ></rect>
+            `;
+        }
+
+        function renderConfigOutput() {
+            document.getElementById('configOutput').value = JSON.stringify(state, null, 2);
+        }
+
+        // 右侧编辑层既显示关键帧锚点，也显示关键帧之间的时间段。
+        // 点击线段中点可以直接切换到对应段落，再去左侧调 easing 与曲线。
+        function renderPathEditor() {
+            if (!state.showPath) {
+                pathOverlay.innerHTML = '';
+                return;
+            }
+
+            const pathData = buildPathData();
+
+            const segments = pathData.segments.map((segment) => {
+                const midX = (segment.start.x + segment.end.x) / 2;
+                const midY = (segment.start.y + segment.end.y) / 2;
+
+                return `
+                    <line
+                        class="path-hit"
+                        data-segment="${segment.index}"
+                        x1="${segment.start.x}"
+                        y1="${segment.start.y}"
+                        x2="${segment.end.x}"
+                        y2="${segment.end.y}"
+                    ></line>
+                    <line
+                        class="path-segment ${selectedSegmentIndex === segment.index ? 'active' : ''}"
+                        x1="${segment.start.x}"
+                        y1="${segment.start.y}"
+                        x2="${segment.end.x}"
+                        y2="${segment.end.y}"
+                    ></line>
+                    <circle
+                        class="segment-marker ${selectedSegmentIndex === segment.index ? 'active' : ''}"
+                        data-segment="${segment.index}"
+                        cx="${midX}"
+                        cy="${midY}"
+                        r="9"
+                    ></circle>
+                    <text class="segment-badge" x="${midX}" y="${midY + 3}">${segment.index + 1}</text>
+                `;
+            }).join('');
+
+            const points = pathData.segments.map((segment) => segment.start);
+            const circles = points.map((point, index) => `
+                <circle
+                    class="path-point ${dragPointIndex === index ? 'active' : ''}"
+                    data-index="${index}"
+                    cx="${point.x}"
+                    cy="${point.y}"
+                    r="7"
+                ></circle>
+            `).join('');
+
+            pathOverlay.innerHTML = `${segments}${circles}`;
+        }
+
+        function renderPointsEditor() {
+            const editor = document.getElementById('pointsEditor');
+            editor.innerHTML = state.points.map((point, index) => `
+                <div class="point-row">
+                    <div class="point-index">${index + 1}</div>
+                    <input type="number" min="0" max="1" step="0.01" value="${point.x.toFixed(2)}" data-point="${index}" data-axis="x">
+                    <input type="number" min="0" max="1" step="0.01" value="${point.y.toFixed(2)}" data-point="${index}" data-axis="y">
+                    <button type="button" class="btn secondary" data-remove-point="${index}">×</button>
+                </div>
+            `).join('');
+        }
+
+        function buildMotionControls() {
+            const container = document.getElementById('motionControls');
+            const fields = motionFields.map((field) => {
+                const value = state.motion[field.key];
+                const displayValue = field.key === 'cycleMs' && Number(value) === 0
+                    ? '∞'
+                    : Number(value).toFixed(field.step < 1 ? 2 : 0);
+
+                return `
+                    <div class="field-row">
+                        <div class="field-head">
+                            <span class="field-label">${field.label}</span>
+                            <span class="field-value" id="motion-label-${field.key}">${displayValue}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="${field.min}"
+                            max="${field.max}"
+                            step="${field.step}"
+                            value="${value}"
+                            data-motion="true"
+                            data-key="${field.key}"
+                        >
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                ${fields}
+                <p class="hint">往返周期现在支持 0 ~ 10000。设置为 0 时，表示不强制单圈总时长，时间轴会无限循环，并按每段关键帧自己的时长持续播放。</p>
+            `;
+        }
+
+        function renderCurveEditor() {
+            const container = document.getElementById('curveEditor');
+            const segment = state.segments[selectedSegmentIndex];
+            const bezier = window.RouteMotion.normalizeBezier(segment.bezier);
+            const pad = 16;
+            const size = 132;
+            const total = 164;
+            const mapX = (value) => pad + (value * size);
+            const mapY = (value) => pad + ((1 - value) * size);
+            const curvePoints = Array.from({length: 30}, (_, index) => {
+                const point = window.RouteMotion.getBezierPoint(bezier, index / 29);
+                return `${mapX(point.x)},${mapY(point.y)}`;
+            }).join(' ');
+
+            container.innerHTML = `
+                <svg class="curve-svg" viewBox="0 0 ${total} ${total}">
+                    <line class="curve-axis" x1="${pad}" y1="${pad + size}" x2="${pad + size}" y2="${pad + size}"></line>
+                    <line class="curve-axis" x1="${pad}" y1="${pad + size}" x2="${pad}" y2="${pad}"></line>
+                    <line class="curve-grid" x1="${pad}" y1="${pad}" x2="${pad + size}" y2="${pad}"></line>
+                    <line class="curve-grid" x1="${pad}" y1="${pad + (size / 2)}" x2="${pad + size}" y2="${pad + (size / 2)}"></line>
+                    <line class="curve-grid" x1="${pad + (size / 2)}" y1="${pad}" x2="${pad + (size / 2)}" y2="${pad + size}"></line>
+                    <line class="curve-guide" x1="${pad}" y1="${pad + size}" x2="${mapX(bezier.x1)}" y2="${mapY(bezier.y1)}"></line>
+                    <line class="curve-guide" x1="${pad + size}" y1="${pad}" x2="${mapX(bezier.x2)}" y2="${mapY(bezier.y2)}"></line>
+                    <polyline class="curve-path" points="${curvePoints}"></polyline>
+                    <circle class="curve-anchor" cx="${pad}" cy="${pad + size}" r="4"></circle>
+                    <circle class="curve-anchor" cx="${pad + size}" cy="${pad}" r="4"></circle>
+                    <circle
+                        class="curve-handle ${dragCurveHandleKey === 'c1' ? 'active' : ''}"
+                        data-handle="c1"
+                        cx="${mapX(bezier.x1)}"
+                        cy="${mapY(bezier.y1)}"
+                        r="6"
+                    ></circle>
+                    <circle
+                        class="curve-handle ${dragCurveHandleKey === 'c2' ? 'active' : ''}"
+                        data-handle="c2"
+                        cx="${mapX(bezier.x2)}"
+                        cy="${mapY(bezier.y2)}"
+                        r="6"
+                    ></circle>
+                    <text class="curve-label" x="${pad - 4}" y="${pad + size + 12}">0</text>
+                    <text class="curve-label" x="${pad + size - 2}" y="${pad + size + 12}">1</text>
+                    <text class="curve-label" x="${pad - 10}" y="${pad + 4}">1</text>
+                </svg>
+                <p class="curve-note">拖拽两个控制手柄可以直接调节关键帧段落的速度曲线。拖动后会自动变成 Custom，但预设按钮仍然可以一键覆盖回去。</p>
+            `;
+        }
+
+        function renderSegmentTimelineEditor() {
+            ensureSegmentsSync();
+
+            const picker = document.getElementById('segmentPicker');
+            const inspector = document.getElementById('segmentInspector');
+            const segment = state.segments[selectedSegmentIndex];
+
+            picker.innerHTML = state.segments.map((item, index) => `
+                <button
+                    type="button"
+                    class="segment-chip ${selectedSegmentIndex === index ? 'active' : ''}"
+                    data-select-segment="${index}"
+                >
+                    <span>段 ${index + 1}</span>
+                    <small>${getSegmentTitle(index)}</small>
+                </button>
+            `).join('');
+
+            inspector.innerHTML = `
+                <div class="field-row">
+                    <div class="field-head">
+                        <span class="field-label">当前段落</span>
+                        <span class="field-value">${getSegmentTitle(selectedSegmentIndex)}</span>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-head">
+                        <span class="field-label">段落时长</span>
+                        <span class="field-value" id="segment-duration-label">${segment.duration.toFixed(0)} ms</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="200"
+                        max="4000"
+                        step="50"
+                        value="${segment.duration}"
+                        data-segment-duration="${selectedSegmentIndex}"
+                    >
+                </div>
+                <div class="field-row">
+                    <div class="field-head">
+                        <span class="field-label">预设 easing</span>
+                        <span class="field-value">${segment.easingPreset || 'custom'}</span>
+                    </div>
+                    <div class="preset-row">
+                        ${easingPresetOptions.map((preset) => `
+                            <button
+                                type="button"
+                                class="curve-preset ${segment.easingPreset === preset.id ? 'active' : ''}"
+                                data-segment-preset="${preset.id}"
+                            >
+                                ${preset.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            renderCurveEditor();
+        }
+
+        function buildBlobControls(containerId, blobIndex) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = blobFields.map((field) => {
+                const blob = state.blobs[blobIndex];
+                const value = blob[field.key];
+                const displayValue = field.type === 'range'
+                    ? Number(value).toFixed(field.step < 0.01 ? 5 : (field.step < 1 ? 2 : 0))
+                    : value;
+
+                if (field.type === 'color') {
+                    return `
+                        <label class="control-row">
+                            <span class="field-label">${field.label}</span>
+                            <input type="color" value="${value}" data-blob="${blobIndex}" data-key="${field.key}" data-type="color">
+                        </label>
+                    `;
+                }
+
+                return `
+                    <div class="field-row">
+                        <div class="field-head">
+                            <span class="field-label">${field.label}</span>
+                            <span class="field-value" id="label-${blobIndex}-${field.key}">${displayValue}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="${field.min}"
+                            max="${field.max}"
+                            step="${field.step}"
+                            value="${value}"
+                            data-blob="${blobIndex}"
+                            data-key="${field.key}"
+                            data-type="range"
+                        >
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function syncBlobLabels() {
+            state.blobs.forEach((blob, blobIndex) => {
+                blobFields.forEach((field) => {
+                    if (field.type !== 'range') {
+                        return;
+                    }
+
+                    const label = document.getElementById(`label-${blobIndex}-${field.key}`);
+                    if (!label) {
+                        return;
+                    }
+
+                    const value = blob[field.key];
+                    label.textContent = Number(value).toFixed(field.step < 0.01 ? 5 : (field.step < 1 ? 2 : 0));
+                });
+            });
+
+            motionFields.forEach((field) => {
+                const label = document.getElementById(`motion-label-${field.key}`);
+                if (!label) {
+                    return;
+                }
+
+                const value = state.motion[field.key];
+                label.textContent = field.key === 'cycleMs' && Number(value) === 0
+                    ? '∞'
+                    : Number(value).toFixed(field.step < 1 ? 2 : 0);
+            });
+
+            const durationLabel = document.getElementById('segment-duration-label');
+            if (durationLabel && state.segments[selectedSegmentIndex]) {
+                durationLabel.textContent = `${state.segments[selectedSegmentIndex].duration.toFixed(0)} ms`;
+            }
+
+            document.getElementById('safeAreaRatioLabel').textContent = state.safeAreaRatio.toFixed(2);
+            document.getElementById('overflowRatioLabel').textContent = state.overflowRatio.toFixed(2);
+        }
+
+        function renderControls() {
+            ensureSegmentsSync();
+            buildMotionControls();
+            buildBlobControls('blob0Controls', 0);
+            buildBlobControls('blob1Controls', 1);
+            renderPointsEditor();
+            renderSegmentTimelineEditor();
+            document.getElementById('safeAreaRatioInput').value = state.safeAreaRatio;
+            document.getElementById('overflowRatioInput').value = state.overflowRatio;
+            document.getElementById('togglePathBtn').textContent = state.showPath ? '隐藏编辑路径' : '显示编辑路径';
+            renderConfigOutput();
+            syncBlobLabels();
+            setActiveTab(activeTab);
+        }
+
+        function updatePointFromEvent(target) {
+            const pointIndex = Number(target.dataset.point);
+            const axis = target.dataset.axis;
+            const nextValue = window.RouteMotion.clamp(Number(target.value), 0, 1);
+            state.points[pointIndex][axis] = Number(nextValue.toFixed(2));
+            ensureSegmentsSync();
+            renderPointsEditor();
+            renderPathEditor();
+            renderSegmentTimelineEditor();
+            renderConfigOutput();
+        }
+
+        function setSegmentPreset(segmentIndex, presetName) {
+            state.segments[segmentIndex].easingPreset = presetName;
+            state.segments[segmentIndex].bezier = window.RouteMotion.getPresetBezier(presetName);
+            renderSegmentTimelineEditor();
+            renderConfigOutput();
+        }
+
+        function getNormalizedPointFromPointer(event) {
+            const stageRect = previewStage.getBoundingClientRect();
+            const localX = event.clientX - stageRect.left;
+            const localY = event.clientY - stageRect.top;
+            return window.RouteMotion.projectPointIntoRect(localX, localY, safeRect);
+        }
+
+        function getCurvePointFromPointer(event) {
+            const svg = document.querySelector('#curveEditor svg');
+            if (!svg) {
+                return {x: 0.5, y: 0.5};
+            }
+
+            const rect = svg.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 164;
+            const y = ((event.clientY - rect.top) / rect.height) * 164;
+
+            return {
+                x: window.RouteMotion.clamp((x - 16) / 132, 0, 1),
+                y: window.RouteMotion.clamp(1 - ((y - 16) / 132), 0, 1)
+            };
+        }
+
+        function updateCurveHandle(handleKey, point) {
+            const segment = state.segments[selectedSegmentIndex];
+            const bezier = window.RouteMotion.normalizeBezier(segment.bezier);
+
+            if (handleKey === 'c1') {
+                bezier.x1 = Math.min(point.x, bezier.x2);
+                bezier.y1 = point.y;
+            } else {
+                bezier.x2 = Math.max(point.x, bezier.x1);
+                bezier.y2 = point.y;
+            }
+
+            segment.bezier = bezier;
+            segment.easingPreset = 'custom';
+            renderSegmentTimelineEditor();
+            renderConfigOutput();
+        }
+
+        function attachEvents() {
+            document.querySelectorAll('.tab-btn').forEach((button) => {
+                button.addEventListener('click', () => {
+                    setActiveTab(button.dataset.tab);
+                });
+            });
+
+            document.querySelector('.tab-panels').addEventListener('input', (event) => {
+                const target = event.target;
+
+                if (target.dataset.motion === 'true') {
+                    const key = target.dataset.key;
+                    state.motion[key] = Number(target.value);
+                    syncBlobLabels();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.dataset.segmentDuration !== undefined) {
+                    const index = Number(target.dataset.segmentDuration);
+                    state.segments[index].duration = Number(target.value);
+                    syncBlobLabels();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.dataset.type === 'range') {
+                    const blobIndex = Number(target.dataset.blob);
+                    const key = target.dataset.key;
+                    state.blobs[blobIndex][key] = Number(target.value);
+                    syncBlobLabels();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.dataset.type === 'color') {
+                    const blobIndex = Number(target.dataset.blob);
+                    const key = target.dataset.key;
+                    state.blobs[blobIndex][key] = target.value;
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.id === 'safeAreaRatioInput') {
+                    state.safeAreaRatio = Number(target.value);
+                    syncBlobLabels();
+                    resizeCanvas();
+                    return;
+                }
+
+                if (target.id === 'overflowRatioInput') {
+                    state.overflowRatio = Number(target.value);
+                    syncBlobLabels();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.dataset.point) {
+                    updatePointFromEvent(target);
+                }
+            });
+
+            document.querySelector('.tab-panels').addEventListener('click', (event) => {
+                const target = event.target;
+
+                if (target.id === 'togglePathBtn') {
+                    state.showPath = !state.showPath;
+                    renderControls();
+                    renderPathEditor();
+                    return;
+                }
+
+                if (target.id === 'addPointBtn') {
+                    state.points.push({x: 0.5, y: 0.5});
+                    ensureSegmentsSync();
+                    selectedSegmentIndex = state.points.length - 1;
+                    renderPointsEditor();
+                    renderPathEditor();
+                    renderSegmentTimelineEditor();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.id === 'resetPathBtn') {
+                    state.points = JSON.parse(JSON.stringify(defaultState.points));
+                    state.segments = JSON.parse(JSON.stringify(defaultState.segments));
+                    selectedSegmentIndex = 0;
+                    renderPointsEditor();
+                    renderPathEditor();
+                    renderSegmentTimelineEditor();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.id === 'exportBtn') {
+                    navigator.clipboard.writeText(JSON.stringify(state, null, 2)).catch(() => { });
+                    target.textContent = '已复制 JSON';
+                    window.setTimeout(() => {
+                        target.textContent = '复制 JSON';
+                    }, 1400);
+                    return;
+                }
+
+                if (target.dataset.removePoint) {
+                    if (state.points.length <= 3) {
+                        return;
+                    }
+
+                    state.points.splice(Number(target.dataset.removePoint), 1);
+                    ensureSegmentsSync();
+                    renderPointsEditor();
+                    renderPathEditor();
+                    renderSegmentTimelineEditor();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (target.dataset.selectSegment !== undefined) {
+                    selectedSegmentIndex = Number(target.dataset.selectSegment);
+                    renderPathEditor();
+                    renderSegmentTimelineEditor();
+                    return;
+                }
+
+                if (target.dataset.segmentPreset) {
+                    setSegmentPreset(selectedSegmentIndex, target.dataset.segmentPreset);
+                }
+            });
+
+            pathOverlay.addEventListener('pointerdown', (event) => {
+                const pointTarget = event.target.closest('.path-point');
+                const segmentTarget = event.target.closest('[data-segment]');
+
+                if (pointTarget) {
+                    dragPointIndex = Number(pointTarget.dataset.index);
+                    renderPathEditor();
+                    return;
+                }
+
+                if (segmentTarget) {
+                    selectedSegmentIndex = Number(segmentTarget.dataset.segment);
+                    renderPathEditor();
+                    renderSegmentTimelineEditor();
+                }
+            });
+
+            const curveEditor = document.getElementById('curveEditor');
+            curveEditor.addEventListener('pointerdown', (event) => {
+                const handleTarget = event.target.closest('[data-handle]');
+                if (!handleTarget) {
+                    return;
+                }
+
+                dragCurveHandleKey = handleTarget.dataset.handle;
+                updateCurveHandle(dragCurveHandleKey, getCurvePointFromPointer(event));
+            });
+
+            window.addEventListener('pointermove', (event) => {
+                if (dragPointIndex !== null) {
+                    const point = getNormalizedPointFromPointer(event);
+                    state.points[dragPointIndex].x = Number(point.x.toFixed(2));
+                    state.points[dragPointIndex].y = Number(point.y.toFixed(2));
+                    renderPointsEditor();
+                    renderPathEditor();
+                    renderConfigOutput();
+                    return;
+                }
+
+                if (dragCurveHandleKey) {
+                    updateCurveHandle(dragCurveHandleKey, getCurvePointFromPointer(event));
+                }
+            });
+
+            window.addEventListener('pointerup', () => {
+                if (dragPointIndex !== null) {
+                    dragPointIndex = null;
+                    renderPathEditor();
+                }
+
+                if (dragCurveHandleKey) {
+                    dragCurveHandleKey = null;
+                    renderCurveEditor();
+                }
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function deriveBlobStyle(blob) {
+            return {
+                body: rgba(blob.color, blob.opacity),
+                core: rgba(blob.color, window.RouteMotion.clamp(blob.opacity + 0.32, 0, 1)),
+                mid: rgba(blob.color, window.RouteMotion.clamp(blob.opacity + 0.14, 0, 1)),
+                edge: rgba(blob.color, window.RouteMotion.clamp(blob.opacity * 0.65, 0, 1)),
+                ring: rgba('#ffffff', window.RouteMotion.clamp(blob.opacity + 0.06, 0.12, 0.4)),
+                glow: rgba(blob.color, blob.glowOpacity)
+            };
+        }
+
+        function drawCircle(x, y, radius, blob) {
+            const colors = deriveBlobStyle(blob);
+            const gradient = ctx.createRadialGradient(
+                x - (radius * 0.2),
+                y - (radius * 0.22),
+                radius * 0.12,
+                x,
+                y,
+                radius
+            );
+
+            gradient.addColorStop(0, colors.core);
+            gradient.addColorStop(0.58, colors.mid);
+            gradient.addColorStop(0.84, colors.edge);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.shadowBlur = blob.shadowBlur;
+            ctx.shadowColor = colors.glow;
+
+            ctx.fillStyle = colors.body;
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 0.94, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = Math.max(1, radius * 0.012);
+            ctx.strokeStyle = colors.ring;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 渲染时不再直接用一个匀速值推进。
+        // 而是根据“关键帧段落 + easing 曲线”先求出全局时间轴进度，再把两个圆沿同一条进度曲线错开固定距离。
+        function render(now) {
+            const pathData = buildPathData();
+            const time = reducedMotionQuery.matches ? 1800 : now;
+            const timeline = window.RouteMotion.resolveTimelineProgress(
+                pathData,
+                state.segments,
+                time,
+                state.motion.cycleMs,
+                state.motion.phaseOffset
+            );
+
+            ctx.clearRect(0, 0, viewportWidth, viewportHeight);
+
+            state.blobs.forEach((blob, blobIndex) => {
+                const baseRadius = Math.max(userCard.offsetWidth, userCard.offsetHeight);
+                const radius = window.RouteMotion.clamp(baseRadius * blob.radiusFactor, blob.minRadius, blob.maxRadius);
+                const orbitPoint = window.RouteMotion.samplePathData(
+                    pathData,
+                    timeline.progress + (blobIndex * state.motion.spacing)
+                );
+
+                const constrainedCenter = window.RouteMotion.constrainCircleCenter(
+                    orbitPoint.x,
+                    orbitPoint.y,
+                    radius,
+                    viewportWidth,
+                    viewportHeight,
+                    state.overflowRatio
+                );
+
+                drawCircle(constrainedCenter.x, constrainedCenter.y, radius, blob);
+            });
+
+            requestAnimationFrame(render);
+        }
+
+        attachEvents();
+        renderControls();
+        resizeCanvas();
+        requestAnimationFrame(render);
+    </script>
+</body>
+
+</html>

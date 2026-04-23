@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Mix Wine - 情绪特调</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- 视图1: 调酒主界面 -->
+        <section id="view-mixing" class="view active">
+            <div class="header">
+                <h2>捕捉当下</h2>
+                <p>把藏在心底的情绪，酿成舌尖的回甘</p>
+            </div>
+            
+            <div class="glass-container">
+                <div class="glass-cup">
+                    <div class="liquid" id="liquid"></div>
+                    <div class="liquid-glow" id="liquid-glow"></div>
+                </div>
+            </div>
+
+            <div class="mood-tracker">
+                <div class="tracker-labels">
+                    <span>Bright / 正向 ↑</span>
+                    <span>Deep / 负向 ↓</span>
+                </div>
+                <div class="tracker-bar">
+                    <div class="tracker-indicator" id="tracker-indicator"></div>
+                </div>
+                <div class="status-wrapper">
+                    <p class="status-text" id="status-text">"感知情绪状态..."</p>
+                </div>
+            </div>
+
+            <div class="siri-wave" id="siri-wave">
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+            </div>
+
+            <div class="cta-container">
+                <button class="btn-primary" id="btn-start">开始调制特调情绪饮品</button>
+            </div>
+        </section>
+
+        <!-- 视图2: 结果页 -->
+        <section id="view-result" class="view hidden">
+            <div class="result-header">
+                <h1 class="drink-name" id="drink-name">午夜可可 · 轻酿版</h1>
+                <p class="drink-en-name">Midnight Cacao Mild</p>
+            </div>
+
+            <div class="illustration-container">
+                <!-- 抽象能量流体风格 (灵感来自 Apple Music) -->
+                <div class="fluid-orb-container">
+                    <div class="fluid-orb"></div>
+                    <div class="fluid-orb-blur"></div>
+                </div>
+            </div>
+
+            <div class="recipe-card glass-panel">
+                <h3><span>🍷</span>你的情绪配方</h3>
+                <div class="recipe-item">
+                    <div class="recipe-title">基酒 | Deep Liquor (深色基酒)</div>
+                    <div class="recipe-desc">带一点沉稳与深色调。</div>
+                </div>
+                <div class="recipe-item">
+                    <div class="recipe-title">前调 | 柠檬皮 · 迷迭香</div>
+                    <div class="recipe-desc">来自你语句中的紧绷与急促。</div>
+                </div>
+                <div class="recipe-item">
+                    <div class="recipe-title">中调 | 可可 · 麦芽</div>
+                    <div class="recipe-desc">来自你此刻的压力感。</div>
+                </div>
+                <div class="recipe-item">
+                    <div class="recipe-title">尾调 | 橙皮</div>
+                    <div class="recipe-desc">代表你想缓和的意图。</div>
+                </div>
+                <div class="recipe-item emphasis">
+                    <div class="recipe-title">浓度 | 0.63 中度酿制</div>
+                    <div class="recipe-desc">情绪色彩明显但可掌控。</div>
+                </div>
+            </div>
+
+            <div class="bottom-actions">
+                <button class="btn-secondary">保存到酒单</button>
+                <button class="btn-secondary">分享卡片</button>
+                <button class="btn-primary-small" id="btn-restart">再调一杯</button>
+            </div>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

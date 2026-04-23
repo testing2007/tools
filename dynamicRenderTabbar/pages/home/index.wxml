@@ -1,29 +1,83 @@
 <view class="home-page">
   <view class="home-head card">
-    <view class="title">Dynamic Tabbar Demo</view>
+    <view class="title">Dynamic Motion Demo</view>
     <view class="sub-title">Current N: {{visibleTabCount}} (N &gt; 2 and N &lt;= 5)</view>
-    <view class="sub-title">Scroll Snapshot: {{scrollSnapshot}} px</view>
+    <view class="sub-title">Current Scene: {{scrollSnapshot}}</view>
 
     <view class="btn-row">
-      <button class="button small" data-count="3" bindtap="setTabCount">N=3</button>
-      <button class="button small" data-count="4" bindtap="setTabCount">N=4</button>
-      <button class="button small" data-count="5" bindtap="setTabCount">N=5</button>
+      <view class="button small" data-count="3" bindtap="setTabCount"><text>N=3</text></view>
+      <view class="button small" data-count="4" bindtap="setTabCount"><text>N=4</text></view>
+      <view class="button small" data-count="5" bindtap="setTabCount"><text>N=5</text></view>
     </view>
-    <button class="button" bindtap="gotoDetail">Open non-tab detail page</button>
+
+    <view class="detail-entry" bindtap="gotoDetail">
+      <text class="detail-title">Open non-tab detail page</text>
+      <text class="detail-desc">The animated stage keeps looping when this tab page is visible.</text>
+    </view>
   </view>
 
-  <scroll-view
-    class="home-scroll"
-    scroll-y="true"
-    scroll-top="{{feedScrollTop}}"
-    bindscroll="onFeedScroll"
-  >
-    <view class="feed-list">
-      <view wx:for="{{feedItems}}" wx:key="id" class="feed-card">
-        <view class="feed-title">{{item.title}}</view>
-        <view class="feed-desc">{{item.desc}}</view>
-        <view class="feed-tag">{{item.tag}}</view>
+  <!--
+    Hero Banner
+    ════════════════════════════════════════════
+    WXS 在渲染线程直接 setStyle，解决 touchmove setData 闪烁问题
+
+    层次（DOM 顺序 = 绘制顺序，不用 z-index）：
+      1. .hero-under (1_under.jpg) — 始终可见，无 style 绑定
+      2. .hero-under (2_under.png) — opacity 由 JS 控制
+      3. #float0w .hero-float-wrap — float0 wrapper，WXS/JS 控制 transform
+         └─ .hero-float (1_float_text.png) — opacity by JS
+      4. #float1w .hero-float-wrap — float1 wrapper
+         └─ .hero-float (2_float_text.png) — opacity by JS
+
+    WXS 绑定语法：bindtouchXxx="{{drag.fn}}"（双花括号）
+    change: 监听 data-* 变化触发 WXS 函数
+    ════════════════════════════════════════════
+  -->
+  <wxs src="./hero-drag.wxs" module="drag" />
+
+  <view class="hero-shell">
+    <view
+      class="hero-stage"
+      data-animating="{{isAnimating}}"
+      data-active-slide="{{activeSlide}}"
+      data-stage-w="{{stageWidthPx}}"
+      data-clear-version="{{clearVersion}}"
+      change:data-clear-version="{{drag.onClear}}"
+      bindtouchstart="{{drag.touchStart}}"
+      bindtouchmove="{{drag.touchMove}}"
+      bindtouchend="{{drag.touchEnd}}"
+      bindtouchcancel="{{drag.touchEnd}}"
+    >
+      <!-- ① 底图层：静止，仅在 commitFlip 时切换 opacity -->
+      <image class="hero-under" src="../../assets/1_under.jpg" mode="aspectFill" />
+      <image class="hero-under {{under1Trans}}" src="../../assets/2_under.png"
+             mode="aspectFill" style="opacity:{{under1Opacity}};" />
+
+      <!-- ② 浮层：wrapper 由 WXS(拖拽)/JS(动画) 控制 transform -->
+      <!--    内部 image 由 JS setData 控制 opacity（频率低，无闪烁） -->
+      <view id="float0w" class="hero-float-wrap {{float0Trans}}"
+            style="transform:translateX({{float0X}}rpx);">
+        <image class="hero-float" src="../../assets/1_float_text.png"
+               mode="widthFix" style="opacity:{{float0Opacity}};" />
+      </view>
+      <view id="float1w" class="hero-float-wrap {{float1Trans}}"
+            style="transform:translateX({{float1X}}rpx);">
+        <image class="hero-float" src="../../assets/2_float_text.png"
+               mode="widthFix" style="opacity:{{float1Opacity}};" />
       </view>
     </view>
-  </scroll-view>
+
+    <view class="hero-dots">
+      <view class="hero-dot {{activeSlide === 0 ? 'is-active' : ''}}"></view>
+      <view class="hero-dot {{activeSlide === 1 ? 'is-active' : ''}}"></view>
+    </view>
+  </view>
+
+  <view class="feed-list">
+    <view wx:for="{{feedItems}}" wx:key="id" class="feed-card">
+      <view class="feed-title">{{item.title}}</view>
+      <view class="feed-desc">{{item.desc}}</view>
+      <view class="feed-tag">{{item.tag}}</view>
+    </view>
+  </view>
 </view>

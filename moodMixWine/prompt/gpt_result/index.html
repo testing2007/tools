@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Mix Wine | 情绪调酒原型</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-glow page-glow-left"></div>
+  <div class="page-glow page-glow-right"></div>
+
+  <div class="app-shell">
+    <main class="phone-frame">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Mood Mix Wine</p>
+          <p class="topbar-copy">用你的情绪调酒</p>
+        </div>
+        <button class="ghost-chip" id="soft-reset" type="button">重置</button>
+      </header>
+
+      <section class="screen screen-mix is-active" data-screen="mix">
+        <div class="hero-copy reveal reveal-delay-1">
+          <p class="eyebrow">Emotional Distillery</p>
+          <h1>把藏在心底的情绪，酿成舌尖的回甘。</h1>
+          <p class="hero-text">像一间静谧酒吧在深夜为你留灯，系统会把波动、强度与回甘感，调成一杯只属于你的情绪饮品。</p>
+        </div>
+
+        <div class="mix-stage reveal reveal-delay-2">
+          <div class="stage-halo"></div>
+          <div class="aura-ring aura-ring-one"></div>
+          <div class="aura-ring aura-ring-two"></div>
+          <div class="mix-vessel">
+            <div class="glass-shine glass-shine-left"></div>
+            <div class="glass-shine glass-shine-right"></div>
+            <div class="liquid-body" id="liquid-body">
+              <div class="liquid-surface"></div>
+              <span class="bubble bubble-one"></span>
+              <span class="bubble bubble-two"></span>
+              <span class="bubble bubble-three"></span>
+              <span class="mist mist-one"></span>
+              <span class="mist mist-two"></span>
+            </div>
+          </div>
+          <p class="mix-caption" id="mix-caption">捕捉你的当下味道中…</p>
+        </div>
+
+        <div class="analysis-panel reveal reveal-delay-3">
+          <div class="rail-labels">
+            <span>负向</span>
+            <span id="direction-label">Deep / 0.34</span>
+            <span>正向</span>
+          </div>
+          <div class="emotion-rail">
+            <div class="rail-track"></div>
+            <div class="rail-fill" id="rail-fill"></div>
+            <div class="rail-dot" id="rail-dot"></div>
+          </div>
+
+          <div class="metric-strip">
+            <article>
+              <span>EFI</span>
+              <strong id="metric-efi">0.57</strong>
+            </article>
+            <article>
+              <span>EII</span>
+              <strong id="metric-eii">0.63</strong>
+            </article>
+            <article>
+              <span>体感</span>
+              <strong id="metric-body">Tight</strong>
+            </article>
+          </div>
+
+          <div class="analysis-stream">
+            <span class="stream-dot"></span>
+            <p id="status-line">正在调和你的情绪基酒…</p>
+          </div>
+        </div>
+
+        <div class="action-cluster reveal reveal-delay-4">
+          <button class="button button-primary" id="start-mix" type="button">开始调制你的特调情绪饮品</button>
+          <div class="button-row">
+            <button class="button button-secondary" id="continue-talk" type="button">继续对话</button>
+            <button class="button button-secondary subtle" id="stop-mix" type="button">停止调制</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen screen-result" data-screen="result">
+        <div class="result-head">
+          <p class="eyebrow">Signature Pour</p>
+          <h2 id="drink-name-cn">午夜可可 · 轻酿版</h2>
+          <p class="result-subtitle" id="drink-name-en">Midnight Cacao Mild</p>
+          <p class="result-summary" id="drink-summary">紧绷被温柔包裹，像深夜里留给自己的最后一口回甘。</p>
+        </div>
+
+        <div class="art-stage">
+          <div class="swirl glow-swirl-one"></div>
+          <div class="swirl glow-swirl-two"></div>
+          <div class="bottle">
+            <div class="bottle-core" id="bottle-core"></div>
+            <div class="bottle-neck"></div>
+            <div class="bottle-label">
+              <p>House Blend</p>
+              <strong id="label-name">Midnight Cacao</strong>
+            </div>
+          </div>
+        </div>
+
+        <section class="recipe-panel">
+          <div class="panel-head">
+            <p class="eyebrow">你的情绪配方</p>
+            <p class="panel-note" id="panel-note">情绪色彩明显但仍可掌控。</p>
+          </div>
+
+          <div class="recipe-list">
+            <article class="recipe-item">
+              <span>基酒</span>
+              <strong id="recipe-base-name">Deep Liquor</strong>
+              <p id="recipe-base-desc">带一点沉稳与深色调。</p>
+            </article>
+            <article class="recipe-item">
+              <span>前调</span>
+              <strong id="recipe-top-name">柠檬皮 · 迷迭香</strong>
+              <p id="recipe-top-desc">来自你语句中的紧绷与急促。</p>
+            </article>
+            <article class="recipe-item">
+              <span>中调</span>
+              <strong id="recipe-mid-name">可可 · 麦芽</strong>
+              <p id="recipe-mid-desc">来自你此刻的压力感。</p>
+            </article>
+            <article class="recipe-item">
+              <span>尾调</span>
+              <strong id="recipe-finish-name">橙皮</strong>
+              <p id="recipe-finish-desc">代表你想缓和的意图。</p>
+            </article>
+          </div>
+
+          <div class="stats-row">
+            <article>
+              <span>浓度</span>
+              <strong id="stat-intensity">0.63</strong>
+            </article>
+            <article>
+              <span>方向</span>
+              <strong id="stat-direction">Deep</strong>
+            </article>
+            <article>
+              <span>体感</span>
+              <strong id="stat-state">Tight</strong>
+            </article>
+          </div>
+        </section>
+
+        <div class="action-cluster result-actions">
+          <div class="button-row">
+            <button class="button button-secondary" id="save-drink" type="button">保存到酒单</button>
+            <button class="button button-secondary" id="share-card" type="button">分享卡片</button>
+          </div>
+          <button class="button button-primary alt" id="remix-drink" type="button">再调一杯</button>
+        </div>
+      </section>
+
+      <section class="screen screen-history" data-screen="history">
+        <div class="history-head">
+          <p class="eyebrow">Private Cellar</p>
+          <h2>情绪记录 / 酒单</h2>
+          <p class="history-intro">每一杯都是一段被妥帖命名的情绪。你可以回看它们出现的时刻，也能收藏那些终于被说出口的心情。</p>
+        </div>
+
+        <div class="history-summary">
+          <div>
+            <span class="summary-value" id="history-count">02</span>
+            <p>已收藏特调</p>
+          </div>
+          <div>
+            <span class="summary-value" id="history-latest">22:18</span>
+            <p>最近入窖</p>
+          </div>
+        </div>
+
+        <div class="history-list" id="history-list"></div>
+
+        <aside class="history-note" id="history-note">
+          <p class="eyebrow">本次回甘</p>
+          <h3>午夜可可 · 轻酿版</h3>
+          <p>压力仍在，但你已经开始主动给自己留一点柔软的出口。</p>
+        </aside>
+      </section>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button class="nav-button is-active" data-target="mix" type="button">
+          <span>调制</span>
+          <small>Mix</small>
+        </button>
+        <button class="nav-button" data-target="result" type="button">
+          <span>特调</span>
+          <small>Result</small>
+        </button>
+        <button class="nav-button" data-target="history" type="button">
+          <span>酒单</span>
+          <small>Cellar</small>
+        </button>
+      </nav>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

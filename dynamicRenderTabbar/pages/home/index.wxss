@@ -1,64 +1,138 @@
+/* ═══════════════════════════════════════════════════
+   Home Page  ·  dynamicRenderTabbar
+   ═══════════════════════════════════════════════════ */
+
 .home-page {
-  height: 100vh;
+  min-height: 100vh;
   box-sizing: border-box;
-  padding: 24rpx 24rpx 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+  padding: 24rpx 24rpx 44rpx;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 107, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8f5ef 0%, #f2f4f7 100%);
 }
 
+/* ── 顶部卡片 ─────────────────────────────────── */
 .home-head {
-  flex-shrink: 0;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14rpx);
+  padding: 30rpx 28rpx 24rpx;
 }
+.title    { font-size: 36rpx; font-weight: 700; color: #111827; }
+.sub-title { margin-top: 8rpx; font-size: 24rpx; color: #6b7280; }
 
-.btn-row {
-  margin-top: 16rpx;
-  display: flex;
-  gap: 12rpx;
-}
-
+.btn-row { margin-top: 18rpx; display: flex; gap: 12rpx; }
 .button.small {
-  flex: 1;
-  margin-top: 0;
+  flex: 1; height: 76rpx; line-height: 76rpx;
+  border-radius: 999rpx; background: #111827; text-align: center;
+}
+.button.small text { color: #ffffff; font-size: 24rpx; }
+
+.detail-entry {
+  margin-top: 20rpx; padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #fff0df 0%, #ffd5ac 100%);
+}
+.detail-title { display: block; font-size: 28rpx; font-weight: 600; color: #7c2d12; }
+.detail-desc  { display: block; margin-top: 8rpx; font-size: 22rpx; line-height: 1.6; color: #9a3412; }
+
+/* ═══════════════════════════════════════════════════
+   Hero Banner
+   层次：DOM 顺序决定层叠（不用 z-index inline）
+     1. hero-under (1_under.jpg) — 永远在底
+     2. hero-under (2_under.png) — opacity 可控
+     3. #float0w .hero-float-wrap — float0, transform 由 WXS/JS 控制
+     4. #float1w .hero-float-wrap — float1
+   ═══════════════════════════════════════════════════ */
+.hero-shell {
+  margin-top: 22rpx;
+  border-radius: 34rpx;
+  overflow: hidden;
+  background: #0a0a0a;
 }
 
-.home-scroll {
-  flex: 1;
-  min-height: 0;
+/* 触摸 & 裁剪容器 */
+.hero-stage {
+  position: relative;
+  width: 702rpx;
+  height: 680rpx;
+  overflow: hidden;
+  border-radius: 34rpx 34rpx 0 0;
 }
 
+/* 底图：绝对铺满，无任何 transition（JS 精确控制）*/
+.hero-under {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+/* 底图淡入淡出（仅 commitFlip 时 JS 加上此 class） */
+.hero-under.fade-600 {
+  transition: opacity 600ms ease-out;
+}
+
+/* ── Float Wrapper ──────────────────────────────────
+   WXS 通过 selectComponent('#float0w').setStyle() 直接写 transform（渲染线程）
+   JS  通过 setData({ float0X }) 更新 style="transform:translateX({{float0X}}rpx)"
+   两者均作用于 transform，有先后顺序：
+     - 拖拽中：WXS setStyle 覆盖 WXML style（因为内联 style 优先级相同，WXS 后写胜出）
+     - 拖拽结束：WXS onClear 清空 → WXML style 重新生效
+   ─────────────────────────────────────────────────── */
+.hero-float-wrap {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  will-change: transform;
+  /* 默认无 transition，JS 按需添加下面的 class */
+}
+
+/* 三种过渡状态（JS 通过 setData 切换 class） */
+.hero-float-wrap.trans-none {
+  transition: none !important;
+}
+.hero-float-wrap.trans-flip {
+  /* 翻页：ease-out expo，快出慢停 */
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-float-wrap.trans-spring {
+  /* 弹回：cubic-bezier 模拟 ease-out-back，轻微过冲 */
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 浮层图片：填满 wrapper */
+.hero-float {
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%;
+}
+
+/* ── 指示点 ──────────────────────────────────── */
+.hero-dots {
+  display: flex; justify-content: center; gap: 12rpx;
+  padding: 18rpx 0 20rpx;
+  background: #0a0a0a;
+}
+.hero-dot {
+  width: 14rpx; height: 14rpx; border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.28);
+  transition: width 320ms ease, background 320ms ease;
+}
+.hero-dot.is-active { width: 44rpx; background: #ffffff; }
+
+/* ═══════════════════════════════════════════════════
+   Feed List
+   ═══════════════════════════════════════════════════ */
 .feed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding-bottom: 24rpx;
+  margin-top: 22rpx; display: flex; flex-direction: column;
+  gap: 16rpx; padding-bottom: 24rpx;
 }
-
 .feed-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 22rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  background: #ffffff; border-radius: 24rpx; padding: 22rpx;
+  box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.05);
 }
-
-.feed-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.feed-desc {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.feed-tag {
-  margin-top: 14rpx;
-  display: inline-block;
-  padding: 4rpx 14rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  color: #155eef;
-  background: #eaf1ff;
+.feed-title { font-size: 30rpx; font-weight: 600; color: #1f2937; }
+.feed-desc  { margin-top: 8rpx; font-size: 24rpx; color: #6b7280; line-height: 1.6; }
+.feed-tag   {
+  margin-top: 14rpx; display: inline-block; padding: 6rpx 14rpx;
+  border-radius: 999rpx; font-size: 22rpx; color: #155eef; background: #eaf1ff;
 }
