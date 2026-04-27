@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>同一时间轴多球轨迹编辑器 - 修正版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f6f7fb;
+            font-family: Arial, sans-serif;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 520px 420px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .stage {
+            width: 520px;
+            height: 520px;
+            position: relative;
+            border-radius: 32px;
+            background: #fff;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .12);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(0, 0, 0, .04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, .04) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+
+        svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .route-line {
+            fill: none;
+            stroke-width: 3;
+            stroke-dasharray: 8 8;
+        }
+
+        .point {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            margin-left: -14px;
+            margin-top: -14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: grab;
+            z-index: 6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .point.selected {
+            box-shadow: 0 0 0 8px rgba(255, 45, 85, .12), 0 8px 18px rgba(255, 45, 85, .26) !important;
+        }
+
+        .dot,
+        .ghost-dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            border-radius: 50%;
+            will-change: transform;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .dot {
+            z-index: 4;
+        }
+
+        .ghost-dot {
+            z-index: 3;
+            pointer-events: none;
+            border: 2px solid rgba(255, 255, 255, .55);
+        }
+
+        .panel {
+            width: 420px;
+            max-height: 92vh;
+            overflow: auto;
+            border-radius: 24px;
+            background: #fff;
+            padding: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .10);
+        }
+
+        .panel h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            box-shadow: none;
+            background: #f0f1f5;
+            color: #333;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+        }
+
+        .section {
+            padding: 12px;
+            border-radius: 16px;
+            background: #fafafa;
+            margin-bottom: 12px;
+            border: 1px solid #eee;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 88px 1fr;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .inline-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 74px;
+            gap: 6px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            height: 32px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 0 8px;
+            outline: none;
+            background: #fff;
+        }
+
+        input[type="color"] {
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        .btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: #ff2d55;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(255, 45, 85, .24);
+        }
+
+        button.secondary {
+            background: #222;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, .16);
+        }
+
+        button.ghost {
+            background: #f0f1f5;
+            color: #333;
+            box-shadow: none;
+        }
+
+        button.danger {
+            background: #ff4d4f;
+            box-shadow: 0 8px 18px rgba(255, 77, 79, .22);
+        }
+
+        button:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .tip {
+            margin-top: 14px;
+            line-height: 1.6;
+            color: #777;
+            font-size: 12px;
+        }
+
+        .json-box {
+            width: 100%;
+            min-height: 130px;
+            margin-top: 12px;
+            border: 1px solid #ddd;
+            border-radius: 14px;
+            padding: 10px;
+            font-size: 11px;
+            color: #555;
+            background: #fafafa;
+            resize: vertical;
+        }
+
+        .preview-info {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: #fafafa;
+            color: #555;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="stage" id="stage"><svg id="routeSvg"></svg></div>
+        <div class="panel">
+            <h3>同一时间轴轨迹编辑器</h3>
+            <div class="tabs" id="ballTabs"></div>
+            <div class="section">
+                <div class="section-title">球样式编辑</div>
+                <div id="styleEditor"></div>
+            </div>
+            <div class="section">
+                <div class="section-title">关键点与速度编辑</div>
+                <div id="segmentEditor"></div>
+            </div>
+            <div class="preview-info" id="previewInfo">点击某个关键点，可预览该时间点所有启用球的位置状态。</div>
+            <div class="btns">
+                <button class="ghost" id="loopBtn">循环：开</button>
+                <button id="startBtn">开始</button>
+                <button class="secondary" id="pauseBtn">暂停</button>
+                <button class="ghost" id="addPointBtn">添加关键点</button>
+                <button class="ghost" id="toggleBallBtn">启用/禁用当前球</button>
+                <button class="danger" id="deletePointBtn">删除选中点</button>
+                <button class="ghost" id="resetBtn">重置</button>
+            </div>
+            <textarea class="json-box" id="jsonBox" readonly></textarea>
+            <div class="tip">每个球都有独立轨迹、分段速度和样式配置。点击开始后，所有启用球共用同一个时间轴。循环开关控制动画是否反复播放。</div>
+        </div>
+    </div>
+
+    <script>
+        // =============================
+        // DOM 引用
+        // =============================
+        const stage = document.getElementById('stage')
+        const routeSvg = document.getElementById('routeSvg')
+        const ballTabs = document.getElementById('ballTabs')
+        const styleEditor = document.getElementById('styleEditor')
+        const segmentEditor = document.getElementById('segmentEditor')
+        const previewInfo = document.getElementById('previewInfo')
+        const jsonBox = document.getElementById('jsonBox')
+        const loopBtn = document.getElementById('loopBtn')
+        const startBtn = document.getElementById('startBtn')
+        const pauseBtn = document.getElementById('pauseBtn')
+        const addPointBtn = document.getElementById('addPointBtn')
+        const toggleBallBtn = document.getElementById('toggleBallBtn')
+        const deletePointBtn = document.getElementById('deletePointBtn')
+        const resetBtn = document.getElementById('resetBtn')
+
+        // 每段关键点之间的速度曲线
+        const easingMap = {
+            linear: t => t,
+            easeIn: t => t * t,
+            easeOut: t => 1 - Math.pow(1 - t, 2),
+            easeInOut: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+        }
+
+        // 可保存到后台的核心 JSON 结构
+        const defaultBalls = [
+            {
+                id: 'ball1', name: '球1', enabled: true,
+                style: {color: '#ff2d55', endColor: '#ff8aa1', size: 42, opacity: 0.78, blur: 0, shadowBlur: 24, shadowAlpha: 0.28, borderWidth: 0, borderColor: '#ffffff', labelVisible: true},
+                points: [{x: 80, y: 120}, {x: 380, y: 90}, {x: 420, y: 370}, {x: 110, y: 410}],
+                segments: [{duration: 900, easing: 'easeInOut'}, {duration: 800, easing: 'easeOut'}, {duration: 1100, easing: 'easeIn'}]
+            },
+            {
+                id: 'ball2', name: '球2', enabled: true,
+                style: {color: '#222222', endColor: '#777777', size: 42, opacity: 0.62, blur: 0, shadowBlur: 24, shadowAlpha: 0.20, borderWidth: 0, borderColor: '#ffffff', labelVisible: true},
+                points: [{x: 130, y: 280}, {x: 270, y: 90}, {x: 430, y: 230}, {x: 220, y: 440}],
+                segments: [{duration: 900, easing: 'linear'}, {duration: 800, easing: 'easeIn'}, {duration: 1100, easing: 'easeOut'}]
+            }
+        ]
+
+        let balls = JSON.parse(JSON.stringify(defaultBalls))
+        let activeBallIndex = 0
+        let selectedPoint = null
+        let pointEls = []
+        let dotEls = []
+        let ghostEls = []
+        let config = {loop: true}
+        let running = false
+        let paused = false
+        let startTime = 0
+        let pauseTime = 0
+
+        function clamp(value, min, max) {return Math.max(min, Math.min(max, value))}
+        function getBallStyle(ball) {return ball.style || {}}
+        function getColor(ball) {return getBallStyle(ball).color || '#ff2d55'}
+        function getBallTotalDuration(ball) {return ball.segments.reduce((sum, item) => sum + Number(item.duration || 0), 0)}
+        function getTimelineDuration() {
+            const enabled = balls.filter(b => b.enabled)
+            return enabled.length ? Math.max(...enabled.map(getBallTotalDuration), 0) : 0
+        }
+        function getTimeAtPoint(ball, pointIndex) {
+            return pointIndex <= 0 ? 0 : ball.segments.slice(0, pointIndex).reduce((sum, item) => sum + Number(item.duration || 0), 0)
+        }
+        function getBallPosition(ball, timelineTime) {
+            if (!ball.enabled || ball.points.length === 0) return null
+            if (ball.points.length === 1) return ball.points[0]
+            let t = clamp(timelineTime, 0, getBallTotalDuration(ball))
+            for (let i = 0; i < ball.segments.length; i++) {
+                const duration = Number(ball.segments[i].duration || 1)
+                const from = ball.points[i]
+                const to = ball.points[i + 1]
+                if (t <= duration) {
+                    const raw = t / duration
+                    const p = (easingMap[ball.segments[i].easing] || easingMap.linear)(raw)
+                    return {x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p}
+                }
+                t -= duration
+            }
+            return ball.points[ball.points.length - 1]
+        }
+
+        // 播放循环：修复点在这里。之前多了一个 ")"，导致 Unexpected token ')'
+        function renderFrame() {
+            if (!running || paused) return
+            const total = getTimelineDuration()
+            if (total <= 0) return
+
+            let timelineTime = performance.now() - startTime
+            if (config.loop) timelineTime = timelineTime % total
+
+            clearPreview()
+            balls.forEach((ball, index) => {
+                const p = getBallPosition(ball, timelineTime)
+                const dot = dotEls[index]
+                if (!dot) return
+                dot.style.display = ball.enabled ? 'flex' : 'none'
+                if (p) dot.style.transform = buildTransform(p, 1)
+            })
+
+            if (config.loop || timelineTime < total) {
+                requestAnimationFrame(renderFrame)
+            } else {
+                running = false
+                paused = false
+                startBtn.textContent = '开始'
+            }
+        }
+
+        function renderAll() {
+            renderTabs(); renderStyleEditor(); renderRoutes(); renderDots(); renderPoints(); renderSegmentEditor(); updateJson(); placeDotsAtStart(); renderPreview()
+        }
+        function renderTabs() {
+            ballTabs.innerHTML = ''
+            balls.forEach((ball, index) => {
+                const btn = document.createElement('button')
+                btn.className = `tab-btn ${index === activeBallIndex ? 'active' : ''}`
+                btn.textContent = `${ball.name}${ball.enabled ? '' : '（停用）'}`
+                btn.style.background = index === activeBallIndex ? getColor(ball) : '#f0f1f5'
+                btn.addEventListener('click', () => {activeBallIndex = index; selectedPoint = null; renderAll()})
+                ballTabs.appendChild(btn)
+            })
+        }
+        function renderStyleEditor() {
+            const ball = balls[activeBallIndex]
+            const s = getBallStyle(ball)
+            styleEditor.innerHTML = `
+        <div class="row"><span>名称</span><input value="${ball.name}" data-style-field="name" /></div>
+        <div class="row"><span>起始色</span><input type="color" value="${s.color}" data-style-field="color" /></div>
+        <div class="row"><span>结束色</span><input type="color" value="${s.endColor}" data-style-field="endColor" /></div>
+        <div class="row"><span>尺寸</span><input type="range" min="12" max="120" value="${s.size}" data-style-field="size" /></div>
+        <div class="row"><span>透明度</span><input type="range" min="0.05" max="1" step="0.01" value="${s.opacity}" data-style-field="opacity" /></div>
+        <div class="row"><span>模糊</span><input type="range" min="0" max="16" step="1" value="${s.blur}" data-style-field="blur" /></div>
+        <div class="row"><span>阴影</span><input type="range" min="0" max="60" step="1" value="${s.shadowBlur}" data-style-field="shadowBlur" /></div>
+        <div class="row"><span>阴影强度</span><input type="range" min="0" max="0.8" step="0.01" value="${s.shadowAlpha}" data-style-field="shadowAlpha" /></div>
+        <div class="row"><span>边框宽度</span><input type="range" min="0" max="10" step="1" value="${s.borderWidth}" data-style-field="borderWidth" /></div>
+        <div class="row"><span>边框色</span><input type="color" value="${s.borderColor}" data-style-field="borderColor" /></div>
+        <div class="row"><span>显示编号</span><select data-style-field="labelVisible"><option value="true">显示</option><option value="false">隐藏</option></select></div>`
+            styleEditor.querySelector('[data-style-field="labelVisible"]').value = String(s.labelVisible)
+            styleEditor.querySelectorAll('[data-style-field]').forEach(input => {
+                input.addEventListener('input', e => {
+                    const field = e.target.dataset.styleField
+                    const value = e.target.value
+                    if (field === 'name') ball.name = value
+                    else if (field === 'labelVisible') s[field] = value === 'true'
+                    else if (['size', 'opacity', 'blur', 'shadowBlur', 'shadowAlpha', 'borderWidth'].includes(field)) s[field] = Number(value)
+                    else s[field] = value
+                    renderTabs(); renderRoutes(); applyDotStyles(); renderPoints(); renderPreview(); updateJson()
+                })
+            })
+        }
+        function createPathD(points) {return points.length ? points.map((p, index) => `${index === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') : ''}
+        function renderRoutes() {
+            routeSvg.innerHTML = ''
+            balls.forEach((ball, index) => {
+                if (!ball.enabled) return
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+                path.setAttribute('class', 'route-line')
+                path.setAttribute('d', createPathD(ball.points))
+                path.setAttribute('stroke', getColor(ball))
+                path.setAttribute('opacity', index === activeBallIndex ? '0.65' : '0.28')
+                routeSvg.appendChild(path)
+            })
+        }
+        function renderDots() {
+            dotEls.forEach(el => el.remove())
+            dotEls = balls.map(ball => {
+                const dot = document.createElement('div')
+                dot.className = 'dot'
+                stage.appendChild(dot)
+                return dot
+            })
+            applyDotStyles()
+        }
+        function applyDotStyles() {balls.forEach((ball, index) => dotEls[index] && applyBallVisualStyle(dotEls[index], ball, index, false))}
+        function applyBallVisualStyle(el, ball, index, isGhost) {
+            const s = getBallStyle(ball)
+            const size = Number(s.size || 42)
+            el.textContent = s.labelVisible ? index + 1 : ''
+            el.style.width = `${size}px`; el.style.height = `${size}px`; el.style.marginLeft = `${-size / 2}px`; el.style.marginTop = `${-size / 2}px`
+            el.style.background = `linear-gradient(135deg, ${s.color}, ${s.endColor})`
+            el.style.opacity = isGhost ? Number(s.opacity || 1) * 0.45 : Number(s.opacity || 1)
+            el.style.filter = `blur(${Number(s.blur || 0)}px)`
+            el.style.border = `${Number(s.borderWidth || 0)}px solid ${s.borderColor || '#fff'}`
+            el.style.boxShadow = `0 10px ${Number(s.shadowBlur || 0)}px ${hexToRgba(s.color || '#000000', Number(s.shadowAlpha || 0))}`
+        }
+        function buildTransform(p, scale) {return `translate(${p.x}px, ${p.y}px) scale(${scale})`}
+        function renderPoints() {
+            pointEls.forEach(el => el.remove())
+            pointEls = []
+            const ball = balls[activeBallIndex]
+            ball.points.forEach((point, pointIndex) => {
+                const el = document.createElement('div')
+                const isSelected = selectedPoint && selectedPoint.ballIndex === activeBallIndex && selectedPoint.pointIndex === pointIndex
+                el.className = `point ${isSelected ? 'selected' : ''}`
+                el.textContent = `${activeBallIndex + 1}-${pointIndex + 1}`
+                el.style.border = `3px solid ${getColor(ball)}`
+                el.style.color = getColor(ball)
+                el.style.boxShadow = `0 8px 18px ${hexToRgba(getColor(ball), 0.24)}`
+                el.style.transform = `translate(${point.x}px, ${point.y}px)`
+                el.addEventListener('click', e => {e.stopPropagation(); selectedPoint = {ballIndex: activeBallIndex, pointIndex}; renderPoints(); renderPreview(); updateDeleteButton()})
+                bindDrag(el, activeBallIndex, pointIndex)
+                stage.appendChild(el)
+                pointEls.push(el)
+            })
+            updateDeleteButton()
+        }
+        function bindDrag(el, ballIndex, pointIndex) {
+            el.addEventListener('pointerdown', e => {
+                el.setPointerCapture(e.pointerId)
+                selectedPoint = {ballIndex, pointIndex}
+                const rect = stage.getBoundingClientRect()
+                const onMove = event => {
+                    const x = clamp(event.clientX - rect.left, 20, 500)
+                    const y = clamp(event.clientY - rect.top, 20, 500)
+                    balls[ballIndex].points[pointIndex] = {x, y}
+                    el.style.transform = `translate(${x}px, ${y}px)`
+                    renderRoutes(); renderPreview(); updateJson()
+                }
+                const onUp = () => {el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); renderPoints()}
+                el.addEventListener('pointermove', onMove)
+                el.addEventListener('pointerup', onUp)
+            })
+        }
+        function renderSegmentEditor() {
+            const ball = balls[activeBallIndex]
+            ball.segments = ball.points.slice(0, -1).map((_, index) => ball.segments[index] || {duration: 800, easing: 'linear'})
+            segmentEditor.innerHTML = ''
+            if (ball.points.length < 2) {segmentEditor.innerHTML = '<div class="tip">至少需要 2 个关键点。</div>'; return }
+            ball.segments.forEach((segment, index) => {
+                const wrap = document.createElement('div')
+                wrap.className = 'row'
+                wrap.innerHTML = `<span>${index + 1}→${index + 2}</span><div class="inline-grid"><input type="number" min="100" step="100" value="${segment.duration}" data-index="${index}" data-field="duration" /><select data-index="${index}" data-field="easing"><option value="linear">linear</option><option value="easeIn">easeIn</option><option value="easeOut">easeOut</option><option value="easeInOut">easeInOut</option></select><button class="ghost" data-preview-seg="${index}" style="padding:6px 8px;">预览</button></div>`
+                segmentEditor.appendChild(wrap)
+                wrap.querySelector('select').value = segment.easing
+            })
+            segmentEditor.querySelectorAll('input, select').forEach(input => input.addEventListener('input', e => {
+                const index = Number(e.target.dataset.index)
+                const field = e.target.dataset.field
+                balls[activeBallIndex].segments[index][field] = field === 'duration' ? Number(e.target.value) : e.target.value
+                renderPreview(); updateJson()
+            }))
+            segmentEditor.querySelectorAll('[data-preview-seg]').forEach(btn => btn.addEventListener('click', () => {
+                const segIndex = Number(btn.dataset.previewSeg)
+                selectedPoint = {ballIndex: activeBallIndex, pointIndex: segIndex + 1}
+                renderPoints(); renderPreview(); updateDeleteButton()
+            }))
+        }
+        function placeDotsAtStart() {
+            balls.forEach((ball, index) => {
+                const dot = dotEls[index]
+                const p = getBallPosition(ball, 0)
+                if (!dot) return
+                dot.style.display = ball.enabled ? 'flex' : 'none'
+                if (p) dot.style.transform = buildTransform(p, 1)
+            })
+        }
+        function clearPreview() {ghostEls.forEach(el => el.remove()); ghostEls = []}
+        function renderPreview() {
+            clearPreview()
+            if (!selectedPoint) {previewInfo.textContent = '点击某个关键点，可预览该时间点所有启用球的位置状态。'; return }
+            const sourceBall = balls[selectedPoint.ballIndex]
+            const previewTime = getTimeAtPoint(sourceBall, selectedPoint.pointIndex)
+            previewInfo.textContent = `当前预览：${sourceBall.name} 第 ${selectedPoint.pointIndex + 1} 个关键点，对应时间轴 ${Math.round(previewTime)}ms。`
+            balls.forEach((ball, index) => {
+                if (!ball.enabled) return
+                const p = getBallPosition(ball, previewTime)
+                if (!p) return
+                const ghost = document.createElement('div')
+                ghost.className = 'ghost-dot'
+                applyBallVisualStyle(ghost, ball, index, true)
+                ghost.style.transform = buildTransform(p, 1.12)
+                stage.appendChild(ghost)
+                ghostEls.push(ghost)
+            })
+        }
+        function updateDeleteButton() {
+            const ball = balls[activeBallIndex]
+            deletePointBtn.disabled = !(selectedPoint && selectedPoint.ballIndex === activeBallIndex && ball.points.length > 1)
+        }
+        function updateJson() {jsonBox.value = JSON.stringify({loop: config.loop, timelineDuration: getTimelineDuration(), balls}, null, 2)}
+        function hexToRgba(hex, alpha) {
+            const value = hex.replace('#', '')
+            const r = parseInt(value.slice(0, 2), 16)
+            const g = parseInt(value.slice(2, 4), 16)
+            const b = parseInt(value.slice(4, 6), 16)
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (getTimelineDuration() <= 0) return
+            running = true; paused = false; selectedPoint = null
+            startTime = performance.now()
+            startBtn.textContent = '重新开始'; pauseBtn.textContent = '暂停'
+            renderPoints(); clearPreview(); requestAnimationFrame(renderFrame)
+        })
+        pauseBtn.addEventListener('click', () => {
+            if (!running) return
+            paused = !paused
+            if (paused) {pauseTime = performance.now(); pauseBtn.textContent = '继续'}
+            else {startTime += performance.now() - pauseTime; pauseBtn.textContent = '暂停'; requestAnimationFrame(renderFrame)}
+        })
+        addPointBtn.addEventListener('click', () => {
+            const ball = balls[activeBallIndex]
+            if (ball.points.length >= 8) return
+            ball.points.push({x: 260, y: 260})
+            ball.segments.push({duration: 800, easing: 'linear'})
+            selectedPoint = {ballIndex: activeBallIndex, pointIndex: ball.points.length - 1}
+            renderAll()
+        })
+        toggleBallBtn.addEventListener('click', () => {balls[activeBallIndex].enabled = !balls[activeBallIndex].enabled; selectedPoint = null; renderAll()})
+        deletePointBtn.addEventListener('click', () => {
+            if (!selectedPoint || selectedPoint.ballIndex !== activeBallIndex) return
+            const ball = balls[activeBallIndex]
+            if (ball.points.length <= 1) return
+            const idx = selectedPoint.pointIndex
+            ball.points.splice(idx, 1)
+            if (ball.segments.length > 0) ball.segments.splice(idx === 0 ? 0 : idx - 1, 1)
+            selectedPoint = null
+            renderAll()
+        })
+        loopBtn.addEventListener('click', () => {config.loop = !config.loop; loopBtn.textContent = `循环：${config.loop ? '开' : '关'}`; updateJson()})
+        resetBtn.addEventListener('click', () => {
+            balls = JSON.parse(JSON.stringify(defaultBalls))
+            activeBallIndex = 0; selectedPoint = null; running = false; paused = false
+            startBtn.textContent = '开始'; pauseBtn.textContent = '暂停'; config.loop = true; loopBtn.textContent = '循环：开'
+            renderAll()
+        })
+        stage.addEventListener('click', () => {selectedPoint = null; renderPoints(); renderPreview(); updateDeleteButton()})
+
+        renderAll()
+    </script>
+</body>
+
+</html>

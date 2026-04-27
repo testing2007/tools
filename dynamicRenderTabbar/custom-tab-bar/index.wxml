@@ -8,7 +8,37 @@
         data-path="{{item.tapPath}}"
         bindtap="onTabTap"
       >
-        <text class="tab-label">{{item.text}}</text>
+        <view class="tab-item-content">
+          <view class="tab-icon-shell">
+            <view class="tab-icon tab-icon-{{item.iconType}}">
+              <view wx:if="{{item.iconType === 'home'}}" class="icon-home">
+                <view class="icon-home-roof"></view>
+                <view class="icon-home-body"></view>
+              </view>
+              <view wx:elif="{{item.iconType === 'category'}}" class="icon-category">
+                <view class="icon-category-cell"></view>
+                <view class="icon-category-cell"></view>
+                <view class="icon-category-cell"></view>
+                <view class="icon-category-cell"></view>
+              </view>
+              <view wx:elif="{{item.iconType === 'discover'}}" class="icon-discover">
+                <view class="icon-discover-ring"></view>
+                <view class="icon-discover-dot"></view>
+              </view>
+              <view wx:elif="{{item.iconType === 'cart'}}" class="icon-cart">
+                <view class="icon-cart-handle"></view>
+                <view class="icon-cart-body"></view>
+                <view class="icon-cart-wheel left"></view>
+                <view class="icon-cart-wheel right"></view>
+              </view>
+              <view wx:elif="{{item.iconType === 'profile'}}" class="icon-profile">
+                <view class="icon-profile-head"></view>
+                <view class="icon-profile-shoulder"></view>
+              </view>
+            </view>
+          </view>
+          <text class="tab-label">{{item.text}}</text>
+        </view>
       </view>
     </view>
 
@@ -19,7 +49,32 @@
       bindtap="onTabTap"
     >
       <view class="center-fab-inner">
-        <text class="center-fab-glyph">{{centerTab.glyph}}</text>
+        <view class="tab-icon tab-icon-{{centerTab.iconType}} center-tab-icon">
+          <view wx:if="{{centerTab.iconType === 'home'}}" class="icon-home">
+            <view class="icon-home-roof"></view>
+            <view class="icon-home-body"></view>
+          </view>
+          <view wx:elif="{{centerTab.iconType === 'category'}}" class="icon-category">
+            <view class="icon-category-cell"></view>
+            <view class="icon-category-cell"></view>
+            <view class="icon-category-cell"></view>
+            <view class="icon-category-cell"></view>
+          </view>
+          <view wx:elif="{{centerTab.iconType === 'discover'}}" class="icon-discover">
+            <view class="icon-discover-ring"></view>
+            <view class="icon-discover-dot"></view>
+          </view>
+          <view wx:elif="{{centerTab.iconType === 'cart'}}" class="icon-cart">
+            <view class="icon-cart-handle"></view>
+            <view class="icon-cart-body"></view>
+            <view class="icon-cart-wheel left"></view>
+            <view class="icon-cart-wheel right"></view>
+          </view>
+          <view wx:elif="{{centerTab.iconType === 'profile'}}" class="icon-profile">
+            <view class="icon-profile-head"></view>
+            <view class="icon-profile-shoulder"></view>
+          </view>
+        </view>
       </view>
       <text class="center-fab-label">{{centerTab.text}}</text>
     </view>
