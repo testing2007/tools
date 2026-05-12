@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>酒类电商小程序 UI 设计标准</title>
+  <style>
+    :root{
+      --bg:#F7F4ED;--surface:#FFFDF8;--surface2:#F1EBDD;--text:#1F2D24;--muted:#69756C;
+      --primary:#2F6B3F;--primary2:#194A2B;--accent:#A77B3C;--danger:#9A2E2E;
+      --line:rgba(47,107,63,.14);--shadow:0 14px 38px rgba(35,55,40,.10);
+      --radius:24px;--radius2:16px;--font:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:var(--font);background:linear-gradient(135deg,var(--bg),#fff);color:var(--text)}
+    .wrap{max-width:1240px;margin:0 auto;padding:32px}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+    .panel{background:rgba(255,253,248,.88);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;backdrop-filter:blur(14px)}
+    h1{font-size:38px;margin:0 0 8px;letter-spacing:.5px}
+    h2{font-size:24px;margin:0 0 18px}
+    h3{font-size:17px;margin:22px 0 12px}
+    p{color:var(--muted);line-height:1.7;margin:8px 0}
+    .sub{font-size:15px;color:var(--muted)}
+    .theme-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    button,.btn{border:0;border-radius:999px;padding:12px 18px;background:var(--primary);color:white;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+    .tab{background:var(--surface);color:var(--text);border:1px solid var(--line);box-shadow:none}
+    .tab.active{background:var(--primary);color:#fff}
+    .copy{background:var(--text);font-size:13px;padding:9px 13px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:18px}
+    .span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
+    .swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:12px}
+    .swatch{border-radius:18px;min-height:92px;padding:12px;border:1px solid rgba(0,0,0,.06);display:flex;align-items:end;font-size:12px;color:#333;background:#ddd}
+    .swatch.dark{color:#fff}
+    .tokens{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#172018;color:#e8f4e9;border-radius:18px;padding:16px;white-space:pre-wrap;font-size:13px;max-height:360px;overflow:auto}
+    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .chip{border:1px solid var(--line);background:var(--surface);padding:9px 14px;border-radius:999px;color:var(--muted)}
+    .chip.on{background:var(--primary);color:#fff;border-color:transparent}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius2);padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.04)}
+    .product{display:flex;gap:14px;align-items:center}
+    .bottle{width:78px;height:94px;border-radius:18px;background:linear-gradient(145deg,var(--surface2),#fff);display:grid;place-items:center;font-size:38px}
+    .price{font-size:26px;color:var(--danger);font-weight:800}
+    .outline{background:transparent;color:var(--primary);border:1px solid var(--primary);box-shadow:none}
+    .phone{width:360px;max-width:100%;height:720px;border-radius:42px;background:#fff;border:10px solid #222;overflow:hidden;margin:auto;box-shadow:0 25px 60px rgba(0,0,0,.22)}
+    .screen{height:100%;background:linear-gradient(180deg,var(--bg),#fff);padding:22px;overflow:hidden}
+    .status{height:26px;display:flex;justify-content:space-between;font-weight:700}
+    .search{height:46px;border:1.5px solid var(--primary);border-radius:999px;background:#fff;display:flex;align-items:center;padding:0 14px;margin:16px 0;color:var(--muted)}
+    .banner{height:150px;border-radius:24px;background:linear-gradient(120deg,var(--surface2),#fff);padding:18px;position:relative;overflow:hidden;border:1px solid var(--line)}
+    .banner:after{content:"🍷";position:absolute;right:22px;bottom:16px;font-size:72px;opacity:.55}
+    .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+    .qitem{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;text-align:center;font-weight:700;font-size:13px}
+    .mini-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .mini-card{display:flex;gap:10px;background:var(--surface);border-radius:18px;border:1px solid var(--line);padding:10px;align-items:center}
+    .mini-img{width:64px;height:64px;border-radius:14px;background:var(--surface2);display:grid;place-items:center;font-size:30px}
+    table{width:100%;border-collapse:collapse}
+    td,th{border-bottom:1px solid var(--line);padding:12px;text-align:left;vertical-align:top}
+    th{color:var(--text)}td{color:var(--muted)}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s}
+    .toast.show{opacity:1}
+    @media(max-width:900px){.hero,.grid{display:block}.panel{margin-bottom:16px}.span4,.span5,.span6,.span7,.span8,.span12{grid-column:auto}.wrap{padding:18px}.swatches{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="panel">
+      <h1>酒类电商小程序 UI 设计标准</h1>
+      <p class="sub">目标：统一后续页面风格，避免图片生成或开发实现时出现“每张图都像不同产品”的问题。</p>
+      <div class="theme-tabs">
+        <button class="tab active" data-theme="sage">庄园绿 · 当前推荐</button>
+        <button class="tab" data-theme="burgundy">酒窖红 · 高端综合</button>
+        <button class="tab" data-theme="citrus">果香桃粉 · 果酒轻饮</button>
+        <button class="tab" data-theme="amber">麦芽琥珀 · 啤酒精酿</button>
+      </div>
+      <h3>产品风格定位</h3>
+      <p>不是传统模板商城，而是“场景选酒 + 可信交易 + 复购管理”的导购型酒类电商。页面要克制、清晰、可信，不做过度促销和复杂游戏化。</p>
+      <div class="row">
+        <button onclick="copyJSON()">复制当前主题 JSON</button>
+        <button class="copy" onclick="copyCSS()">复制 CSS Tokens</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="phone">
+        <div class="screen">
+          <div class="status"><span>9:41</span><span>••• ◎</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+            <div><b style="font-size:22px">葡悦庄园</b><div class="sub">甄选全球美酒</div></div>
+            <span class="chip">上海市</span>
+          </div>
+          <div class="search">🔍 搜索酒款 / 场景 / 品牌</div>
+          <div class="banner">
+            <b style="font-size:28px">30 秒帮你选酒</b>
+            <p style="width:58%">根据场景、口味、预算推荐不踩雷酒款</p>
+            <button style="padding:9px 16px">开始选酒</button>
+          </div>
+          <div class="quick">
+            <div class="qitem">自饮放松</div><div class="qitem">朋友聚餐</div><div class="qitem">节日送礼</div>
+          </div>
+          <h3>今日推荐</h3>
+          <div class="mini-list">
+            <div class="mini-card"><div class="mini-img">🍾</div><div><b>泸州老窖 头曲</b><div class="sub">不踩雷 · 聚会适合</div><div class="price">¥138</div></div></div>
+            <div class="mini-card"><div class="mini-img">🍷</div><div><b>奔富 BIN 389</b><div class="sub">口感柔和 · 好友聚餐</div><div class="price">¥398</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel span6">
+      <h2>1. 色彩规范</h2>
+      <div class="swatches" id="swatches"></div>
+    </section>
+
+    <section class="panel span6">
+      <h2>2. 字体与排版</h2>
+      <table>
+        <tr><th>层级</th><th>用途</th><th>建议</th></tr>
+        <tr><td>H1</td><td>页面主标题</td><td>32-36px / Bold / 深色</td></tr>
+        <tr><td>H2</td><td>模块标题</td><td>22-26px / Bold</td></tr>
+        <tr><td>Body</td><td>正文说明</td><td>15-16px / Regular / 行高 1.6</td></tr>
+        <tr><td>Caption</td><td>辅助说明</td><td>12-13px / Muted</td></tr>
+      </table>
+      <p>建议中文字体：PingFang SC / Microsoft YaHei。不要频繁使用书法字体，最多用于品牌 Logo 或营销 Banner。</p>
+    </section>
+
+    <section class="panel span8">
+      <h2>3. 组件标准</h2>
+      <h3>按钮</h3>
+      <div class="row">
+        <button>主要按钮</button><button class="outline">次要按钮</button><span class="chip">标签</span><span class="chip on">选中标签</span>
+      </div>
+      <h3>商品卡片</h3>
+      <div class="card product">
+        <div class="bottle">🍷</div>
+        <div style="flex:1">
+          <b>奔富 BIN 389 赤霞珠干红葡萄酒</b>
+          <p>适合朋友聚餐，口感柔和，不挑人。</p>
+          <div class="row"><span class="chip">口感柔和</span><span class="chip">聚会适合</span></div>
+        </div>
+        <div><div class="price">¥398</div><button class="outline">加入购物车</button></div>
+      </div>
+    </section>
+
+    <section class="panel span4">
+      <h2>4. 图标规范</h2>
+      <p>图标应统一为线性图标，2px 线宽，圆角端点。禁止同一页面混用 3D 图标、实物图标、线性图标。</p>
+      <div class="quick">
+        <div class="qitem">首页</div><div class="qitem">分类</div><div class="qitem">选酒</div>
+        <div class="qitem">购物车</div><div class="qitem">我的</div><div class="qitem">客服</div>
+      </div>
+    </section>
+
+    <section class="panel span12">
+      <h2>5. 页面边界标准</h2>
+      <table>
+        <tr><th>页面</th><th>本质</th><th>应该放什么</th><th>不应该放什么</th></tr>
+        <tr><td>分类页</td><td>入口页</td><td>酒类、场景、价格带、品牌入口</td><td>大量商品列表</td></tr>
+        <tr><td>选酒页</td><td>提问页</td><td>场景、预算、口味、包装等选择</td><td>商品货架</td></tr>
+        <tr><td>选酒结果页</td><td>答案页</td><td>3 个以内推荐 + 推荐理由</td><td>几十个商品</td></tr>
+        <tr><td>商品列表页</td><td>货架页</td><td>排序、筛选入口、商品卡片</td><td>复杂问答流程</td></tr>
+        <tr><td>筛选条件页</td><td>工具页</td><td>价格、酒类、品牌、场景、口味、包装</td><td>营销解释</td></tr>
+      </table>
+    </section>
+
+    <section class="panel span6">
+      <h2>6. 当前主题 JSON</h2>
+      <pre class="tokens" id="jsonOut"></pre>
+    </section>
+
+    <section class="panel span6">
+      <h2>7. 当前 CSS Tokens</h2>
+      <pre class="tokens" id="cssOut"></pre>
+    </section>
+
+    <section class="panel span12">
+      <h2>8. 弹窗/半屏页标准</h2>
+      <p>统一使用白色或米白底，24-32px 圆角，遮罩 rgba(0,0,0,.35)。登录、规格选择、加购成功建议用底部半屏；隐私协议、理性饮酒提示建议用中央弹窗。</p>
+      <div class="row">
+        <span class="chip on">手机号授权</span>
+        <span class="chip">新用户好礼</span>
+        <span class="chip">规格选择</span>
+        <span class="chip">加购成功</span>
+        <span class="chip">理性饮酒提示</span>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="toast" class="toast">已复制</div>
+
+<script>
+const themes = {
+  sage:{
+    name:"庄园绿 · 当前推荐",
+    bg:"#F7F4ED",surface:"#FFFDF8",surface2:"#F1EBDD",text:"#1F2D24",muted:"#69756C",
+    primary:"#2F6B3F",primary2:"#194A2B",accent:"#A77B3C",danger:"#9A2E2E",line:"rgba(47,107,63,.14)"
+  },
+  burgundy:{
+    name:"酒窖红 · 高端综合",
+    bg:"#F8F2EA",surface:"#FFF8EF",surface2:"#F2E0CC",text:"#2A1916",muted:"#7A655F",
+    primary:"#7D1E28",primary2:"#4A0F18",accent:"#D4AF6A",danger:"#9B1E2E",line:"rgba(125,30,40,.16)"
+  },
+  citrus:{
+    name:"果香桃粉 · 果酒轻饮",
+    bg:"#FFF4F1",surface:"#FFFDFB",surface2:"#FFE5D9",text:"#342323",muted:"#8A6B67",
+    primary:"#E84E6A",primary2:"#B72B46",accent:"#FFAA62",danger:"#D9304F",line:"rgba(232,78,106,.16)"
+  },
+  amber:{
+    name:"麦芽琥珀 · 啤酒精酿",
+    bg:"#FAF1E3",surface:"#FFF9EE",surface2:"#F5D7A6",text:"#241B12",muted:"#7D6750",
+    primary:"#C46D17",primary2:"#7A3D0E",accent:"#E2B94F",danger:"#B33A1D",line:"rgba(196,109,23,.16)"
+  }
+};
+let current="sage";
+function setTheme(key){
+  current=key; const t=themes[key];
+  Object.entries(t).forEach(([k,v])=>{ if(k!=="name") document.documentElement.style.setProperty("--"+k,v); });
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.theme===key));
+  render();
+}
+function render(){
+  const t=themes[current];
+  const sw=document.getElementById("swatches");
+  const names={bg:"背景色",surface:"卡片底",surface2:"辅助底",text:"正文色",muted:"辅助文字",primary:"主色",primary2:"深主色",accent:"点缀色",danger:"风险/价格"};
+  sw.innerHTML=Object.entries(t).filter(([k])=>k!=="name" && k!=="line").map(([k,v])=>{
+    const dark=["text","primary","primary2","danger"].includes(k);
+    return `<div class="swatch ${dark?'dark':''}" style="background:${v}"><div><b>${names[k]||k}</b><br>${v}</div></div>`;
+  }).join("");
+  const json=JSON.stringify(t,null,2);
+  document.getElementById("jsonOut").textContent=json;
+  document.getElementById("cssOut").textContent=`:root {
+  --bg: ${t.bg};
+  --surface: ${t.surface};
+  --surface2: ${t.surface2};
+  --text: ${t.text};
+  --muted: ${t.muted};
+  --primary: ${t.primary};
+  --primary2: ${t.primary2};
+  --accent: ${t.accent};
+  --danger: ${t.danger};
+  --line: ${t.line};
+  --radius: 24px;
+  --radius-sm: 16px;
+  --shadow: 0 14px 38px rgba(35,55,40,.10);
+}`;
+}
+function toast(){const el=document.getElementById("toast");el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1200)}
+async function copyJSON(){await navigator.clipboard.writeText(document.getElementById("jsonOut").textContent);toast();}
+async function copyCSS(){await navigator.clipboard.writeText(document.getElementById("cssOut").textContent);toast();}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setTheme(b.dataset.theme)));
+render();
+</script>
+</body>
+</html>

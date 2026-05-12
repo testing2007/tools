@@ -1,0 +1,13 @@
+{
+  "components": {
+    "Container": {
+      "exportName": "UIShowcase",
+      "description": "南美团队小程序 UI 组件库展示",
+      "extractSubComponents": false
+    }
+  },
+  "defaultNaming": {
+    "useExportName": true,
+    "fallbackToFileName": true
+  }
+}

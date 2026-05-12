@@ -81,9 +81,56 @@
     wx:if="{{springProg > 8}}"
     class="spring-tip {{currentGroup < groups.length - 1 && springDir === 'next' ? 'tip-bot' : 'tip-top'}}"
   >
-    <text class="spring-tip-txt">{{springDir === 'next' ? '↑ 上滑进入下一组' : '↓ 下滑返回上一组'}}</text>
+    <text class="spring-tip-txt">{{springDir === 'next' ? '继续上滑可进入下一组' : '继续下滑可返回上一组'}}</text>
     <view class="spring-tip-bar">
       <view class="spring-tip-fill" style="width:{{springProg}}%;"></view>
+    </view>
+  </view>
+
+  <view class="debug-panel {{debugCollapsed ? 'debug-panel-collapsed' : ''}}">
+    <view class="debug-panel-hd" catchtap="toggleDebugPanel">
+      <text class="debug-panel-title">滚动调试面板</text>
+      <text class="debug-panel-toggle">{{debugCollapsed ? '展开' : '收起'}}</text>
+    </view>
+
+    <view wx:if="{{!debugCollapsed}}" class="debug-panel-bd">
+      <view class="debug-stage">
+        <text class="debug-stage-label">当前阶段</text>
+        <text class="debug-stage-value">{{debugInfo.stage}}</text>
+      </view>
+      <text class="debug-stage-text">{{debugInfo.stageText}}</text>
+      <text class="debug-hint">{{debugInfo.hint}}</text>
+
+      <view class="debug-grid">
+        <view class="debug-item"><text class="debug-k">mode</text><text class="debug-v">{{debugInfo.mode}}</text></view>
+        <view class="debug-item"><text class="debug-k">activeGroup</text><text class="debug-v">{{debugInfo.activeGroup}}</text></view>
+        <view class="debug-item"><text class="debug-k">currentGroup</text><text class="debug-v">{{debugInfo.currentGroup}}</text></view>
+        <view class="debug-item"><text class="debug-k">activeImage</text><text class="debug-v">{{debugInfo.activeImage}}</text></view>
+        <view class="debug-item"><text class="debug-k">outerY</text><text class="debug-v">{{debugInfo.outerY}}</text></view>
+        <view class="debug-item"><text class="debug-k">groupY</text><text class="debug-v">{{debugInfo.groupY}}</text></view>
+        <view class="debug-item"><text class="debug-k">currentGroupY</text><text class="debug-v">{{debugInfo.currentGroupY}}</text></view>
+        <view class="debug-item"><text class="debug-k">maxGroupScroll</text><text class="debug-v">{{debugInfo.maxGroupScroll}}</text></view>
+        <view class="debug-item"><text class="debug-k">velocity</text><text class="debug-v">{{debugInfo.velocity}}</text></view>
+        <view class="debug-item"><text class="debug-k">direction</text><text class="debug-v">{{debugInfo.direction}}</text></view>
+        <view class="debug-item"><text class="debug-k">overscroll</text><text class="debug-v">{{debugInfo.overscroll}}</text></view>
+        <view class="debug-item"><text class="debug-k">progress</text><text class="debug-v">{{debugInfo.progress}}</text></view>
+        <view class="debug-item"><text class="debug-k">canSwitch</text><text class="debug-v">{{debugInfo.canSwitch}}</text></view>
+        <view class="debug-item"><text class="debug-k">flowPan</text><text class="debug-v">{{debugInfo.flowPan}}</text></view>
+        <view class="debug-item"><text class="debug-k">outerPage</text><text class="debug-v">{{debugInfo.outerPage}}</text></view>
+        <view class="debug-item"><text class="debug-k">imgTop</text><text class="debug-v">{{debugInfo.activeImageTop}}</text></view>
+        <view class="debug-item"><text class="debug-k">imgProgress</text><text class="debug-v">{{debugInfo.activeImageProgress}}</text></view>
+        <view class="debug-item"><text class="debug-k">threshold</text><text class="debug-v">{{debugInfo.threshold}}</text></view>
+        <view class="debug-item"><text class="debug-k">velocityThreshold</text><text class="debug-v">{{debugInfo.velocityThreshold}}</text></view>
+      </view>
+
+      <view class="debug-legend">
+        <text class="debug-legend-title">怎么看这些变量</text>
+        <text class="debug-legend-line">1. outerY：控制整页切到第几组，0 是第一组，负一屏高接近第二组。</text>
+        <text class="debug-legend-line">2. groupY：控制当前组内部滚了多少，越小表示内容越往上滚。</text>
+        <text class="debug-legend-line">3. progress：越界蓄力值，越接近 1 越可能触发切组。</text>
+        <text class="debug-legend-line">4. velocity：手势速度，松手后它决定是回弹、惯性还是直接切组。</text>
+        <text class="debug-legend-line">5. imgProgress：当前图片进入视口的进度，它直接驱动 overlay 动画。</text>
+      </view>
     </view>
   </view>
 </view>

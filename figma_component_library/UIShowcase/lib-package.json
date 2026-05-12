@@ -1,0 +1,32 @@
+{
+  "name": "wine",
+  "version": "1.0.0",
+  "description": "基于 Figma 设计的 React 组件库",
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./components/*": "./components/*"
+  },
+  "files": [
+    "*",
+    "components/**/*"
+  ],
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "keywords": [
+    "react",
+    "components",
+    "figma",
+    "ui",
+    "tailwind"
+  ],
+  "license": "MIT"
+}

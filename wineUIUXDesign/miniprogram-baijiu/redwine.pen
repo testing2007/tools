@@ -1,0 +1,695 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "lLO3N",
+      "x": 0,
+      "y": 0,
+      "name": "Redwine Component Library",
+      "width": 1520,
+      "fill": "$surface",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        28,
+        28,
+        36,
+        28
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "DDHTk",
+          "name": "Header",
+          "width": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "iZRj0",
+              "name": "Brand",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "R8dIK3",
+                  "name": "Logo",
+                  "width": 72,
+                  "height": 72,
+                  "cornerRadius": 20,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#7B1E2B1F",
+                    "offset": {
+                      "x": 0,
+                      "y": 10
+                    },
+                    "blur": 24
+                  },
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "RaQJv",
+                      "x": 0,
+                      "y": 0,
+                      "name": "logoMark",
+                      "width": 34,
+                      "height": 34,
+                      "iconFontName": "gift",
+                      "iconFontFamily": "phosphor",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KvKEe",
+                  "name": "Brand Text",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "u3eHCv",
+                      "name": "brandTitle",
+                      "fill": "$brand-primary",
+                      "content": "葡悦庄园 移动端UI设计系统",
+                      "fontFamily": "Inter",
+                      "fontSize": 30,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WtBpd",
+                      "name": "brandSub",
+                      "fill": "$text-muted",
+                      "content": "Wine E-commerce Mobile UI Design System",
+                      "fontFamily": "Inter",
+                      "fontSize": 16
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "zgkBg",
+              "name": "Meta",
+              "layout": "vertical",
+              "gap": 10,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "QflWg",
+                  "name": "metaTitle",
+                  "fill": "$text-dark",
+                  "content": "图标组件库",
+                  "fontFamily": "Inter",
+                  "fontSize": 22,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "v1T7O",
+                  "name": "metaSub",
+                  "fill": "$text-muted",
+                  "content": "18 个高频业务图标，可直接复用到首页与运营模块",
+                  "fontFamily": "Inter",
+                  "fontSize": 14
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p4Uu5W",
+          "name": "Body",
+          "width": "fill_container",
+          "gap": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "T6zSp",
+              "name": "Icon Showcase",
+              "width": 1040,
+              "fill": "$surface-card",
+              "cornerRadius": "$radius-card",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$border-soft"
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#7B1E2B14",
+                "offset": {
+                  "x": 0,
+                  "y": 12
+                },
+                "blur": 32
+              },
+              "layout": "vertical",
+              "gap": 20,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "r7a2B",
+                  "name": "showcaseTitle",
+                  "fill": "$text-dark",
+                  "content": "图标系统（首页常用）",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "rOTWB",
+                  "name": "showcaseSub",
+                  "fill": "$text-muted",
+                  "content": "将图标沉淀成组件，后续页面通过 ref 直接复用",
+                  "fontFamily": "Inter",
+                  "fontSize": 14
+                },
+                {
+                  "type": "frame",
+                  "id": "xKEF2",
+                  "name": "Row 1",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "M42vrf",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon01",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "gift"
+                        },
+                        "P6Bxh": {
+                          "content": "新用户礼包",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "w4U2d",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon02",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "ticket"
+                        },
+                        "P6Bxh": {
+                          "content": "优惠券",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "qQDpz",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon03",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "timer"
+                        },
+                        "P6Bxh": {
+                          "content": "秒杀",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Oe8mY",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon04",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "users-three"
+                        },
+                        "P6Bxh": {
+                          "content": "多人拼团",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "c94amo",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon05",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "calendar-check"
+                        },
+                        "P6Bxh": {
+                          "content": "日历签到",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "qGiiz",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon06",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "confetti"
+                        },
+                        "P6Bxh": {
+                          "content": "幸运抽奖",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Tx3vu",
+                  "name": "Row 2",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "XnENV",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon07",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "tag"
+                        },
+                        "P6Bxh": {
+                          "content": "临期特卖",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "QliHp",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon08",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "wine"
+                        },
+                        "P6Bxh": {
+                          "content": "小瓶试饮",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "DPHEo",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon09",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "bag"
+                        },
+                        "P6Bxh": {
+                          "content": "福袋",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "A8zof",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon10",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "identification-card"
+                        },
+                        "P6Bxh": {
+                          "content": "企业礼品卡",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "cyhDH",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon11",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "wine"
+                        },
+                        "P6Bxh": {
+                          "content": "酒局",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "VvRfQ",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon12",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "shield-check"
+                        },
+                        "P6Bxh": {
+                          "content": "溯源",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "v3G7vl",
+                  "name": "Row 3",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "id": "GtDIk",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon13",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "gift"
+                        },
+                        "P6Bxh": {
+                          "content": "品鉴会抽奖",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "M1Oo2O",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon14",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "currency-circle-dollar"
+                        },
+                        "P6Bxh": {
+                          "content": "数字藏酒",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "ZjaI4",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon15",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "barcode"
+                        },
+                        "P6Bxh": {
+                          "content": "至码送酒",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "g2y3Nm",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon16",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "scan"
+                        },
+                        "P6Bxh": {
+                          "content": "AR扫描",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Z80IGz",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon17",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "squares-four"
+                        },
+                        "P6Bxh": {
+                          "content": "分类",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Ib8Nn",
+                      "type": "ref",
+                      "reusable": true,
+                      "ref": "CO1pC",
+                      "name": "icon18",
+                      "descendants": {
+                        "YvH1n": {
+                          "iconFontFamily": "phosphor",
+                          "iconFontName": "dots-three"
+                        },
+                        "P6Bxh": {
+                          "content": "更多",
+                          "fontFamily": "Inter"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kckdX",
+              "name": "Source Components",
+              "width": 400,
+              "fill": "$surface-card",
+              "cornerRadius": "$radius-card",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$border-soft"
+              },
+              "layout": "vertical",
+              "gap": 18,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MMOyM",
+                  "name": "sourceTitle",
+                  "fill": "$text-dark",
+                  "content": "组件源",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "nM8jd",
+                  "name": "sourceSub",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "右侧保留基础组件与派生组件，便于后续补更多图标状态。",
+                  "fontFamily": "Inter",
+                  "fontSize": 14
+                },
+                {
+                  "type": "frame",
+                  "id": "CO1pC",
+                  "name": "Comp/IconTile/Base",
+                  "reusable": true,
+                  "width": 120,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": [
+                    12,
+                    8,
+                    8,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kODCM",
+                      "name": "Icon Card",
+                      "width": 72,
+                      "height": 72,
+                      "fill": "$surface-card",
+                      "cornerRadius": 18,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "$border-soft"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#7B1E2B12",
+                        "offset": {
+                          "x": 0,
+                          "y": 8
+                        },
+                        "blur": 20
+                      },
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "YvH1n",
+                          "x": 0,
+                          "y": 0,
+                          "name": "baseIcon",
+                          "width": 28,
+                          "height": 28,
+                          "iconFontName": "gift",
+                          "iconFontFamily": "phosphor",
+                          "weight": 400,
+                          "fill": "$brand-primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "P6Bxh",
+                      "name": "baseLabel",
+                      "fill": "$text-dark",
+                      "content": "图标名称",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent-gold": {
+      "type": "color",
+      "value": "#F5A623"
+    },
+    "accent-pink": {
+      "type": "color",
+      "value": "#EBC4CC"
+    },
+    "border-soft": {
+      "type": "color",
+      "value": "#F1E6E8"
+    },
+    "brand-light": {
+      "type": "color",
+      "value": "#A63A4A"
+    },
+    "brand-primary": {
+      "type": "color",
+      "value": "#7B1E2B"
+    },
+    "radius-card": {
+      "type": "number",
+      "value": 28
+    },
+    "radius-pill": {
+      "type": "number",
+      "value": 999
+    },
+    "shadow-soft": {
+      "type": "color",
+      "value": "#00000014"
+    },
+    "space-12": {
+      "type": "number",
+      "value": 12
+    },
+    "space-16": {
+      "type": "number",
+      "value": 16
+    },
+    "space-24": {
+      "type": "number",
+      "value": 24
+    },
+    "space-8": {
+      "type": "number",
+      "value": 8
+    },
+    "surface": {
+      "type": "color",
+      "value": "#FAF5F6"
+    },
+    "surface-card": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "text-dark": {
+      "type": "color",
+      "value": "#2B1D1F"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#8A6D73"
+    }
+  }
+}

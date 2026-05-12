@@ -1,0 +1,3918 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#FFFFFF",
+      "layout": "vertical",
+      "gap": 20,
+      "padding": 24,
+      "children": [
+        {
+          "type": "frame",
+          "id": "F32Sv",
+          "name": "组件库",
+          "width": "fill_container",
+          "fill": "#FFFFFF",
+          "cornerRadius": 24,
+          "layout": "vertical",
+          "gap": 20,
+          "padding": 20,
+          "children": [
+            {
+              "type": "frame",
+              "id": "KSlvq",
+              "name": "Navigation/TopBar",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 44,
+              "fill": "#FFFFFF",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "a6it9",
+                  "name": "left",
+                  "width": 44,
+                  "height": 44,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "V3d1Pu",
+                      "x": 0,
+                      "y": 0,
+                      "enabled": false,
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "caret-left",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$text"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "UQ8Z2",
+                  "name": "title",
+                  "fill": "$text",
+                  "content": "页面标题",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "b2EOs8",
+                  "name": "right",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GChOd",
+                      "name": "btn1",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$card",
+                      "cornerRadius": 16,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$line"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "xgGmQ",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "dots-three",
+                          "iconFontFamily": "phosphor",
+                          "fill": "$text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GQXqB",
+                      "name": "btn2",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$card",
+                      "cornerRadius": 16,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$line"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "aOAIv",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "dot-outline",
+                          "iconFontFamily": "phosphor",
+                          "fill": "$text"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "c2iek",
+              "name": "Input/Search",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 40,
+              "fill": "$card",
+              "cornerRadius": 20,
+              "gap": 10,
+              "padding": [
+                0,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "g9Je2b",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "magnifying-glass",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$muted"
+                },
+                {
+                  "type": "text",
+                  "id": "x6zIZn",
+                  "name": "placeholder",
+                  "fill": "$muted",
+                  "content": "搜索商品",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "E22yd",
+              "name": "Card/ProductSmall",
+              "reusable": true,
+              "width": 104,
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NlBG1",
+                  "name": "thumb",
+                  "width": 104,
+                  "height": 104,
+                  "fill": [
+                    "#F4F5F8",
+                    {
+                      "type": "image",
+                      "enabled": true,
+                      "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                      "mode": "fill"
+                    }
+                  ],
+                  "cornerRadius": 14
+                },
+                {
+                  "type": "text",
+                  "id": "Cq2Hy",
+                  "name": "title",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": 104,
+                  "content": "高端白酒礼盒装",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "aWB8i",
+                  "name": "priceRow",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OcmPH",
+                      "name": "price",
+                      "fill": "$accent-red",
+                      "content": "¥599",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZWVON",
+                      "name": "old",
+                      "fill": "$muted",
+                      "content": "¥899",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xp5kf",
+              "name": "Card/ProductRow",
+              "reusable": true,
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hWHKu",
+                  "name": "thumb",
+                  "width": 72,
+                  "height": 72,
+                  "fill": [
+                    "#F5F6F9",
+                    {
+                      "type": "image",
+                      "enabled": true,
+                      "url": "../miniprogram-baijiu/luxury_baijiu_e_commerce_ui_design.png",
+                      "mode": "fill"
+                    }
+                  ],
+                  "cornerRadius": 14
+                },
+                {
+                  "type": "frame",
+                  "id": "qbePO",
+                  "name": "info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oyBhB",
+                      "name": "title",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "飞天臻酿 53° 500ml",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "F9j5w",
+                      "name": "spec",
+                      "fill": "$muted",
+                      "content": "酱香型 / 单瓶装",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a9zo9v",
+                      "name": "bottom",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "f7Qvzc",
+                          "name": "price",
+                          "fill": "$accent-red",
+                          "content": "¥1299.00",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fiYzp",
+                          "name": "stepper",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 16,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "$line"
+                          },
+                          "gap": 10,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "D1Q9X",
+                              "fill": "$muted",
+                              "content": "-",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Au1YI",
+                              "fill": "$text",
+                              "content": "1",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "m2bLAA",
+                              "fill": "$brand",
+                              "content": "+",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "V895V",
+              "name": "Card/Address",
+              "reusable": true,
+              "width": "fill_container",
+              "fill": "$card",
+              "cornerRadius": 20,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0F172A14",
+                "offset": {
+                  "x": 0,
+                  "y": 8
+                },
+                "blur": 24
+              },
+              "layout": "vertical",
+              "gap": 10,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hzM0j",
+                  "name": "line1",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GJDy3",
+                      "name": "name",
+                      "fill": "$text",
+                      "content": "张三  136****8888",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "HHo4e",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "caret-right",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Phs8i",
+                  "name": "addr",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "广东省广州市天河区珠江新城花城大道 85 号高德置地广场 A 座 15 楼",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pZzkz",
+              "name": "List/PaymentOption",
+              "reusable": true,
+              "width": "fill_container",
+              "padding": [
+                16,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Pth5Z",
+                  "name": "left",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DahNu",
+                      "name": "iconBg",
+                      "width": 26,
+                      "height": 26,
+                      "fill": "$soft-green",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "kWUBy",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "currency-circle-dollar",
+                          "iconFontFamily": "phosphor",
+                          "fill": "$brand"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WC6A7",
+                      "name": "textWrap",
+                      "layout": "vertical",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "m1s5Dl",
+                          "name": "title",
+                          "fill": "$text",
+                          "content": "微信支付",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Cxtnw",
+                          "name": "desc",
+                          "fill": "$muted",
+                          "content": "推荐使用",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "ellipse",
+                  "id": "sONVZ",
+                  "name": "radio",
+                  "fill": "#FFFFFF",
+                  "width": 20,
+                  "height": 20,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$line"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cfBD1",
+              "name": "TabBar/Main",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 84,
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": {
+                  "top": 1
+                },
+                "fill": "$line-soft"
+              },
+              "padding": [
+                10,
+                16,
+                24,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qVXGb",
+                  "name": "item1",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "lR9Po",
+                      "width": 22,
+                      "height": 22,
+                      "iconFontName": "house",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$brand"
+                    },
+                    {
+                      "type": "text",
+                      "id": "stXeH",
+                      "fill": "$brand",
+                      "content": "首页",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "D9geQ2",
+                  "name": "item2",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "rtfmp",
+                      "width": 22,
+                      "height": 22,
+                      "iconFontName": "squares-four",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "zhlru",
+                      "fill": "$muted",
+                      "content": "分类",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qYFlP",
+                  "name": "item3",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "SSP7K",
+                      "width": 22,
+                      "height": 22,
+                      "iconFontName": "shopping-cart",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ggtWv",
+                      "fill": "$muted",
+                      "content": "购物车",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "D161nl",
+                  "name": "item4",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "LjnSI",
+                      "width": 22,
+                      "height": 22,
+                      "iconFontName": "user",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZpbRQ",
+                      "fill": "$muted",
+                      "content": "我的",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nzt9T",
+              "name": "ActionBar/Product",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 92,
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": {
+                  "top": 1
+                },
+                "fill": "$line-soft"
+              },
+              "gap": 10,
+              "padding": [
+                12,
+                16,
+                28,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Cg3wt",
+                  "name": "mini1",
+                  "width": 48,
+                  "height": 44,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "gtUmo",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "headset",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mgEKa",
+                      "fill": "$muted",
+                      "content": "客服",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LVqZJ",
+                  "name": "mini2",
+                  "width": 48,
+                  "height": 44,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "dTCET",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "heart",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "scIRk",
+                      "fill": "$muted",
+                      "content": "收藏",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "P8z2Q",
+                  "name": "mini3",
+                  "width": 48,
+                  "height": 44,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "VKOxr",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "shopping-cart",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HBHPZ",
+                      "fill": "$muted",
+                      "content": "购物车",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bu0Gr",
+                  "name": "cta1",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "$soft-green",
+                  "cornerRadius": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "O8NpIU",
+                      "fill": "$brand-dark",
+                      "content": "加入购物车",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "a8geq",
+                  "name": "cta2",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "$brand",
+                  "cornerRadius": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TVc8c",
+                      "fill": "$text-light",
+                      "content": "立即购买",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "script",
+      "id": "PsTsM",
+      "x": 921.5384615384614,
+      "y": 808.7179487179485,
+      "width": 200,
+      "height": 200
+    },
+    {
+      "type": "frame",
+      "id": "K1Ppfh",
+      "x": 900,
+      "y": 40,
+      "name": "首页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "F7PJIy",
+          "name": "homeStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "nm4Nh",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "TpLgE",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "Em4Ht",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "yUX9i",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "ZhEtI",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "rxyED",
+          "name": "homeBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "c9wKg",
+              "type": "ref",
+              "ref": "KSlvq",
+              "name": "homeTop",
+              "descendants": {
+                "UQ8Z2": {
+                  "content": "精选好物"
+                }
+              }
+            },
+            {
+              "id": "DAnGp",
+              "type": "ref",
+              "ref": "c2iek",
+              "name": "homeSearch"
+            },
+            {
+              "type": "frame",
+              "id": "BMAko",
+              "name": "homeBanner",
+              "width": "fill_container",
+              "height": 150,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#EEF8F1",
+                    "position": 0
+                  },
+                  {
+                    "color": "#DCEFD9",
+                    "position": 1
+                  }
+                ]
+              },
+              "cornerRadius": 20,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "N0dE62",
+                  "x": 20,
+                  "y": 32,
+                  "fill": "$ink",
+                  "content": "春酿焕新季",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "tNOHD",
+                  "x": 20,
+                  "y": 72,
+                  "fill": "$brand-dark",
+                  "content": "全场满 199 减 30",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Co0Ga",
+                  "x": 20,
+                  "y": 104,
+                  "width": 92,
+                  "height": 34,
+                  "fill": "$brand",
+                  "cornerRadius": 17,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "g66aQ",
+                      "fill": "$text-light",
+                      "content": "立即抢购",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ohOJJ",
+                  "x": 212,
+                  "y": 18,
+                  "width": 118,
+                  "height": 118,
+                  "fill": [
+                    "#FFFFFFAA",
+                    {
+                      "type": "image",
+                      "enabled": true,
+                      "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                      "mode": "fill"
+                    }
+                  ],
+                  "cornerRadius": 18
+                },
+                {
+                  "type": "ellipse",
+                  "id": "bD5aO",
+                  "x": 302,
+                  "y": 12,
+                  "fill": "#CFE8CF",
+                  "width": 22,
+                  "height": 22
+                },
+                {
+                  "type": "ellipse",
+                  "id": "gsbTE",
+                  "x": 320,
+                  "y": 26,
+                  "fill": "#A9D7A4",
+                  "width": 10,
+                  "height": 10
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "f4OEg",
+              "name": "homeQuick",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "G3BIn",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Q205eR",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "#EEF4FF",
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iiMz8",
+                          "fill": "#5B8DEF",
+                          "content": "礼",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "z2OBlJ",
+                      "fill": "$text",
+                      "content": "新品上架",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yo1gU",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NDfln",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "#FFF3E7",
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qp3ls",
+                          "fill": "#FF8A34",
+                          "content": "火",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "RpYTv",
+                      "fill": "$text",
+                      "content": "热门榜",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FhnMg",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SJhTa",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "#FFF7D8",
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "a7iob4",
+                          "fill": "$gold",
+                          "content": "券",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "b6FaW",
+                      "fill": "$text",
+                      "content": "优惠券",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gF0wy",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hRWTJ",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "#F7F1FF",
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SI1qG",
+                          "fill": "#9B6DFF",
+                          "content": "星",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "IkG7A",
+                      "fill": "$text",
+                      "content": "会员中心",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jt6To",
+              "name": "flashHeader",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "x9wRG",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lRjxW",
+                      "fill": "$text",
+                      "content": "限时秒杀",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gXvhf",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "w8Z0PE",
+                          "width": 22,
+                          "height": 18,
+                          "fill": "$accent-red",
+                          "cornerRadius": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "T82CVJ",
+                              "fill": "$text-light",
+                              "content": "02",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "QIrB5",
+                          "width": 22,
+                          "height": 18,
+                          "fill": "$accent-red",
+                          "cornerRadius": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "vPU61",
+                              "fill": "$text-light",
+                              "content": "18",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P8sSg",
+                          "width": 22,
+                          "height": 18,
+                          "fill": "$accent-red",
+                          "cornerRadius": 6,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "fS5HG",
+                              "fill": "$text-light",
+                              "content": "36",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "X37NSg",
+                  "fill": "$muted",
+                  "content": "更多 >",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JJBy9",
+              "name": "flashRow",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "id": "pXk02",
+                  "type": "ref",
+                  "ref": "E22yd",
+                  "descendants": {
+                    "NlBG1": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/luxury_gift_items_and_chinese_baijiu_sales.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "Cq2Hy": {
+                      "content": "鎏金典藏"
+                    },
+                    "OcmPH": {
+                      "content": "¥399"
+                    },
+                    "ZWVON": {
+                      "content": "¥499"
+                    }
+                  }
+                },
+                {
+                  "id": "MZ5wz",
+                  "type": "ref",
+                  "ref": "E22yd",
+                  "descendants": {
+                    "NlBG1": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/luxury_digital_wine_experience_showcase.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "Cq2Hy": {
+                      "content": "青瓷雅酿"
+                    },
+                    "OcmPH": {
+                      "content": "¥799"
+                    },
+                    "ZWVON": {
+                      "content": "¥999"
+                    }
+                  }
+                },
+                {
+                  "id": "JP6ln",
+                  "type": "ref",
+                  "ref": "E22yd",
+                  "descendants": {
+                    "NlBG1": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/ar_experience_for_premium_liquor_selection.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "Cq2Hy": {
+                      "content": "老窖珍酿"
+                    },
+                    "OcmPH": {
+                      "content": "¥1299"
+                    },
+                    "ZWVON": {
+                      "content": "¥1499"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LPHlo",
+              "name": "recBlock",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GzFZC",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h5IaC6",
+                      "fill": "$text",
+                      "content": "精选推荐",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zr9DX",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "j2XSZk",
+                          "fill": "$brand",
+                          "content": "推荐",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "FhQVl",
+                          "fill": "$muted",
+                          "content": "礼盒",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "n1xLX",
+                          "fill": "$muted",
+                          "content": "酱香",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qrCP8",
+                          "fill": "$muted",
+                          "content": "口粮酒",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "iWfFJ",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "hWHKu": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "oyBhB": {
+                      "content": "国韵窖藏礼盒 双瓶装"
+                    },
+                    "F9j5w": {
+                      "content": "酱香型 / 500ml*2"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥1699.00"
+                    }
+                  }
+                },
+                {
+                  "id": "P6IF2m",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "hWHKu": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/luxury_baijiu_e_commerce_ui_design.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "oyBhB": {
+                      "content": "鎏金陈酿 收藏级单瓶"
+                    },
+                    "F9j5w": {
+                      "content": "浓香型 / 52°"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥899.00"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "Vh1OK",
+          "type": "ref",
+          "ref": "cfBD1",
+          "name": "homeTab"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "a4yX3",
+      "x": 1333,
+      "y": 40,
+      "name": "分类页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "HT2oQ",
+          "name": "catStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "ZoNea",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "BM3eE",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "YuS4f",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "pHflc",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "uR9J6",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "K2fUm",
+          "name": "catBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "FePXX",
+              "type": "ref",
+              "ref": "KSlvq",
+              "name": "catTop",
+              "descendants": {
+                "UQ8Z2": {
+                  "content": "商品分类"
+                }
+              }
+            },
+            {
+              "id": "qEGxZ",
+              "type": "ref",
+              "ref": "c2iek",
+              "name": "catSearch"
+            },
+            {
+              "type": "frame",
+              "id": "k1sey",
+              "name": "catMain",
+              "width": "fill_container",
+              "height": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Z1YfB",
+                  "name": "leftNav",
+                  "width": 86,
+                  "height": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": 18,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Z43nps",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$soft-green",
+                      "cornerRadius": 14,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QHm5c",
+                          "fill": "$brand-dark",
+                          "content": "白酒",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cYYHS",
+                      "width": "fill_container",
+                      "height": 40,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "i7dOsM",
+                          "fill": "$text",
+                          "content": "礼盒",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n6wNhq",
+                      "width": "fill_container",
+                      "height": 40,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CeDVV",
+                          "fill": "$text",
+                          "content": "酒具",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "C0uAE8",
+                      "width": "fill_container",
+                      "height": 40,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OxowW",
+                          "fill": "$text",
+                          "content": "年份酒",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a7qKdj",
+                      "width": "fill_container",
+                      "height": 40,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ACzBF",
+                          "fill": "$text",
+                          "content": "酱香型",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oofwe",
+                      "width": "fill_container",
+                      "height": 40,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uDPP6",
+                          "fill": "$text",
+                          "content": "浓香型",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "infGM",
+                  "name": "rightPanel",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ehkHd",
+                      "fill": "$text",
+                      "content": "白酒",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rAdPI",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UpL2q",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "JRYtV",
+                              "width": 66,
+                              "height": 66,
+                              "fill": [
+                                "#F6F7FA",
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                                  "mode": "fill"
+                                }
+                              ],
+                              "cornerRadius": 18
+                            },
+                            {
+                              "type": "text",
+                              "id": "I7C1U9",
+                              "fill": "$text",
+                              "content": "酱香",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "m07U8P",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PVdij",
+                              "width": 66,
+                              "height": 66,
+                              "fill": [
+                                "#F6F7FA",
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "../miniprogram-baijiu/luxury_digital_wine_experience_showcase.png",
+                                  "mode": "fill"
+                                }
+                              ],
+                              "cornerRadius": 18
+                            },
+                            {
+                              "type": "text",
+                              "id": "T69XD",
+                              "fill": "$text",
+                              "content": "浓香",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "uu339",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Ydd8P",
+                              "width": 66,
+                              "height": 66,
+                              "fill": [
+                                "#F6F7FA",
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "../miniprogram-baijiu/luxury_gift_items_and_chinese_baijiu_sales.png",
+                                  "mode": "fill"
+                                }
+                              ],
+                              "cornerRadius": 18
+                            },
+                            {
+                              "type": "text",
+                              "id": "u4qpio",
+                              "fill": "$text",
+                              "content": "礼盒",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Xv7dk",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "uXBbS",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ec04Q",
+                              "width": 66,
+                              "height": 66,
+                              "fill": [
+                                "#F6F7FA",
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "../miniprogram-baijiu/ar_experience_for_premium_liquor_selection.png",
+                                  "mode": "fill"
+                                }
+                              ],
+                              "cornerRadius": 18
+                            },
+                            {
+                              "type": "text",
+                              "id": "OuK6T",
+                              "fill": "$text",
+                              "content": "陈酿",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "s4zwS",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "s6DKB6",
+                              "width": 66,
+                              "height": 66,
+                              "fill": [
+                                "#F6F7FA",
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "../miniprogram-baijiu/luxury_baijiu_e_commerce_ui_design.png",
+                                  "mode": "fill"
+                                }
+                              ],
+                              "cornerRadius": 18
+                            },
+                            {
+                              "type": "text",
+                              "id": "K0vKz",
+                              "fill": "$text",
+                              "content": "高端",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qnI8C",
+                          "width": 66,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "zb1Yu",
+                              "width": 66,
+                              "height": 66,
+                              "fill": "#F8F5EE",
+                              "cornerRadius": 18,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PDzlJ",
+                                  "fill": "$gold",
+                                  "content": "更多",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "Dgf8i",
+                              "fill": "$text",
+                              "content": "全部",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "bbIeO",
+                      "fill": "$text",
+                      "content": "精选品牌",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "id": "I4XXc",
+                      "type": "ref",
+                      "ref": "xp5kf",
+                      "descendants": {
+                        "oyBhB": {
+                          "content": "青花陈酿 500ml"
+                        },
+                        "F9j5w": {
+                          "content": "优选单瓶 / 送礼佳选"
+                        },
+                        "f7Qvzc": {
+                          "content": "¥699.00"
+                        }
+                      }
+                    },
+                    {
+                      "id": "vvIaX",
+                      "type": "ref",
+                      "ref": "xp5kf",
+                      "descendants": {
+                        "oyBhB": {
+                          "content": "典藏礼盒 双支装"
+                        },
+                        "F9j5w": {
+                          "content": "商务送礼 / 限量发售"
+                        },
+                        "f7Qvzc": {
+                          "content": "¥1899.00"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cVYPU",
+          "type": "ref",
+          "ref": "cfBD1",
+          "name": "catTab",
+          "descendants": {
+            "lR9Po": {
+              "fill": "$muted"
+            },
+            "stXeH": {
+              "fill": "$muted",
+              "fontWeight": "normal"
+            },
+            "rtfmp": {
+              "fill": "$brand"
+            },
+            "zhlru": {
+              "fill": "$brand",
+              "fontWeight": "600"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "D3CVx",
+      "x": 1766,
+      "y": 40,
+      "name": "商品详情页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "qZwEc",
+          "name": "detailStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "J6o4Qn",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "rc2MZ",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "P9Qlq",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "v9Vhoa",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "A6u5L",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "x7XOo",
+          "name": "detailBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "TaGM5",
+              "type": "ref",
+              "ref": "KSlvq",
+              "name": "detailTop",
+              "descendants": {
+                "V3d1Pu": {
+                  "enabled": true
+                },
+                "UQ8Z2": {
+                  "content": ""
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "rioRY",
+              "name": "detailHero",
+              "width": "fill_container",
+              "height": 300,
+              "fill": [
+                "#F7F9FC",
+                {
+                  "type": "image",
+                  "enabled": true,
+                  "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                  "mode": "fill"
+                }
+              ],
+              "cornerRadius": 24,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "gNnJN",
+                  "x": 260,
+                  "y": 34,
+                  "fill": "#FFFFFF99",
+                  "width": 54,
+                  "height": 54
+                },
+                {
+                  "type": "ellipse",
+                  "id": "F41UH6",
+                  "x": 278,
+                  "y": 52,
+                  "fill": "#DDEBCF",
+                  "width": 18,
+                  "height": 18
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JO4kz",
+              "name": "detailInfo",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OQwIk",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "青花典藏 酱香型白酒 53° 500ml",
+                  "fontFamily": "Inter",
+                  "fontSize": 22,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "Lls8w",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vpo1D",
+                      "gap": 8,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "dSliF",
+                          "fill": "$accent-red",
+                          "content": "¥1299.00",
+                          "fontFamily": "Inter",
+                          "fontSize": 28,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z2kyTm",
+                          "fill": "$muted",
+                          "content": "¥1540.00",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "BqSsp",
+                      "fill": "$muted",
+                      "content": "已售 2340",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UlRaD",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OK1u1",
+                      "fill": "$soft-orange",
+                      "cornerRadius": 14,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wU0Da",
+                          "fill": "$accent-red",
+                          "content": "正品保障",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "P23CpY",
+                      "fill": "$soft-gold",
+                      "cornerRadius": 14,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "c64H4",
+                          "fill": "$gold",
+                          "content": "7天无理由退换",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BpmFv",
+                      "fill": "$soft-green",
+                      "cornerRadius": 14,
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "h7aWJ",
+                          "fill": "$brand-dark",
+                          "content": "极速发货",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mAxhL",
+                  "width": "fill_container",
+                  "fill": "$card",
+                  "cornerRadius": 20,
+                  "padding": 16,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wzOik",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uKwFM",
+                          "fill": "$muted",
+                          "content": "已选",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "EkXKU",
+                          "fill": "$text",
+                          "content": "礼盒装 * 1",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "WIY8S",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "caret-right",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "M5bx52",
+                  "width": "fill_container",
+                  "fill": "$card",
+                  "cornerRadius": 20,
+                  "padding": 16,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "c7Rjs",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hQcwP",
+                          "fill": "$muted",
+                          "content": "参数",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ywCp4",
+                          "fill": "$text",
+                          "content": "适合典藏、宴请、节庆送礼",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "ek7re",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "caret-right",
+                      "iconFontFamily": "phosphor",
+                      "fill": "$muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p753Gb",
+                  "width": "fill_container",
+                  "fill": "$card",
+                  "cornerRadius": 20,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KTRUp",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "GDMyr",
+                          "fill": "$text",
+                          "content": "商品评价 (1256)",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "uioOg",
+                          "fill": "$muted",
+                          "content": "查看全部 >",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b1DW5j",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "i8k5i",
+                          "fill": [
+                            "#E3E8EF",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/luxury_digital_wine_experience_showcase.png",
+                              "mode": "fill"
+                            }
+                          ],
+                          "width": 34,
+                          "height": 34
+                        },
+                        {
+                          "type": "frame",
+                          "id": "IzPxh",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z14x7",
+                              "fill": "$text",
+                              "content": "酒友 92",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "vsMsF",
+                              "fill": "$muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "酒体圆润，香气舒展，礼赠场景非常体面。",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GNsmE",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "u8stc",
+                          "width": 76,
+                          "height": 76,
+                          "fill": [
+                            "#F6F7FA",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/luxury_liquor_app_ui_promotion.png",
+                              "mode": "fill"
+                            }
+                          ],
+                          "cornerRadius": 14
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zRNfi",
+                          "width": 76,
+                          "height": 76,
+                          "fill": [
+                            "#F6F7FA",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/luxury_baijiu_e_commerce_ui_design.png",
+                              "mode": "fill"
+                            }
+                          ],
+                          "cornerRadius": 14
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oXkY3",
+                          "width": 76,
+                          "height": 76,
+                          "fill": [
+                            "#F6F7FA",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/ar_experience_for_premium_liquor_selection.png",
+                              "mode": "fill"
+                            }
+                          ],
+                          "cornerRadius": 14
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "AfYEx",
+          "type": "ref",
+          "ref": "nzt9T",
+          "name": "detailAction"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Wxe0T",
+      "x": 900,
+      "y": 932,
+      "name": "购物车页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "L2zy6o",
+          "name": "cartStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "swhyQ",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "t51jl",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "fVtAe",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "CwSBU",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "H6fGf",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Aj1pM",
+          "name": "cartBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16,
+            12,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "nDyFt",
+              "name": "cartTop",
+              "width": "fill_container",
+              "height": 44,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MKfci",
+                  "fill": "$text",
+                  "content": "购物车",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "E5rTb",
+                  "fill": "$muted",
+                  "content": "编辑",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rS3nC",
+              "name": "cartList",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Nkq8D",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "oCO1h",
+                      "fill": "$brand",
+                      "width": 18,
+                      "height": 18
+                    },
+                    {
+                      "id": "jaNI0",
+                      "type": "ref",
+                      "ref": "xp5kf",
+                      "descendants": {
+                        "oyBhB": {
+                          "content": "青花典藏 酱香 53° 500ml"
+                        },
+                        "F9j5w": {
+                          "content": "礼盒装"
+                        },
+                        "f7Qvzc": {
+                          "content": "¥1299.00"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XXhi8",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "lN6IT",
+                      "fill": "$brand",
+                      "width": 18,
+                      "height": 18
+                    },
+                    {
+                      "id": "oXIGw",
+                      "type": "ref",
+                      "ref": "xp5kf",
+                      "descendants": {
+                        "hWHKu": {
+                          "fill": [
+                            "#F7F8FA",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/luxury_digital_wine_experience_showcase.png",
+                              "mode": "fill"
+                            }
+                          ]
+                        },
+                        "oyBhB": {
+                          "content": "雅坛小窖 陈香 500ml"
+                        },
+                        "F9j5w": {
+                          "content": "小坛装"
+                        },
+                        "f7Qvzc": {
+                          "content": "¥850.00"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pdv2Q",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "co9jd",
+                      "fill": "$brand",
+                      "width": 18,
+                      "height": 18
+                    },
+                    {
+                      "id": "EygkX",
+                      "type": "ref",
+                      "ref": "xp5kf",
+                      "descendants": {
+                        "hWHKu": {
+                          "fill": [
+                            "#F7F8FA",
+                            {
+                              "type": "image",
+                              "enabled": true,
+                              "url": "../miniprogram-baijiu/ar_experience_for_premium_liquor_selection.png",
+                              "mode": "fill"
+                            }
+                          ]
+                        },
+                        "oyBhB": {
+                          "content": "兰瓷珍藏 PO-01 30ml"
+                        },
+                        "F9j5w": {
+                          "content": "试饮装"
+                        },
+                        "f7Qvzc": {
+                          "content": "¥420.00"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wXQwD",
+              "name": "cartReco",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Pc1lg",
+                  "fill": "$text",
+                  "content": "你可能还喜欢",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "600"
+                },
+                {
+                  "id": "FAIg1",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "oyBhB": {
+                      "content": "国风双支礼盒"
+                    },
+                    "F9j5w": {
+                      "content": "限量礼赠"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥1680.00"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pJSQQ",
+              "name": "cartSummary",
+              "width": "fill_container",
+              "height": 56,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sRFmb",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "m4L8I",
+                      "fill": "#FFFFFF",
+                      "width": 18,
+                      "height": 18,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$muted"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "zdDxQ",
+                      "fill": "$text",
+                      "content": "全选",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hDOmE",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HrsS3",
+                      "fill": "$text",
+                      "content": "合计:",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "h0LvEr",
+                      "fill": "$accent-red",
+                      "content": "¥2569.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vHCNR",
+                      "width": 108,
+                      "height": 44,
+                      "fill": "$brand",
+                      "cornerRadius": 22,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "G3veeo",
+                          "fill": "$text-light",
+                          "content": "去结算 (3)",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "XOVCF",
+          "type": "ref",
+          "ref": "cfBD1",
+          "name": "cartTab",
+          "descendants": {
+            "lR9Po": {
+              "fill": "$muted"
+            },
+            "stXeH": {
+              "fill": "$muted",
+              "fontWeight": "normal"
+            },
+            "SSP7K": {
+              "fill": "$brand"
+            },
+            "ggtWv": {
+              "fill": "$brand",
+              "fontWeight": "600"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yYwC2",
+      "x": 1333,
+      "y": 932,
+      "name": "结算页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sndkL",
+          "name": "checkStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "qoOhW",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "KqTVw",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "bCUZL",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "gfxBj",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "tSERh",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "hAo07",
+          "name": "checkBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16,
+            12,
+            16
+          ],
+          "children": [
+            {
+              "id": "cIbdz",
+              "type": "ref",
+              "ref": "KSlvq",
+              "name": "checkTop",
+              "descendants": {
+                "V3d1Pu": {
+                  "enabled": true
+                },
+                "UQ8Z2": {
+                  "content": "结算"
+                }
+              }
+            },
+            {
+              "id": "k11BG",
+              "type": "ref",
+              "ref": "V895V",
+              "name": "checkAddr"
+            },
+            {
+              "type": "text",
+              "id": "s0DMfv",
+              "name": "checkTitle",
+              "fill": "$text",
+              "content": "商品清单",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "FrzbJ",
+              "name": "checkItems",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "id": "SVkUr",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "oyBhB": {
+                      "content": "青花典藏 酱香 53° 500ml"
+                    },
+                    "F9j5w": {
+                      "content": "x1"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥1299.00"
+                    }
+                  }
+                },
+                {
+                  "id": "I5YDcN",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "hWHKu": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/luxury_digital_wine_experience_showcase.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "oyBhB": {
+                      "content": "雅坛小窖 陈香 500ml"
+                    },
+                    "F9j5w": {
+                      "content": "x1"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥850.00"
+                    }
+                  }
+                },
+                {
+                  "id": "K0ZQkt",
+                  "type": "ref",
+                  "ref": "xp5kf",
+                  "descendants": {
+                    "hWHKu": {
+                      "fill": [
+                        "#F7F8FA",
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "../miniprogram-baijiu/ar_experience_for_premium_liquor_selection.png",
+                          "mode": "fill"
+                        }
+                      ]
+                    },
+                    "oyBhB": {
+                      "content": "兰瓷珍藏 PO-01 30ml"
+                    },
+                    "F9j5w": {
+                      "content": "x1"
+                    },
+                    "f7Qvzc": {
+                      "content": "¥420.00"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "F7J7nf",
+              "name": "checkSummary",
+              "width": "fill_container",
+              "fill": "$card",
+              "cornerRadius": 20,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lxybB",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iSXUs",
+                      "fill": "$text",
+                      "content": "运费",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "e7s4T",
+                      "fill": "$text",
+                      "content": "¥0.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "trsFW",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mJ5Dv",
+                      "fill": "$text",
+                      "content": "优惠券",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YFv1Q",
+                      "fill": "$accent-red",
+                      "content": "-¥50.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZZEW6",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pYvXD",
+                      "fill": "$text",
+                      "content": "备注",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uv36R",
+                      "fill": "$muted",
+                      "content": "请填写备注信息",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "E3sRe",
+          "name": "checkBar",
+          "width": "fill_container",
+          "height": 84,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "thickness": {
+              "top": 1
+            },
+            "fill": "$line-soft"
+          },
+          "padding": [
+            12,
+            16,
+            24,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "gAvSL",
+              "gap": 6,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "PuWH7",
+                  "fill": "$text",
+                  "content": "合计:",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "EMg3s",
+                  "fill": "$accent-red",
+                  "content": "¥2519.00",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eEmmp",
+              "width": 120,
+              "height": 48,
+              "fill": "$brand",
+              "cornerRadius": 24,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "JLz4O",
+                  "fill": "$text-light",
+                  "content": "提交订单",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Gts0V",
+      "x": 1766,
+      "y": 932,
+      "name": "提交订单页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "#FFFFFF",
+      "cornerRadius": 28,
+      "layout": "vertical",
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "bZX2a",
+          "name": "submitStatus",
+          "width": "fill_container",
+          "height": 28,
+          "padding": [
+            18,
+            16,
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Gm2wQ",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "A1PDJ0",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "IuNyT",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "cell-signal-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "N2nqJ1",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "wifi-high",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "J8Hdpc",
+                  "width": 18,
+                  "height": 14,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "phosphor",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "rXNRH",
+          "name": "submitBody",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16,
+            12,
+            16
+          ],
+          "children": [
+            {
+              "id": "o89wsl",
+              "type": "ref",
+              "ref": "KSlvq",
+              "name": "submitTop",
+              "descendants": {
+                "V3d1Pu": {
+                  "enabled": true
+                },
+                "UQ8Z2": {
+                  "content": "提交订单"
+                }
+              }
+            },
+            {
+              "id": "YbhBG",
+              "type": "ref",
+              "ref": "V895V",
+              "name": "submitAddr"
+            },
+            {
+              "type": "text",
+              "id": "DKmuN",
+              "name": "payTitle",
+              "fill": "$text",
+              "content": "支付方式",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "VeYaK",
+              "name": "payList",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "id": "QRMdi",
+                  "type": "ref",
+                  "ref": "pZzkz",
+                  "descendants": {
+                    "m1s5Dl": {
+                      "content": "微信支付"
+                    },
+                    "Cxtnw": {
+                      "content": "推荐使用"
+                    },
+                    "sONVZ": {
+                      "fill": "$brand",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$brand"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "SH8GB",
+                  "type": "ref",
+                  "ref": "pZzkz",
+                  "descendants": {
+                    "DahNu": {
+                      "fill": "#EAF2FF"
+                    },
+                    "kWUBy": {
+                      "fill": "#4285F4"
+                    },
+                    "m1s5Dl": {
+                      "content": "余额支付"
+                    },
+                    "Cxtnw": {
+                      "content": "可用 ¥200.00"
+                    },
+                    "sONVZ": {
+                      "fill": "#FFFFFF",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$line"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "Hu0r4",
+                  "type": "ref",
+                  "ref": "pZzkz",
+                  "descendants": {
+                    "DahNu": {
+                      "fill": "#FFF2E8"
+                    },
+                    "kWUBy": {
+                      "fill": "#FF9F43"
+                    },
+                    "m1s5Dl": {
+                      "content": "银行卡支付"
+                    },
+                    "Cxtnw": {
+                      "content": "支持主流银行卡"
+                    },
+                    "sONVZ": {
+                      "fill": "#FFFFFF",
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$line"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "L8iui",
+              "name": "submitSummary",
+              "width": "fill_container",
+              "fill": "$card",
+              "cornerRadius": 20,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "UbVY2",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EDvCT",
+                      "fill": "$text",
+                      "content": "商品金额",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "B6Zt4Z",
+                      "fill": "$text",
+                      "content": "¥2569.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JXKqj",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "P27s27",
+                      "fill": "$text",
+                      "content": "运费",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Lc8K4",
+                      "fill": "$text",
+                      "content": "¥0.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xXyKv",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SrgqM",
+                      "fill": "$text",
+                      "content": "优惠券",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hVGzU",
+                      "fill": "$accent-red",
+                      "content": "-¥50.00",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "C47l5p",
+          "name": "submitBar",
+          "width": "fill_container",
+          "height": 84,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "thickness": {
+              "top": 1
+            },
+            "fill": "$line-soft"
+          },
+          "padding": [
+            12,
+            16,
+            24,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "sl5sO",
+              "gap": 6,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "p9qcu4",
+                  "fill": "$text",
+                  "content": "合计:",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "JYcxf",
+                  "fill": "$accent-red",
+                  "content": "¥2519.00",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "IgO1b",
+              "width": 120,
+              "height": 48,
+              "fill": "$brand",
+              "cornerRadius": 24,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "f7EwF",
+                  "fill": "$text-light",
+                  "content": "立即支付",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "d1Qwm",
+      "x": 900,
+      "y": 1824,
+      "name": "我的页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "$bg",
+      "cornerRadius": 28,
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "wVwlE",
+      "x": 1333,
+      "y": 1824,
+      "name": "我的订单页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "$bg",
+      "cornerRadius": 28,
+      "layout": "vertical"
+    },
+    {
+      "type": "frame",
+      "id": "OIi8l",
+      "x": 1766,
+      "y": 1824,
+      "name": "收货地址页",
+      "clip": true,
+      "width": 393,
+      "height": 852,
+      "fill": "$bg",
+      "cornerRadius": 28,
+      "layout": "vertical"
+    }
+  ],
+  "variables": {
+    "accent-red": {
+      "type": "color",
+      "value": "#FF5A36"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#F7F8FA"
+    },
+    "brand": {
+      "type": "color",
+      "value": "#22C55E"
+    },
+    "brand-dark": {
+      "type": "color",
+      "value": "#16A34A"
+    },
+    "card": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "line": {
+      "type": "color",
+      "value": "#EAECEF"
+    },
+    "muted": {
+      "type": "color",
+      "value": "#8C8C8C"
+    },
+    "radius-lg": {
+      "type": "number",
+      "value": 20
+    },
+    "radius-md": {
+      "type": "number",
+      "value": 16
+    },
+    "soft-green": {
+      "type": "color",
+      "value": "#E9F8EE"
+    },
+    "soft-orange": {
+      "type": "color",
+      "value": "#FFF2E8"
+    },
+    "space-lg": {
+      "type": "number",
+      "value": 24
+    },
+    "space-md": {
+      "type": "number",
+      "value": 16
+    },
+    "space-sm": {
+      "type": "number",
+      "value": 12
+    },
+    "text": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "cream": {
+      "type": "color",
+      "value": "#F8F5EE"
+    },
+    "gold": {
+      "type": "color",
+      "value": "#C9A86A"
+    },
+    "ink": {
+      "type": "color",
+      "value": "#10233D"
+    },
+    "line-soft": {
+      "type": "color",
+      "value": "#F0F1F4"
+    },
+    "soft-gold": {
+      "type": "color",
+      "value": "#F3E7CC"
+    },
+    "success": {
+      "type": "color",
+      "value": "#28C76F"
+    },
+    "text-light": {
+      "type": "color",
+      "value": "#FDFDFD"
+    },
+    "wine": {
+      "type": "color",
+      "value": "#7A1F2B"
+    }
+  }
+}
