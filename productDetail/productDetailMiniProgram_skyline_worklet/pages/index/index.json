@@ -1,7 +1,0 @@
-{
-  "usingComponents": {},
-  "navigationBarTitleText": "商品详情动画演示",
-  "renderer": "skyline",
-  "disableScroll": true,
-  "navigationStyle": "custom"
-}
