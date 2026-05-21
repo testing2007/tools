@@ -558,9 +558,9 @@
             <div class="slider-group">
                 <div class="slider-label">
                     <span>Responsiveness</span>
-                    <span class="slider-val" id="val-lerpFactor">0.04</span>
+                    <span class="slider-val" id="val-lerpFactor">0.45</span>
                 </div>
-                <input type="range" id="lerpFactor" min="0.0" max="0.30" step="0.01" value="0.04">
+                <input type="range" id="lerpFactor" min="0.0" max="1.0" step="0.01" value="0.45">
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.2;">
                     Fast mode uses this as micro-smoothing only. 0 = zero-lag, higher = smoother but slower.
                 </div>
@@ -612,7 +612,7 @@
             </div>
             <div id="target-viz-container" style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3;">
-                    Visualizes keypoints extracted from <code>assets/mark.jpg</code>. Green circles show keypoint scale/size.
+                     Visualizes keypoints extracted from <code>assets/mark.jpg</code>. Green circles show keypoint scale/size.
                 </div>
                 <div style="width: 100%; max-height: 200px; overflow: auto; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; background: rgba(0, 0, 0, 0.3); padding: 5px;">
                     <canvas id="ref-features-canvas" style="display: block; margin: 0 auto;"></canvas>
@@ -661,6 +661,10 @@
                         style="color: var(--text); font-weight: 600;">0%</span></div>
                 <div style="display: flex; justify-content: space-between;">Frame Cost: <span id="db-frame-cost"
                         style="color: var(--text); font-weight: 600;">0ms</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">├─ Copy/Gray: <span id="perf-gray">0.0ms</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">├─ LK Flow: <span id="perf-flow">0.0ms</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">├─ ORB/Match: <span id="perf-orb">0.0ms</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">└─ PnP Solve: <span id="perf-pnp">0.0ms</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Status: <span id="db-pnp-status"
                         style="color: var(--text); font-weight: 600;">Idle</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Method: <span id="db-pnp-method"
@@ -693,7 +697,7 @@
             rotY: 0,
             rotZ: 0,
             thetaLength: 73,
-            lerpFactor: 0.04,
+            lerpFactor: 0.45,
             minMatches: 12,
             hammingCutoff: 55,
             fovScale: 1.05,
@@ -771,6 +775,18 @@
         const currentQuat = new THREE.Quaternion();
         const targetPos = new THREE.Vector3();
         const targetQuat = new THREE.Quaternion();
+
+        // Performance timing stats & UI throttle state
+        let lastDebugUpdate = 0;
+        let lastGrayTime = 0;
+        let lastFlowTime = 0;
+        let lastOrbTime = 0;
+        let lastPnpTime = 0;
+
+        // Prediction state tracking
+        const prevTargetPos = new THREE.Vector3();
+        const prevTargetQuat = new THREE.Quaternion();
+        let lastTargetUpdateTime = 0;
 
         // Load config from localStorage
         function loadConfig() {
@@ -1306,6 +1322,7 @@
             flowFrameCounter = 0;
             lastFlowRatio = 0.0;
             scanFrameCounter = 0;
+            lastTargetUpdateTime = 0;
         }
 
         function seedFlowTrackingFromMatches(level, matches, localFrameKeypointsArray) {
@@ -1380,8 +1397,37 @@
                 };
             }
 
-            targetPos.copy(tempCamPos);
-            targetQuat.copy(tempCamQuat);
+            // Extrapolate position and rotation to compensate for processing latency (~20ms)
+            const dt = now - lastTargetUpdateTime;
+            if (lastTargetUpdateTime > 0 && dt > 0 && dt < 150) {
+                const extrapolateMs = 20.0;
+                const ratio = extrapolateMs / dt;
+
+                // Position extrapolation
+                const posVelocity = new THREE.Vector3().subVectors(tempCamPos, prevTargetPos).multiplyScalar(1.0 / dt);
+                const extrapolatedPos = new THREE.Vector3().copy(tempCamPos).addScaledVector(posVelocity, extrapolateMs);
+
+                // Rotation extrapolation
+                const invPrev = prevTargetQuat.clone().invert();
+                const qDiff = new THREE.Quaternion().multiplyQuaternions(tempCamQuat, invPrev);
+
+                const identityQ = new THREE.Quaternion();
+                const scaledDiffQ = new THREE.Quaternion().slerpQuaternions(identityQ, qDiff, ratio);
+                const extrapolatedQuat = new THREE.Quaternion().multiplyQuaternions(scaledDiffQ, tempCamQuat).normalize();
+
+                prevTargetPos.copy(tempCamPos);
+                prevTargetQuat.copy(tempCamQuat);
+
+                targetPos.copy(extrapolatedPos);
+                targetQuat.copy(extrapolatedQuat);
+            } else {
+                prevTargetPos.copy(tempCamPos);
+                prevTargetQuat.copy(tempCamQuat);
+                targetPos.copy(tempCamPos);
+                targetQuat.copy(tempCamQuat);
+            }
+            lastTargetUpdateTime = now;
+
             lastSuccessTime = now;
             return {
                 success: true,
@@ -1438,7 +1484,7 @@
             }
         }
 
-        function solvePoseFromArrays(objPointList, imgPointList, minPoints, poseConfidenceSource, statusPrefix = 'Success (Flow PnP)', useExtrinsicGuess = false) {
+        function solvePoseFromArrays(objPointList, imgPointList, minPoints, poseConfidenceSource, statusPrefix = 'Success (Flow PnP)', useExtrinsicGuess = false, useRansac = false) {
             if (objPointList.length < minPoints || imgPointList.length < minPoints) {
                 return { success: false, status: `Need >= ${minPoints} flow points`, method: 'None', error: 'None', inliers: 0, reprojErr: 999.0 };
             }
@@ -1448,6 +1494,8 @@
             let pnpInliersMat = null;
 
             try {
+                const tStartPnp = performance.now();
+
                 const objData = [];
                 const imgData = [];
                 for (let i = 0; i < objPointList.length; i++) {
@@ -1464,7 +1512,7 @@
                 let method = 'solvePnP';
                 let pnpInlierCount = objPointList.length;
 
-                if (cv.solvePnPRansac) {
+                if (useRansac && cv.solvePnPRansac) {
                     pnpInliersMat = new cv.Mat();
                     success = cv.solvePnPRansac(
                         objPointsMat,
@@ -1483,9 +1531,36 @@
                     pnpInlierCount = pnpInliersMat.rows || pnpInliersMat.data32S?.length || 0;
                     method = `Flow Ransac (${pnpInlierCount})`;
                 } else {
-                    success = cv.solvePnP(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, useExtrinsicGuess, pnpFlags);
+                    success = cv.solvePnP(
+                        objPointsMat,
+                        imgPointsMat,
+                        cameraMatrixMat,
+                        distCoeffsMat,
+                        rvec,
+                        tvec,
+                        useExtrinsicGuess,
+                        pnpFlags
+                    );
                     method = 'Flow solvePnP';
+
+                    if (success && cv.solvePnPRefineLM) {
+                        try {
+                            cv.solvePnPRefineLM(
+                                objPointsMat,
+                                imgPointsMat,
+                                cameraMatrixMat,
+                                distCoeffsMat,
+                                rvec,
+                                tvec
+                            );
+                            method = 'Flow solvePnP + RefineLM';
+                        } catch (refineErr) {
+                            console.warn("solvePnPRefineLM failed, falling back to iterative pose:", refineErr);
+                        }
+                    }
                 }
+
+                lastPnpTime = performance.now() - tStartPnp;
 
                 const minPnpInliers = Math.max(8, Math.ceil(minPoints * 0.75));
                 if (success && pnpInlierCount < minPnpInliers) {
@@ -1532,10 +1607,12 @@
                 nextPtsMat = new cv.Mat();
                 statusMat = new cv.Mat();
                 errMat = new cv.Mat();
-                const winSize = new cv.Size(21, 21);
-                const criteria = new cv.TermCriteria(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 20, 0.03);
+                const winSize = new cv.Size(15, 15);
+                const criteria = new cv.TermCriteria(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03);
 
-                cv.calcOpticalFlowPyrLK(prevFlowGray, frameGray, prevPtsMat, nextPtsMat, statusMat, errMat, winSize, 3, criteria);
+                const tStartFlow = performance.now();
+                cv.calcOpticalFlowPyrLK(prevFlowGray, frameGray, prevPtsMat, nextPtsMat, statusMat, errMat, winSize, 2, criteria);
+                lastFlowTime = performance.now() - tStartFlow;
 
                 const nextData = nextPtsMat.data32F;
                 const statusData = statusMat.data;
@@ -1576,7 +1653,8 @@
                     config.flowMinPoints,
                     poseConfidenceSource,
                     'Success (Flow)',
-                    true // useExtrinsicGuess
+                    true, // useExtrinsicGuess
+                    false // useRansac
                 );
 
                 if (poseResult.success) {
@@ -1614,6 +1692,7 @@
             try {
                 if (!frameDescriptors || frameDescriptors.empty() || level.descriptors.empty()) return;
 
+                const tStartMatch = performance.now();
                 matcher.match(level.descriptors, frameDescriptors, levelMatches);
 
                 const filteredMatches = [];
@@ -1698,6 +1777,7 @@
 
                     console.log(`[Drift Correction] Updated: ${updatedCount}, Added: ${addedCount}`);
                 }
+                lastOrbTime += performance.now() - tStartMatch;
             } catch (err) {
                 console.warn("Drift correction failed:", err);
             } finally {
@@ -1745,6 +1825,7 @@
                     return result;
                 }
 
+                const tStartMatch = performance.now();
                 matcher.match(level.descriptors, frameDescriptors, levelMatches);
 
                 const filteredMatches = [];
@@ -1787,6 +1868,7 @@
                     }
                 }
 
+                lastOrbTime += performance.now() - tStartMatch;
                 const inlierRatio = rawMatchesCount > 0 ? (inlierMatches.length / rawMatchesCount) : 0.0;
                 result.goodMatches = inlierMatches.length;
                 result.inlierRatio = inlierRatio;
@@ -1819,6 +1901,7 @@
                         pnpInliersMat = new cv.Mat();
                         
                         const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
+                        const tStartPnp = performance.now();
                         let success = cv.solvePnPRansac(
                             objPointsMat,
                             imgPointsMat,
@@ -1833,6 +1916,7 @@
                             pnpInliersMat,
                             pnpFlags
                         );
+                        lastPnpTime += performance.now() - tStartPnp;
 
                         const pnpInlierCount = pnpInliersMat.rows || pnpInliersMat.data32S?.length || 0;
                         const minPnpInliers = Math.max(8, Math.ceil(dynamicMin * 0.75));
@@ -1937,47 +2021,63 @@
 
         // Shared function to update UI metrics and renderer pose
         function updateUIAndRenderer(trackingSuccess, goodMatchesCount, bestScaleText, dynamicMinMatches, bestInlierRatio, reprojErrVal, pnpStatus, pnpMethod, pnpError, pnpInlierCount, poseConfidence, frameStartTime) {
-            const dbPnpStatus = document.getElementById('db-pnp-status');
-            if (dbPnpStatus) dbPnpStatus.innerText = pnpStatus;
-            const dbPnpMethod = document.getElementById('db-pnp-method');
-            if (dbPnpMethod) dbPnpMethod.innerText = pnpMethod;
-            const dbPnpError = document.getElementById('db-pnp-error');
-            if (dbPnpError) {
-                dbPnpError.innerText = pnpError;
-                dbPnpError.style.color = (pnpError === "None") ? "var(--text-muted)" : "#e74c3c";
-            }
-            const dbBestScale = document.getElementById('db-best-scale');
-            if (dbBestScale) dbBestScale.innerText = bestScaleText;
-            const dbDynamicMin = document.getElementById('db-dynamic-min');
-            if (dbDynamicMin) dbDynamicMin.innerText = dynamicMinMatches;
-            const dbInlierRatio = document.getElementById('db-inlier-ratio');
-            if (dbInlierRatio) dbInlierRatio.innerText = `${Math.round(bestInlierRatio * 100)}%`;
-            const dbReprojErr = document.getElementById('db-reproj-err');
-            if (dbReprojErr) dbReprojErr.innerText = reprojErrVal > 0 && reprojErrVal < 900 ? `${reprojErrVal.toFixed(1)}px` : "0.0px";
-            const dbTrackingMode = document.getElementById('db-tracking-mode');
-            if (dbTrackingMode) dbTrackingMode.innerText = flowState;
-            const dbFlowPoints = document.getElementById('db-flow-points');
-            if (dbFlowPoints) dbFlowPoints.innerText = flowFramePoints.length;
-            const dbFlowRatio = document.getElementById('db-flow-ratio');
-            if (dbFlowRatio) dbFlowRatio.innerText = `${Math.round(lastFlowRatio * 100)}%`;
-            const dbFrameCost = document.getElementById('db-frame-cost');
-            if (dbFrameCost) dbFrameCost.innerText = `${Math.round(performance.now() - frameStartTime)}ms`;
+            const now = performance.now();
+            const updateDebug = (now - lastDebugUpdate > 150);
 
-            if (bestScaleText === "-") {
-                const dbRawMatches = document.getElementById('db-raw-matches');
-                if (dbRawMatches) dbRawMatches.innerText = "0";
-                const dbGoodMatches = document.getElementById('db-good-matches');
-                if (dbGoodMatches) dbGoodMatches.innerText = "0";
-            } else if (bestScaleText === "flow") {
-                const dbRawMatches = document.getElementById('db-raw-matches');
-                if (dbRawMatches) dbRawMatches.innerText = flowFramePoints.length;
-                const dbGoodMatches = document.getElementById('db-good-matches');
-                if (dbGoodMatches) dbGoodMatches.innerText = `${flowFramePoints.length} (${Math.round(lastFlowRatio * 100)}%)`;
-            } else {
-                const dbRawMatches = document.getElementById('db-raw-matches');
-                if (dbRawMatches) dbRawMatches.innerText = goodMatchesCount;
-                const dbGoodMatches = document.getElementById('db-good-matches');
-                if (dbGoodMatches) dbGoodMatches.innerText = `${goodMatchesCount} (${Math.round(bestInlierRatio * 100)}%)`;
+            if (updateDebug) {
+                lastDebugUpdate = now;
+                const dbPnpStatus = document.getElementById('db-pnp-status');
+                if (dbPnpStatus) dbPnpStatus.innerText = pnpStatus;
+                const dbPnpMethod = document.getElementById('db-pnp-method');
+                if (dbPnpMethod) dbPnpMethod.innerText = pnpMethod;
+                const dbPnpError = document.getElementById('db-pnp-error');
+                if (dbPnpError) {
+                    dbPnpError.innerText = pnpError;
+                    dbPnpError.style.color = (pnpError === "None") ? "var(--text-muted)" : "#e74c3c";
+                }
+                const dbBestScale = document.getElementById('db-best-scale');
+                if (dbBestScale) dbBestScale.innerText = bestScaleText;
+                const dbDynamicMin = document.getElementById('db-dynamic-min');
+                if (dbDynamicMin) dbDynamicMin.innerText = dynamicMinMatches;
+                const dbInlierRatio = document.getElementById('db-inlier-ratio');
+                if (dbInlierRatio) dbInlierRatio.innerText = `${Math.round(bestInlierRatio * 100)}%`;
+                const dbReprojErr = document.getElementById('db-reproj-err');
+                if (dbReprojErr) dbReprojErr.innerText = reprojErrVal > 0 && reprojErrVal < 900 ? `${reprojErrVal.toFixed(1)}px` : "0.0px";
+                const dbTrackingMode = document.getElementById('db-tracking-mode');
+                if (dbTrackingMode) dbTrackingMode.innerText = flowState;
+                const dbFlowPoints = document.getElementById('db-flow-points');
+                if (dbFlowPoints) dbFlowPoints.innerText = flowFramePoints.length;
+                const dbFlowRatio = document.getElementById('db-flow-ratio');
+                if (dbFlowRatio) dbFlowRatio.innerText = `${Math.round(lastFlowRatio * 100)}%`;
+                const dbFrameCost = document.getElementById('db-frame-cost');
+                if (dbFrameCost) dbFrameCost.innerText = `${Math.round(performance.now() - frameStartTime)}ms`;
+
+                if (bestScaleText === "-") {
+                    const dbRawMatches = document.getElementById('db-raw-matches');
+                    if (dbRawMatches) dbRawMatches.innerText = "0";
+                    const dbGoodMatches = document.getElementById('db-good-matches');
+                    if (dbGoodMatches) dbGoodMatches.innerText = "0";
+                } else if (bestScaleText === "flow") {
+                    const dbRawMatches = document.getElementById('db-raw-matches');
+                    if (dbRawMatches) dbRawMatches.innerText = flowFramePoints.length;
+                    const dbGoodMatches = document.getElementById('db-good-matches');
+                    if (dbGoodMatches) dbGoodMatches.innerText = `${flowFramePoints.length} (${Math.round(lastFlowRatio * 100)}%)`;
+                } else {
+                    const dbRawMatches = document.getElementById('db-raw-matches');
+                    if (dbRawMatches) dbRawMatches.innerText = goodMatchesCount;
+                    const dbGoodMatches = document.getElementById('db-good-matches');
+                    if (dbGoodMatches) dbGoodMatches.innerText = `${goodMatchesCount} (${Math.round(bestInlierRatio * 100)}%)`;
+                }
+
+                // Update sub-cost labels
+                const perfGray = document.getElementById('perf-gray');
+                if (perfGray) perfGray.innerText = `${lastGrayTime.toFixed(1)}ms`;
+                const perfFlow = document.getElementById('perf-flow');
+                if (perfFlow) perfFlow.innerText = `${lastFlowTime.toFixed(1)}ms`;
+                const perfOrb = document.getElementById('perf-orb');
+                if (perfOrb) perfOrb.innerText = `${lastOrbTime.toFixed(1)}ms`;
+                const perfPnp = document.getElementById('perf-pnp');
+                if (perfPnp) perfPnp.innerText = `${lastPnpTime.toFixed(1)}ms`;
             }
 
             const statusText = document.getElementById('status-text');
@@ -1993,15 +2093,20 @@
                     currentQuat.copy(targetQuat);
                     isFirstTrackingFrame = false;
                 } else {
-                    const factor = config.trackingMode === 'fast'
-                        ? Number(config.lerpFactor)
-                        : Math.max(0.04, config.lerpFactor * poseConfidence);
-                    if (factor <= 0.001 || factor >= 0.99) {
+                    if (flowState === 'TRACKING_FLOW') {
                         currentPos.copy(targetPos);
                         currentQuat.copy(targetQuat);
                     } else {
-                        currentPos.lerp(targetPos, factor);
-                        currentQuat.slerp(targetQuat, factor);
+                        const factor = config.trackingMode === 'fast'
+                            ? Number(config.lerpFactor)
+                            : Math.max(0.04, config.lerpFactor * poseConfidence);
+                        if (factor <= 0.001 || factor >= 0.99) {
+                            currentPos.copy(targetPos);
+                            currentQuat.copy(targetQuat);
+                        } else {
+                            currentPos.lerp(targetPos, factor);
+                            currentQuat.slerp(targetQuat, factor);
+                        }
                     }
                 }
 
@@ -2069,13 +2174,21 @@
 
             function ensureFrameFeatures() {
                 if (computedFrameFeatures) return;
+                const tStartOrb = performance.now();
                 localFrameKeypoints = new cv.KeyPointVector();
                 localFrameDescriptors = new cv.Mat();
                 orb.detectAndCompute(frameGray, maskMat, localFrameKeypoints, localFrameDescriptors);
                 computedFrameFeatures = true;
+                lastOrbTime += performance.now() - tStartOrb;
             }
 
             try {
+                // Reset per-frame sub-cost performance timers
+                lastGrayTime = 0;
+                lastFlowTime = 0;
+                lastOrbTime = 0;
+                lastPnpTime = 0;
+
                 // Update ref keypoints display
                 const dbRefKp = document.getElementById('db-ref-kp');
                 if (dbRefKp && refLevels.length > 0) {
@@ -2083,12 +2196,13 @@
                     dbRefKp.innerText = `${refLevels[0].keypoints.size()} (${totalRefKp})`;
                 }
 
-                // Draw current webcam frame to scale canvas
+                // Draw current webcam frame to scale canvas and copy directly to Mat data buffer
+                const tStartGray = performance.now();
                 trackCtx.drawImage(cameraVideo, 0, 0, trackW, trackH);
-                const tempMat = cv.imread(trackCanvas);
-                tempMat.copyTo(frameMat);
-                tempMat.delete();
+                const imageData = trackCtx.getImageData(0, 0, trackW, trackH);
+                frameMat.data.set(imageData.data);
                 cv.cvtColor(frameMat, frameGray, cv.COLOR_RGBA2GRAY);
+                lastGrayTime = performance.now() - tStartGray;
 
                 // State machine transitions
                 if (flowState === 'TRACKING_FLOW') {
@@ -2221,6 +2335,38 @@
             }
 
             updateUIAndRenderer(trackingSuccess, goodMatchesCount, bestScaleText, dynamicMinMatches, bestInlierRatio, reprojErrVal, pnpStatus, pnpMethod, pnpError, pnpInlierCount, poseConfidence, frameStartTime);
+        }
+
+        let rvfcId = null;
+        let fallbackTimeoutId = null;
+
+        function startVideoProcessingLoop() {
+            // Cancel any existing loops to prevent duplicates
+            if (cameraVideo && 'cancelVideoFrameCallback' in cameraVideo && rvfcId !== null) {
+                cameraVideo.cancelVideoFrameCallback(rvfcId);
+                rvfcId = null;
+            }
+            if (fallbackTimeoutId !== null) {
+                clearTimeout(fallbackTimeoutId);
+                fallbackTimeoutId = null;
+            }
+
+            const process = () => {
+                if (currentMode === 'AR') {
+                    processFrame();
+                }
+                if ('requestVideoFrameCallback' in cameraVideo) {
+                    rvfcId = cameraVideo.requestVideoFrameCallback(process);
+                } else {
+                    fallbackTimeoutId = setTimeout(process, 1000 / 30);
+                }
+            };
+
+            if ('requestVideoFrameCallback' in cameraVideo) {
+                rvfcId = cameraVideo.requestVideoFrameCallback(process);
+            } else {
+                fallbackTimeoutId = setTimeout(process, 1000 / 30);
+            }
         }
 
         // Rebuild cylinder geometry which renders the video
@@ -2439,6 +2585,9 @@
                 if (container) {
                     container.classList.remove('preview-mode');
                 }
+
+                // Kickstart video processing loop
+                startVideoProcessingLoop();
             }
 
             // Immediately resize to update WebGL canvas layout correctly
@@ -2542,7 +2691,7 @@
             // 2. Setup Three.js scene
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.setClearColor(0x000000, 0);
             container.appendChild(renderer.domElement);
 
@@ -2590,10 +2739,12 @@
                 projectionInitialized = true;
             }
 
+            // Start video frame processing loop separately
+            startVideoProcessingLoop();
+
             // Animation render loop
             renderer.setAnimationLoop(() => {
                 if (currentMode === 'AR') {
-                    processFrame();
                     renderer.render(scene, camera);
                 } else {
                     orbitControls.update();
