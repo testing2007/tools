@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>WebAR Curved Label Tracking & Calibration</title>
+    <title>WebAR Custom OpenCV Curved Tracking</title>
     <!-- Import Google Font Outfit -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg-dark: #0f1016;
@@ -46,6 +48,24 @@
             top: 0;
             left: 0;
             z-index: 1;
+            pointer-events: auto;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #container.preview-mode {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            border-radius: 0;
+            border: none;
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            box-shadow: none;
+            overflow: visible;
         }
 
         /* Glassmorphic UI Overlays */
@@ -85,7 +105,7 @@
             padding: 6px 12px;
             border-radius: 30px;
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .status-badge.scanning {
@@ -161,8 +181,9 @@
         #control-panel::-webkit-scrollbar {
             width: 4px;
         }
+
         #control-panel::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
         }
 
@@ -198,7 +219,7 @@
             flex-direction: column;
             gap: 6px;
             background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255,255,255,0.02);
+            border: 1px solid rgba(255, 255, 255, 0.02);
             padding: 10px;
             border-radius: 12px;
         }
@@ -275,11 +296,9 @@
             box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
         }
 
-        .button-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Start / Launch Overlay */
@@ -308,7 +327,7 @@
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(0, 242, 254, 0.2);
             box-shadow: 0 0 30px rgba(0, 242, 254, 0.1);
             animation: pulse 3s infinite ease-in-out;
@@ -339,9 +358,20 @@
 
         /* Animations */
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 242, 254, 0.1); }
-            50% { transform: scale(1.05); box-shadow: 0 0 45px rgba(0, 242, 254, 0.25); }
-            100% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 242, 254, 0.1); }
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(0, 242, 254, 0.1);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 45px rgba(0, 242, 254, 0.25);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(0, 242, 254, 0.1);
+            }
         }
 
         /* Hide logic */
@@ -349,6 +379,7 @@
             opacity: 0;
             pointer-events: none;
             transform: scale(0.95);
+            transition: all 0.5s ease;
         }
 
         /* Responsive layout */
@@ -360,6 +391,7 @@
                 bottom: 15px;
                 max-height: 50vh;
             }
+
             #top-bar {
                 top: 15px;
             }
@@ -371,13 +403,28 @@
     {
       "imports": {
         "three": "./libs/three.module.js",
-        "three/addons/controls/OrbitControls.js": "./libs/OrbitControls.js",
-        "three/addons/renderers/CSS3DRenderer.js": "./libs/CSS3DRenderer.js",
-        "mindar-image-three": "./libs/mindar-image-three.prod.js"
+        "three/addons/controls/OrbitControls.js": "./libs/OrbitControls.js"
       }
     }
     </script>
+    <!-- Import OpenCV.js via CDN -->
+    <script>
+        window.Module = {
+            onRuntimeInitialized: function () {
+                console.log('OpenCV.js initialized successfully.');
+                const btnStart = document.getElementById('btn-start');
+                if (btnStart) {
+                    btnStart.innerText = 'Launch WebAR';
+                    btnStart.disabled = false;
+                }
+            }
+        };
+    </script>
+    <!-- 引入 OpenCV.js (WebAssembly版，使用 4.5.5 稳定版) -->
+    <script async src="https://docs.opencv.org/4.5.5/opencv.js" type="text/javascript"></script>
+
 </head>
+
 <body>
 
     <!-- Start Overlay Screen -->
@@ -385,9 +432,11 @@
         <div class="logo-container">
             <span class="logo-icon">🍾</span>
         </div>
-        <h1>Curved WebAR Tracker</h1>
-        <p class="overlay-desc">Experience augmented reality on wine bottles and cylindrical surfaces. Scan your bottle label to play video content.</p>
-        <button id="btn-start" class="btn btn-primary" style="font-size: 1.1rem; padding: 14px 32px; border-radius: 12px;">Launch WebAR</button>
+        <h1>Curved OpenCV.js WebAR</h1>
+        <p class="overlay-desc">Low-latency curved 3D tracking engine powered by OpenCV.js solvePnP. Place the video on
+            wine bottles and cylindrical surfaces.</p>
+        <button id="btn-start" class="btn btn-primary"
+            style="font-size: 1.1rem; padding: 14px 32px; border-radius: 12px;" disabled>Loading Engine...</button>
     </div>
 
     <!-- Container for the renderer -->
@@ -409,7 +458,8 @@
     <div id="control-panel" class="glass-panel">
         <div class="panel-header">
             <span class="panel-title">⚙️ Calibration Panel</span>
-            <button class="btn" style="padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;" onclick="resetCalibration()">Reset</button>
+            <button class="btn" style="padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;"
+                onclick="resetCalibration()">Reset</button>
         </div>
 
         <!-- Curvature Settings -->
@@ -418,21 +468,21 @@
             <div class="slider-group">
                 <div class="slider-label">
                     <span>Upper Radius</span>
-                    <span class="slider-val" id="val-radiusTop">1.20</span>
+                    <span class="slider-val" id="val-radiusTop">0.80</span>
                 </div>
-                <input type="range" id="radiusTop" min="0.1" max="4.0" step="0.05" value="1.2">
-                
+                <input type="range" id="radiusTop" min="0.1" max="4.0" step="0.05" value="0.8">
+
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Lower Radius</span>
-                    <span class="slider-val" id="val-radiusBottom">1.20</span>
+                    <span class="slider-val" id="val-radiusBottom">0.80</span>
                 </div>
-                <input type="range" id="radiusBottom" min="0.1" max="4.0" step="0.05" value="1.2">
-                
+                <input type="range" id="radiusBottom" min="0.1" max="4.0" step="0.05" value="0.8">
+
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Cylinder Height</span>
-                    <span class="slider-val" id="val-height">1.80</span>
+                    <span class="slider-val" id="val-height">1.33</span>
                 </div>
-                <input type="range" id="height" min="0.1" max="5.0" step="0.05" value="1.8">
+                <input type="range" id="height" min="0.1" max="5.0" step="0.05" value="1.33">
             </div>
         </div>
 
@@ -454,9 +504,9 @@
 
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Offset Z (Depth)</span>
-                    <span class="slider-val" id="val-offsetZ">0.00</span>
+                    <span class="slider-val" id="val-offsetZ">0.05</span>
                 </div>
-                <input type="range" id="offsetZ" min="-2.0" max="2.0" step="0.02" value="0.0">
+                <input type="range" id="offsetZ" min="-2.0" max="2.0" step="0.02" value="0.05">
             </div>
         </div>
 
@@ -490,9 +540,9 @@
             <div class="slider-group">
                 <div class="slider-label">
                     <span>Arc Angle (Span)</span>
-                    <span class="slider-val" id="val-thetaLength">180°</span>
+                    <span class="slider-val" id="val-thetaLength">73°</span>
                 </div>
-                <input type="range" id="thetaLength" min="30" max="360" step="5" value="180">
+                <input type="range" id="thetaLength" min="30" max="360" step="5" value="73">
             </div>
         </div>
 
@@ -506,7 +556,49 @@
                 </div>
                 <input type="range" id="lerpFactor" min="0.02" max="1.0" step="0.02" value="0.15">
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.2;">
-                    Higher = instant lock onto bottle (no lag, potential jitter). Lower = smoother tracking (more lag). Use 1.0 for zero-lag lock.
+                    Higher = instant lock onto bottle (no lag, potential jitter). Lower = smoother tracking (more lag).
+                    Use 1.0 for zero-lag lock.
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Sensitivity Settings -->
+        <div>
+            <div class="section-title">Detection Sensitivity</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Min Matches</span>
+                    <span class="slider-val" id="val-minMatches">12</span>
+                </div>
+                <input type="range" id="minMatches" min="6" max="30" step="1" value="12">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Hamming Cutoff</span>
+                    <span class="slider-val" id="val-hammingCutoff">55</span>
+                </div>
+                <input type="range" id="hammingCutoff" min="40" max="90" step="1" value="55">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Camera FOV / 焦距系数</span>
+                    <span class="slider-val" id="val-fovScale">1.05</span>
+                </div>
+                <input type="range" id="fovScale" min="0.75" max="1.60" step="0.01" value="1.05">
+            </div>
+        </div>
+
+        <!-- Target Features Visualizer -->
+        <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px 0;">
+                <span>🎯 Target Keypoints Visualizer</span>
+                <span id="target-viz-toggle" style="cursor: pointer; color: var(--primary); font-size: 0.75rem;"
+                    onclick="toggleTargetViz()">[Hide]</span>
+            </div>
+            <div id="target-viz-container" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3;">
+                    Visualizes keypoints extracted from <code>assets/mark.jpg</code>. Green circles show keypoint scale/size.
+                </div>
+                <div style="width: 100%; max-height: 200px; overflow: auto; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; background: rgba(0, 0, 0, 0.3); padding: 5px;">
+                    <canvas id="ref-features-canvas" style="display: block; margin: 0 auto;"></canvas>
                 </div>
             </div>
         </div>
@@ -517,12 +609,50 @@
                 🔊 Unmute Video Audio
             </button>
         </div>
+
+        <!-- Debug Info Section -->
+        <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+            <div class="section-title"
+                style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px 0;">
+                <span>Debug Stats</span>
+                <span id="debug-toggle" style="cursor: pointer; color: var(--primary); font-size: 0.75rem;"
+                    onclick="toggleDebug()">[Hide]</span>
+            </div>
+            <div id="debug-stats-content"
+                style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.25); padding: 12px; border-radius: 12px; font-family: monospace; font-size: 0.75rem; color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.03);">
+                <div style="display: flex; justify-content: space-between;">Ref Keypoints: <span id="db-ref-kp"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Frame Keypoints: <span id="db-frame-kp"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Matches (Raw): <span id="db-raw-matches"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Matches (Good): <span id="db-good-matches"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Best Scale: <span id="db-best-scale"
+                        style="color: var(--text); font-weight: 600;">-</span></div>
+                <div style="display: flex; justify-content: space-between;">Dynamic Min: <span id="db-dynamic-min"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Inlier Ratio: <span id="db-inlier-ratio"
+                        style="color: var(--text); font-weight: 600;">0%</span></div>
+                <div style="display: flex; justify-content: space-between;">PnP Status: <span id="db-pnp-status"
+                        style="color: var(--text); font-weight: 600;">Idle</span></div>
+                <div style="display: flex; justify-content: space-between;">PnP Method: <span id="db-pnp-method"
+                        style="color: var(--text); font-weight: 600;">None</span></div>
+                <div
+                    style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.05); word-break: break-all;">
+                    PnP Error: <span id="db-pnp-error" style="color: #94a3b8;">None</span></div>
+                <button class="btn" id="btn-copy-debug"
+                    style="margin-top: 8px; width: 100%; padding: 6px; border-radius: 8px; font-size: 0.75rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.2); color: var(--primary);"
+                    onclick="copyDebugInfo()">
+                    📋 Copy Debug Info
+                </button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { MindARThree } from 'mindar-image-three';
 
         // Default calibration configuration (optimized for standard Nongfu Spring bottle & cropped target)
         const defaultConfig = {
@@ -536,28 +666,68 @@
             rotY: 0,
             rotZ: 0,
             thetaLength: 73,
-            lerpFactor: 0.15
+            lerpFactor: 0.15,
+            minMatches: 12,
+            hammingCutoff: 55,
+            fovScale: 1.05
         };
 
         let config = { ...defaultConfig };
         let currentMode = 'AR'; // 'AR' or 'PREVIEW'
-        let mindarThree = null;
         let renderer, scene, camera, previewCamera;
         let orbitControls = null;
-        
+
         // Scene meshes
-        let arAnchor = null;
         let videoMesh = null;
         let virtualBottleMesh = null;
-        let smoothedGroup = null;
-        
+        let virtualLabelMesh = null;
+
         // Video elements
         let videoElement = null;
         let videoTexture = null;
-
-        // Label guide elements
         let labelTexture = null;
-        let virtualLabelMesh = null;
+
+        // Custom Camera Tracking State
+        let cameraVideo = null;
+        const trackW = 640;
+        const trackH = 480;
+        let trackCanvas = null;
+        let trackCtx = null;
+
+        // OpenCV.js Global Matrix Reused instances for low garbage-collection overhead
+        let orb = null;
+        let matcher = null;
+        let refWidth = 0;
+        let refHeight = 0;
+        let refKeypoints = null;
+        let refDescriptors = null;
+        const REF_LEVEL_SCALES = [1.0, 0.75, 0.5, 0.35];
+        let refLevels = [];
+
+        let maskMat = null;
+        let ref3DPoints = [];
+
+        let frameMat = null;
+        let frameGray = null;
+        let frameKeypoints = null;
+        let frameDescriptors = null;
+
+        let cameraMatrixMat = null;
+        let distCoeffsMat = null;
+        let rvec = null;
+        let tvec = null;
+        let inliers = null;
+        let RMat = null;
+
+        let lastSuccessTime = 0;
+        let isFirstTrackingFrame = true;
+        let projectionInitialized = false;
+
+        // Smoothed Camera pose values (Lerp/Slerp)
+        const currentPos = new THREE.Vector3();
+        const currentQuat = new THREE.Quaternion();
+        const targetPos = new THREE.Vector3();
+        const targetQuat = new THREE.Quaternion();
 
         // Load config from localStorage
         function loadConfig() {
@@ -566,23 +736,16 @@
                 try {
                     config = JSON.parse(saved);
                     let isUpdated = false;
-                    // Sync config back with defaults if keys are missing
                     for (let key in defaultConfig) {
                         if (config[key] === undefined) {
                             config[key] = defaultConfig[key];
                             isUpdated = true;
                         }
                     }
-                    // Auto-migrate if loading old flat cylinder calibration from past sessions
-                    if (config.radiusTop === 1.20 && config.radiusBottom === 1.20 && config.thetaLength === 180) {
-                        console.log("Detected old default calibration. Migrating to new curved defaults.");
-                        config = { ...defaultConfig };
-                        isUpdated = true;
-                    }
                     if (isUpdated) {
                         saveConfig();
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error('Failed to parse saved config, using defaults');
                     config = { ...defaultConfig };
                 }
@@ -603,9 +766,15 @@
                     slider.value = config[key];
                     const valEl = document.getElementById(`val-${key}`);
                     if (valEl) {
-                        valEl.innerText = (key.startsWith('rot') || key.startsWith('theta')) 
-                            ? `${config[key]}°` 
-                            : parseFloat(config[key]).toFixed(2);
+                        if (key.startsWith('rot') || key.startsWith('theta')) {
+                            valEl.innerText = `${config[key]}°`;
+                        } else if (key === 'minMatches' || key === 'hammingCutoff') {
+                            valEl.innerText = parseInt(config[key]);
+                        } else if (key === 'fovScale') {
+                            valEl.innerText = parseFloat(config[key]).toFixed(2);
+                        } else {
+                            valEl.innerText = parseFloat(config[key]).toFixed(2);
+                        }
                     }
                 }
             }
@@ -617,6 +786,21 @@
             saveConfig();
             updateSlidersUI();
             rebuildCylinderMesh();
+            updateReference3DPoints();
+            if (cameraMatrixMat) {
+                initCameraMatrix();
+                projectionInitialized = false;
+                updateCameraProjection();
+            }
+
+            // Reset previewCamera and orbitControls
+            if (previewCamera) {
+                previewCamera.position.set(0, 0, 8);
+            }
+            if (orbitControls) {
+                orbitControls.target.set(0, 0, 0);
+                orbitControls.update();
+            }
         }
 
         // Video control
@@ -635,11 +819,20 @@
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
 
+            // Mirror horizontally to match reference 3D points
+            videoTexture.wrapS = THREE.RepeatWrapping;
+            videoTexture.repeat.x = -1;
+            videoTexture.offset.x = 1;
+
             // Load label texture for preview guide
             const loader = new THREE.TextureLoader();
             labelTexture = loader.load('assets/mark.jpg', (texture) => {
                 texture.minFilter = THREE.LinearFilter;
                 texture.magFilter = THREE.LinearFilter;
+                // Mirror horizontally to match reference 3D points
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.repeat.x = -1;
+                texture.offset.x = 1;
                 console.log('Label guide texture loaded successfully');
             }, undefined, (err) => {
                 console.error('Failed to load label guide texture:', err);
@@ -661,12 +854,672 @@
             }
         }
 
-        // Create the Cylinder Mesh which renders the video
+        // Request native camera
+        async function setupCamera() {
+            const video = document.createElement('video');
+            video.setAttribute('autoplay', '');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('muted', '');
+            video.style.position = 'absolute';
+            video.style.top = '0';
+            video.style.left = '0';
+            video.style.width = '100vw';
+            video.style.height = '100vh';
+            video.style.objectFit = 'cover';
+            video.style.zIndex = '0';
+            document.body.appendChild(video);
+
+            const constraints = {
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
+                audio: false
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve(video);
+                };
+            });
+        }
+
+        // Initialize OpenCV tracker mats and configs
+        function initTracker() {
+            // ORB Feature detector - Use 1000 features
+            if (cv.ORB && cv.ORB.create) {
+                orb = cv.ORB.create(1000);
+            } else if (cv.ORB) {
+                orb = new cv.ORB(1000);
+            } else {
+                throw new Error("cv.ORB is not defined in this build of OpenCV.js");
+            }
+            matcher = new cv.BFMatcher(cv.NORM_HAMMING, true); // CrossCheck validation enabled
+        }
+
+        // Draw reference image keypoints onto canvas for debugging
+        function drawRefKeypoints(img) {
+            const canvas = document.getElementById('ref-features-canvas');
+            if (!canvas) return;
+            canvas.width = refWidth;
+            canvas.height = refHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw original image
+            ctx.drawImage(img, 0, 0);
+
+            // Draw keypoints
+            if (refKeypoints && refKeypoints.size() > 0) {
+                const size = refKeypoints.size();
+                ctx.fillStyle = 'rgba(0, 255, 100, 0.8)'; // bright neon green
+                ctx.strokeStyle = 'rgba(0, 255, 100, 1)';
+                ctx.lineWidth = 1.5;
+
+                for (let i = 0; i < size; i++) {
+                    const kp = refKeypoints.get(i);
+                    const x = kp.pt.x;
+                    const y = kp.pt.y;
+                    const r = Math.max(2, kp.size / 4); // Keypoint scale radius
+
+                    // Draw inner circle dot
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Draw outer scale circle
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        let targetVizVisible = true;
+        function toggleTargetViz() {
+            targetVizVisible = !targetVizVisible;
+            const container = document.getElementById('target-viz-container');
+            const toggle = document.getElementById('target-viz-toggle');
+            if (container && toggle) {
+                if (targetVizVisible) {
+                    container.style.display = 'flex';
+                    toggle.innerText = '[Hide]';
+                    // Re-draw in case layout changed
+                    const img = new Image();
+                    img.src = 'assets/mark.jpg';
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        drawRefKeypoints(img);
+                    };
+                } else {
+                    container.style.display = 'none';
+                    toggle.innerText = '[Show]';
+                }
+            }
+        }
+
+        // Load reference target image and extract multi-scale ORB keypoints
+        function loadReferenceImage() {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = 'assets/mark.jpg';
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    refWidth = img.width;
+                    refHeight = img.height;
+                    console.log(`Loaded reference target: ${refWidth}x${refHeight}`);
+
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = refWidth;
+                    tempCanvas.height = refHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(img, 0, 0);
+
+                    const srcMat = cv.imread(tempCanvas);
+                    const grayMat = new cv.Mat();
+                    cv.cvtColor(srcMat, grayMat, cv.COLOR_RGBA2GRAY);
+
+                    refLevels = [];
+                    for (const scale of REF_LEVEL_SCALES) {
+                        const scaledW = Math.max(1, Math.round(refWidth * scale));
+                        const scaledH = Math.max(1, Math.round(refHeight * scale));
+                        const scaledGray = new cv.Mat();
+
+                        if (scale === 1.0) {
+                            grayMat.copyTo(scaledGray);
+                        } else {
+                            cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
+                        }
+
+                        const levelKeypoints = new cv.KeyPointVector();
+                        const levelDescriptors = new cv.Mat();
+                        orb.detectAndCompute(scaledGray, maskMat, levelKeypoints, levelDescriptors);
+
+                        const originalPoints = [];
+                        for (let i = 0; i < levelKeypoints.size(); i++) {
+                            const kp = levelKeypoints.get(i);
+                            originalPoints.push({
+                                x: kp.pt.x / scale,
+                                y: kp.pt.y / scale
+                            });
+                        }
+
+                        // 每个金字塔层保留原图坐标，后续 PnP 始终映射到同一套瓶身 3D 坐标。
+                        refLevels.push({
+                            scale,
+                            width: scaledW,
+                            height: scaledH,
+                            keypoints: levelKeypoints,
+                            descriptors: levelDescriptors,
+                            originalPoints,
+                            points3D: []
+                        });
+
+                        console.log(`Reference scale ${scale}: ${levelKeypoints.size()} keypoints (${scaledW}x${scaledH})`);
+                        scaledGray.delete();
+                    }
+
+                    const baseLevel = refLevels[0];
+                    refKeypoints = baseLevel ? baseLevel.keypoints : null;
+                    refDescriptors = baseLevel ? baseLevel.descriptors : null;
+                    console.log(`Reference pyramid levels: ${refLevels.length}`);
+
+                    srcMat.delete();
+                    grayMat.delete();
+
+                    // Pre-calculate 3D reference coordinates for tracking
+                    updateReference3DPoints();
+
+                    // Render keypoints onto visualization canvas
+                    drawRefKeypoints(img);
+
+                    resolve();
+                };
+                img.onerror = (e) => reject(e);
+            });
+        }
+
+        // Initialize global Mats to prevent garbage collection hiccups during loops
+        function initTrackingMats() {
+            trackCanvas = document.createElement('canvas');
+            trackCanvas.width = trackW;
+            trackCanvas.height = trackH;
+            trackCtx = trackCanvas.getContext('2d');
+
+            maskMat = new cv.Mat();
+
+            frameMat = new cv.Mat(trackH, trackW, cv.CV_8UC4);
+            frameGray = new cv.Mat();
+
+            cameraMatrixMat = new cv.Mat(3, 3, cv.CV_64F);
+            distCoeffsMat = cv.Mat.zeros(4, 1, cv.CV_64F);
+            rvec = new cv.Mat();
+            tvec = new cv.Mat();
+            inliers = new cv.Mat();
+            RMat = new cv.Mat();
+        }
+
+        // Populate camera matrix K with adjustable focal lengths based on tracking resolution
+        function initCameraMatrix() {
+            const focalScale = Number(config.fovScale) || defaultConfig.fovScale;
+            const fx = trackW * focalScale;
+            const fy = trackW * focalScale;
+            const cx = trackW / 2;
+            const cy = trackH / 2;
+
+            const data = cameraMatrixMat.data64F;
+            data[0] = fx; data[1] = 0; data[2] = cx;
+            data[3] = 0; data[4] = fy; data[5] = cy;
+            data[6] = 0; data[7] = 0; data[8] = 1;
+        }
+
+        function mapReferencePixelTo3D(u, v) {
+            const W = refWidth;
+            const H = refHeight;
+            const rTop = config.radiusTop;
+            const rBottom = config.radiusBottom;
+            const height = config.height;
+            const scale = height / H;
+
+            const u_centered = u - W / 2;
+            const Y = (H / 2 - v) * scale;
+
+            // 根据当前高度插值得到瓶身半径，兼容上下半径不同的锥台瓶身。
+            const t = (Y + height / 2) / height;
+            const r_at_y = rBottom + (rTop - rBottom) * t;
+
+            // 横向像素距离按弧长换算为圆柱角度，保证裁剪版 mark.jpg 与曲面宽度绑定。
+            const theta = (u_centered * scale) / r_at_y;
+
+            return {
+                X: r_at_y * Math.sin(theta),
+                Y,
+                Z: r_at_y * Math.cos(theta)
+            };
+        }
+
+        // 3D coordinate mapping algorithm: Convert original-reference pixels to 3D cylinder/frustum coordinates.
+        // Saves calculated points globally to avoid massive per-frame allocation and math costs.
+        function updateReference3DPoints() {
+            if (!refLevels || refLevels.length === 0) return;
+            ref3DPoints = [];
+            for (const level of refLevels) {
+                level.points3D = level.originalPoints.map(pt => mapReferencePixelTo3D(pt.x, pt.y));
+            }
+
+            if (refLevels[0]) {
+                ref3DPoints = refLevels[0].points3D;
+            }
+        }
+
+        // Scale and align Three.js perspective projection matrix with the cropped full-screen video aspect ratio
+        function updateCameraProjection() {
+            if (!cameraVideo) return false;
+            const videoW = cameraVideo.videoWidth;
+            const videoH = cameraVideo.videoHeight;
+            if (!videoW || !videoH) return false;
+
+            const container = document.getElementById('container');
+            const width = container ? container.clientWidth : window.innerWidth;
+            const height = container ? container.clientHeight : window.innerHeight;
+
+            const focalScale = Number(config.fovScale) || defaultConfig.fovScale;
+            const fx = trackW * focalScale;
+            const fy = trackW * focalScale;
+            const cx = trackW / 2;
+            const cy = trackH / 2;
+
+            // Compute scaling factors due to object-fit: cover display centering
+            const scale = Math.max(width / videoW, height / videoH);
+            const dispW = videoW * scale;
+            const dispH = videoH * scale;
+            const dx = (dispW - width) / 2;
+            const dy = (dispH - height) / 2;
+
+            // Scale tracking coordinate system (320x240) to native video coordinates, then to screen pixels
+            const nativeScaleX = videoW / trackW;
+            const nativeScaleY = videoH / trackH;
+
+            const fx_prime = fx * nativeScaleX * scale;
+            const fy_prime = fy * nativeScaleY * scale;
+            const cx_prime = (cx * nativeScaleX) * scale - dx;
+            const cy_prime = (cy * nativeScaleY) * scale - dy;
+
+            // Generate intrinsic projection matrix
+            const near = 0.1;
+            const far = 1000;
+            const pm = new THREE.Matrix4();
+            pm.set(
+                2 * fx_prime / width, 0, 2 * cx_prime / width - 1, 0,
+                0, 2 * fy_prime / height, 1 - 2 * cy_prime / height, 0,
+                0, 0, -(far + near) / (far - near), -2 * far * near / (far - near),
+                0, 0, -1, 0
+            );
+            camera.projectionMatrix.copy(pm);
+            camera.projectionMatrixInverse.copy(pm).invert();
+            return true;
+        }
+
+        // Live AR Frame-by-Frame feature extraction & PnP processing loop
+        function processFrame() {
+            if (currentMode !== 'AR' || !cameraVideo) return;
+            if (cameraVideo.readyState < 2) return;
+
+            // Dynamically initialize camera projection matrix when camera dimensions are ready
+            if (!projectionInitialized) {
+                if (updateCameraProjection()) {
+                    projectionInitialized = true;
+                }
+            }
+
+            let goodMatchesCount = 0;
+            let trackingSuccess = false;
+            let pnpStatus = "Idle";
+            let pnpMethod = "None";
+            let pnpError = "None";
+            let bestScaleText = "-";
+            let dynamicMinMatches = Math.round(config.minMatches);
+            let bestInlierRatio = 0.0;
+
+            // Local transient variables for memory cleanup
+            let localFrameKeypoints = null;
+            let localFrameDescriptors = null;
+            let objPointsMat = null;
+            let imgPointsMat = null;
+
+            try {
+                // Update ref keypoints display
+                const dbRefKp = document.getElementById('db-ref-kp');
+                if (dbRefKp && refLevels.length > 0) {
+                    const totalRefKp = refLevels.reduce((sum, level) => sum + level.keypoints.size(), 0);
+                    dbRefKp.innerText = `${refLevels[0].keypoints.size()} (${totalRefKp})`;
+                }
+
+                // Draw current webcam frame to scale canvas
+                trackCtx.drawImage(cameraVideo, 0, 0, trackW, trackH);
+                const tempMat = cv.imread(trackCanvas);
+                tempMat.copyTo(frameMat);
+                tempMat.delete();
+                cv.cvtColor(frameMat, frameGray, cv.COLOR_RGBA2GRAY);
+
+                // Allocate per-frame keypoints and descriptors
+                localFrameKeypoints = new cv.KeyPointVector();
+                localFrameDescriptors = new cv.Mat();
+
+                // Compute ORB features on frame (reuse maskMat to prevent memory leaks)
+                orb.detectAndCompute(frameGray, maskMat, localFrameKeypoints, localFrameDescriptors);
+
+                const dbFrameKp = document.getElementById('db-frame-kp');
+                if (dbFrameKp) dbFrameKp.innerText = localFrameKeypoints.size();
+
+                if (!localFrameDescriptors.empty() && refLevels.some(level => !level.descriptors.empty())) {
+                    let bestLevelResult = null;
+
+                    for (const level of refLevels) {
+                        if (level.descriptors.empty()) continue;
+
+                        let levelMatches = null;
+                        let srcPointsMat = null;
+                        let dstPointsMat = null;
+                        let homographyMask = null;
+                        let homographyH = null;
+
+                        try {
+                            levelMatches = new cv.DMatchVector();
+                            matcher.match(level.descriptors, localFrameDescriptors, levelMatches);
+
+                            // 先按汉明距离做快速截断，再交给 Homography RANSAC 剔除背景误匹配。
+                            const filteredMatches = [];
+                            for (let i = 0; i < levelMatches.size(); i++) {
+                                const m = levelMatches.get(i);
+                                if (m.distance < config.hammingCutoff) {
+                                    filteredMatches.push({
+                                        queryIdx: m.queryIdx,
+                                        trainIdx: m.trainIdx,
+                                        distance: m.distance
+                                    });
+                                }
+                            }
+
+                            const rawMatchesCount = filteredMatches.length;
+                            const inlierMatches = [];
+                            let inlierRatio = 0.0;
+
+                            if (rawMatchesCount >= 8) {
+                                const srcPoints = [];
+                                const dstPoints = [];
+                                for (let i = 0; i < rawMatchesCount; i++) {
+                                    const m = filteredMatches[i];
+                                    const refPt = level.originalPoints[m.queryIdx];
+                                    const kpFrame = localFrameKeypoints.get(m.trainIdx);
+                                    srcPoints.push(refPt.x, refPt.y);
+                                    dstPoints.push(kpFrame.pt.x, kpFrame.pt.y);
+                                }
+
+                                srcPointsMat = cv.matFromArray(rawMatchesCount, 1, cv.CV_32FC2, srcPoints);
+                                dstPointsMat = cv.matFromArray(rawMatchesCount, 1, cv.CV_32FC2, dstPoints);
+                                homographyMask = new cv.Mat();
+
+                                try {
+                                    homographyH = cv.findHomography(srcPointsMat, dstPointsMat, cv.RANSAC, 8.0, homographyMask);
+                                    if (!homographyH.empty()) {
+                                        for (let i = 0; i < rawMatchesCount; i++) {
+                                            if (homographyMask.data[i] === 1) {
+                                                inlierMatches.push(filteredMatches[i]);
+                                            }
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.warn(`Homography RANSAC failed at scale ${level.scale}:`, err);
+                                }
+                            }
+
+                            inlierRatio = rawMatchesCount > 0 ? (inlierMatches.length / rawMatchesCount) : 0.0;
+                            const isBetterLevel = !bestLevelResult
+                                || inlierMatches.length > bestLevelResult.inlierMatches.length
+                                || (inlierMatches.length === bestLevelResult.inlierMatches.length && inlierRatio > bestLevelResult.inlierRatio);
+
+                            if (isBetterLevel) {
+                                bestLevelResult = {
+                                    level,
+                                    rawMatchesCount,
+                                    inlierMatches,
+                                    inlierRatio
+                                };
+                            }
+                        } finally {
+                            if (levelMatches) levelMatches.delete();
+                            if (srcPointsMat) srcPointsMat.delete();
+                            if (dstPointsMat) dstPointsMat.delete();
+                            if (homographyMask) homographyMask.delete();
+                            if (homographyH) homographyH.delete();
+                        }
+                    }
+
+                    if (bestLevelResult) {
+                        const { level, rawMatchesCount, inlierMatches, inlierRatio } = bestLevelResult;
+                        goodMatchesCount = inlierMatches.length;
+                        bestInlierRatio = inlierRatio;
+                        bestScaleText = `${level.scale.toFixed(2)}x`;
+
+                        // 远距离通常命中较小尺度：允许匹配数降到 10，但同步提高内点率，避免背景误触发。
+                        dynamicMinMatches = level.scale <= 0.5
+                            ? Math.min(Math.round(config.minMatches), 10)
+                            : Math.round(config.minMatches);
+                        const requiredInlierRatio = level.scale <= 0.5 ? 0.35 : 0.20;
+
+                        const dbRawMatches = document.getElementById('db-raw-matches');
+                        if (dbRawMatches) dbRawMatches.innerText = rawMatchesCount;
+
+                        const dbGoodMatches = document.getElementById('db-good-matches');
+                        if (dbGoodMatches) {
+                            dbGoodMatches.innerText = `${goodMatchesCount} (${Math.round(inlierRatio * 100)}%)`;
+                        }
+
+                        // Call solvePnP if enough point correspondences are found AND ratio passes scale-aware check
+                        if (goodMatchesCount >= dynamicMinMatches && inlierRatio >= requiredInlierRatio) {
+                        // Sort inliers by distance
+                        inlierMatches.sort((a, b) => a.distance - b.distance);
+                        const topMatches = inlierMatches.slice(0, 80);
+
+                        const objPoints = [];
+                        const imgPoints = [];
+                        const ref3 = level.points3D;
+
+                        for (let i = 0; i < topMatches.length; i++) {
+                            const m = topMatches[i];
+                            const pt3D = ref3[m.queryIdx];
+                            if (!pt3D) continue;
+                            objPoints.push(pt3D.X, pt3D.Y, pt3D.Z);
+
+                            const kp = localFrameKeypoints.get(m.trainIdx);
+                            if (!kp) {
+                                objPoints.pop(); objPoints.pop(); objPoints.pop();
+                                continue;
+                            }
+                            imgPoints.push(kp.pt.x, kp.pt.y);
+                        }
+
+                        const numPts = objPoints.length / 3;
+                        if (numPts >= dynamicMinMatches) {
+                            // Create frame specific arrays using the actual valid point count
+                            objPointsMat = cv.matFromArray(numPts, 3, cv.CV_32F, objPoints);
+                            imgPointsMat = cv.matFromArray(numPts, 2, cv.CV_32F, imgPoints);
+
+                            const useExtrinsicGuess = false;
+                            const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
+                            pnpMethod = "solvePnP (8 args)";
+
+                            let success = false;
+                            try {
+                                success = cv.solvePnP(
+                                    objPointsMat,
+                                    imgPointsMat,
+                                    cameraMatrixMat,
+                                    distCoeffsMat,
+                                    rvec,
+                                    tvec,
+                                    useExtrinsicGuess,
+                                    pnpFlags
+                                );
+                                pnpStatus = success ? "Success (PnP)" : "Failed (PnP)";
+                            } catch (err) {
+                                pnpError = err.message || String(err);
+                                console.error('cv.solvePnP threw error:', err);
+                                pnpStatus = "PnP Exception";
+                            }
+
+                            if (success) {
+                                // Convert rvec (Rodrigues) to 3x3 rotation matrix
+                                cv.Rodrigues(rvec, RMat);
+                                const rD = RMat.data64F;
+                                const tD = tvec.data64F;
+
+                                // Pose geometric validation
+                                if (isFinite(tD[0]) && isFinite(tD[1]) && isFinite(tD[2]) && tD[2] > 0.1) {
+                                    // Align coordinate systems:
+                                    // OpenCV: +X right, +Y down, +Z forward
+                                    // Three.js: +X right, +Y up, +Z backward (out of screen)
+                                    const m = new THREE.Matrix4();
+                                    m.set(
+                                        rD[0], rD[1], rD[2], tD[0],
+                                        -rD[3], -rD[4], -rD[5], -tD[1],
+                                        -rD[6], -rD[7], -rD[8], -tD[2],
+                                        0, 0, 0, 1
+                                    );
+
+                                    // Invert the object-to-camera matrix to obtain the camera's world matrix
+                                    const camWorldMatrix = m.clone().invert();
+                                    const tempCamPos = new THREE.Vector3();
+                                    const tempCamQuat = new THREE.Quaternion();
+                                    camWorldMatrix.decompose(tempCamPos, tempCamQuat, new THREE.Vector3());
+
+                                    // Validate camera distance in Three.js units (between 0.5 and 25.0)
+                                    const dist = tempCamPos.length();
+                                    if (dist >= 0.5 && dist <= 25.0) {
+                                        targetPos.copy(tempCamPos);
+                                        targetQuat.copy(tempCamQuat);
+                                        trackingSuccess = true;
+                                        lastSuccessTime = performance.now();
+                                    } else {
+                                        pnpStatus = `Rejected Dist: ${dist.toFixed(2)}`;
+                                    }
+                                } else {
+                                    pnpStatus = `Rejected Behind/Inf`;
+                                }
+                            }
+                        } else {
+                            pnpStatus = `Need >= ${dynamicMinMatches} inliers after filter`;
+                        }
+                    } else {
+                        if (goodMatchesCount < dynamicMinMatches) {
+                            pnpStatus = `Need >= ${dynamicMinMatches} inliers`;
+                        } else {
+                            pnpStatus = `Low Ratio: ${Math.round(inlierRatio * 100)}%`;
+                        }
+                    }
+                    } else {
+                        pnpStatus = "No Match Scale";
+                    }
+                } else {
+                    pnpStatus = "No Descriptors";
+                }
+            } catch (err) {
+                pnpError = err.message || String(err);
+                console.error("Error in processFrame loop:", err);
+                pnpStatus = "Loop Exception";
+            } finally {
+                // Ensure manual memory release of cv.Mat and KeyPointVector instances
+                if (localFrameKeypoints) localFrameKeypoints.delete();
+                if (localFrameDescriptors) localFrameDescriptors.delete();
+                if (objPointsMat) objPointsMat.delete();
+                if (imgPointsMat) imgPointsMat.delete();
+            }
+
+            // Update debug UI
+            const dbPnpStatus = document.getElementById('db-pnp-status');
+            if (dbPnpStatus) dbPnpStatus.innerText = pnpStatus;
+            const dbPnpMethod = document.getElementById('db-pnp-method');
+            if (dbPnpMethod) dbPnpMethod.innerText = pnpMethod;
+            const dbPnpError = document.getElementById('db-pnp-error');
+            if (dbPnpError) {
+                dbPnpError.innerText = pnpError;
+                dbPnpError.style.color = (pnpError === "None") ? "var(--text-muted)" : "#e74c3c";
+            }
+            const dbBestScale = document.getElementById('db-best-scale');
+            if (dbBestScale) dbBestScale.innerText = bestScaleText;
+            const dbDynamicMin = document.getElementById('db-dynamic-min');
+            if (dbDynamicMin) dbDynamicMin.innerText = dynamicMinMatches;
+            const dbInlierRatio = document.getElementById('db-inlier-ratio');
+            if (dbInlierRatio) dbInlierRatio.innerText = `${Math.round(bestInlierRatio * 100)}%`;
+
+            if (bestScaleText === "-") {
+                const dbRawMatches = document.getElementById('db-raw-matches');
+                if (dbRawMatches) dbRawMatches.innerText = "0";
+                const dbGoodMatches = document.getElementById('db-good-matches');
+                if (dbGoodMatches) dbGoodMatches.innerText = "0";
+            }
+
+            const statusText = document.getElementById('status-text');
+            const statusBadge = document.getElementById('status-badge');
+
+            // Apply camera updates (holds tracking up to 500ms on frame loss)
+            if (trackingSuccess || (performance.now() - lastSuccessTime < 500)) {
+                statusText.innerText = `DETECTED (${goodMatchesCount} matches)`;
+                statusBadge.className = 'status-badge detected';
+
+                if (isFirstTrackingFrame) {
+                    currentPos.copy(targetPos);
+                    currentQuat.copy(targetQuat);
+                    isFirstTrackingFrame = false;
+                } else {
+                    const factor = config.lerpFactor;
+                    if (factor >= 0.99) {
+                        currentPos.copy(targetPos);
+                        currentQuat.copy(targetQuat);
+                    } else {
+                        currentPos.lerp(targetPos, factor);
+                        currentQuat.slerp(targetQuat, factor);
+                    }
+                }
+
+                // Update Three.js camera pose directly
+                camera.matrixAutoUpdate = false;
+                camera.position.copy(currentPos);
+                camera.quaternion.copy(currentQuat);
+                camera.updateMatrix();
+                camera.updateMatrixWorld(true);
+
+                // Play video & fade in
+                if (videoElement) {
+                    videoElement.play().catch(err => { });
+                    if (videoMesh && videoMesh.material) {
+                        videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.95, 0.1);
+                    }
+                }
+            } else {
+                statusText.innerText = `SCANNING LABEL (${goodMatchesCount} matches)`;
+                statusBadge.className = 'status-badge scanning';
+                isFirstTrackingFrame = true;
+
+                // Pause video & fade out
+                if (videoElement) {
+                    videoElement.pause();
+                    if (videoMesh && videoMesh.material) {
+                        videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.0, 0.15);
+                    }
+                }
+            }
+        }
+
+        // Rebuild cylinder geometry which renders the video
         function createCylinderMesh() {
-            // Auto-center the video segment at 0 degrees (facing the camera +Z in Three.js CylinderGeometry)
-            // relative to the cylinder's center, so that the center of the video segment
-            // lies exactly on the front face of the bottle.
-            const thetaStartVal = 360 - config.thetaLength / 2;
+            // Center the video segment at +Z (0 deg, facing camera directly)
+            const thetaStartVal = - config.thetaLength / 2;
             const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
             const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
 
@@ -676,28 +1529,25 @@
                 config.height,
                 64, // radialSegments for smoothness
                 1,  // heightSegments
-                true, // openEnded (no top and bottom caps)
+                true, // openEnded
                 tStartRad,
                 tLengthRad
             );
 
-            // Using double sided so we don't accidentally clip it if face normals are flipped
             const material = new THREE.MeshBasicMaterial({
                 map: videoTexture,
                 side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0.0 // Start at 0, will fade in when target is detected
+                opacity: 0.0
             });
 
             const mesh = new THREE.Mesh(geometry, material);
-            
+
             // Adjust position
-            // Center of cylinder is set to offsetZ minus the radius to align the front edge at Z = 0
-            const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
             mesh.position.set(
                 parseFloat(config.offsetX),
                 parseFloat(config.offsetY),
-                parseFloat(config.offsetZ) - avgRadius
+                parseFloat(config.offsetZ)
             );
 
             // Adjust rotation
@@ -713,186 +1563,88 @@
         function rebuildCylinderMesh() {
             if (!videoTexture) return;
 
-            // Remove old mesh from parent (anchor or scene)
-            let parent = null;
+            // Remove old mesh from scene
             if (videoMesh) {
-                parent = videoMesh.parent;
-                parent.remove(videoMesh);
+                scene.remove(videoMesh);
             }
 
             // Create new mesh
             videoMesh = createCylinderMesh();
+            scene.add(videoMesh);
 
-            // Re-add to parent
-            if (parent) {
-                parent.add(videoMesh);
+            // Handle preview-specific meshes if in preview mode
+            if (currentMode === 'PREVIEW') {
+                updatePreviewMeshes();
             }
         }
 
-        // Initialize WebAR / Three.js
-        async function initAR() {
-            const container = document.getElementById('container');
-            
-            // 1. Initialize MindARThree with optimized smoothing parameters
-            mindarThree = new MindARThree({
-                container: container,
-                imageTargetSrc: 'assets/targets.mind',
-                filterMinCF: 0.0001, // Lower cutoff frequency to reduce static jitter
-                filterBeta: 0.005,    // Reduce speed coefficient to make movement smoother
-                missTolerance: 15,    // Prevent flickering when target is briefly lost
-                warmupTolerance: 5    // Confirm lock before showing
+        // Rebuild and position virtual meshes for visual reference inside 3D Preview Mode
+        function updatePreviewMeshes() {
+            if (virtualBottleMesh) {
+                scene.remove(virtualBottleMesh);
+                virtualBottleMesh = null;
+            }
+            if (virtualLabelMesh) {
+                scene.remove(virtualLabelMesh);
+                virtualLabelMesh = null;
+            }
+
+            if (currentMode !== 'PREVIEW') return;
+
+            // Semi-transparent bottle cylinder
+            const bottleGeom = new THREE.CylinderGeometry(
+                config.radiusTop,
+                config.radiusBottom,
+                config.height * 1.8,
+                64
+            );
+            const bottleMat = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                transparent: true,
+                opacity: 0.25,
+                roughness: 0.1,
+                metalness: 0.1
             });
+            virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
+            virtualBottleMesh.position.set(0, 0, 0); // Cylinder origin
+            scene.add(virtualBottleMesh);
 
-            // Extract Three.js elements
-            renderer = mindarThree.renderer;
-            scene = mindarThree.scene;
-            camera = mindarThree.camera;
+            // Virtual label guide mesh
+            if (labelTexture) {
+                // Center the virtual label guide at +Z (0 deg, facing camera directly)
+                const thetaStartVal = - config.thetaLength / 2;
+                const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
+                const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
 
-            // Setup preview camera for 3D Preview Mode (separate perspective)
-            previewCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            previewCamera.position.set(0, 0, 8);
-
-            // Add lighting for virtual bottle in preview mode
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
-            // 2. Set up video and mesh
-            initVideo();
-            videoMesh = createCylinderMesh();
-
-            // Create a smoothed group that we will interpolate in the render loop
-            smoothedGroup = new THREE.Group();
-            smoothedGroup.visible = false;
-            smoothedGroup.add(videoMesh);
-            scene.add(smoothedGroup);
-
-            // 3. Create AR Anchor group (index 0 corresponds to the single mark image)
-            arAnchor = mindarThree.addAnchor(0);
-
-            // 4. Hook up Target found/lost events
-            const statusText = document.getElementById('status-text');
-            const statusBadge = document.getElementById('status-badge');
-
-            arAnchor.onTargetFound = () => {
-                if (currentMode !== 'AR') return;
-                console.log('Target Label Found!');
-                statusText.innerText = 'TARGET DETECTED';
-                statusBadge.className = 'status-badge detected';
-                videoElement.play().catch(err => console.log('Autoplay error:', err));
-            };
-
-            arAnchor.onTargetLost = () => {
-                if (currentMode !== 'AR') return;
-                console.log('Target Label Lost!');
-                statusText.innerText = 'SCANNING LABEL';
-                statusBadge.className = 'status-badge scanning';
-                videoElement.pause();
-            };
-
-            // Setup OrbitControls for preview mode
-            orbitControls = new OrbitControls(previewCamera, renderer.domElement);
-            orbitControls.enableDamping = true;
-            orbitControls.dampingFactor = 0.05;
-            orbitControls.enabled = false; // Disabled by default in AR mode
-
-            // Rebuild mesh when window sizes change
-            window.addEventListener('resize', () => {
-                previewCamera.aspect = window.innerWidth / window.innerHeight;
-                previewCamera.updateProjectionMatrix();
-                // MindAR handles the main camera aspect ratio internally on resize
-            });
-
-            // Start the AR tracking
-            await mindarThree.start();
-            
-            // Set status
-            statusText.innerText = 'SCANNING LABEL';
-            statusBadge.className = 'status-badge scanning';
-
-            let isFirstTrackingFrame = true;
-
-            // Temp variables for matrix decomposition
-            const tempPos = new THREE.Vector3();
-            const tempQuat = new THREE.Quaternion();
-            const tempScale = new THREE.Vector3();
-
-            // Start animation loop
-            renderer.setAnimationLoop(() => {
-                if (currentMode === 'AR') {
-                    if (arAnchor && arAnchor.group.visible) {
-                        // Decompose the tracking matrix to get world position/rotation/scale
-                        arAnchor.group.matrix.decompose(tempPos, tempQuat, tempScale);
-
-                        if (isFirstTrackingFrame) {
-                            // Snap immediately on the very first frame to avoid visible sliding/floating lag
-                            smoothedGroup.position.copy(tempPos);
-                            smoothedGroup.quaternion.copy(tempQuat);
-                            smoothedGroup.scale.copy(tempScale);
-                            isFirstTrackingFrame = false;
-                        } else if (config.lerpFactor >= 0.99) {
-                            // Instant lock (zero-lag tracking, bypass filtering completely)
-                            smoothedGroup.position.copy(tempPos);
-                            smoothedGroup.quaternion.copy(tempQuat);
-                            smoothedGroup.scale.copy(tempScale);
-                        } else {
-                            // 1. Calculate distance (translation displacement) between frames
-                            const dist = smoothedGroup.position.distanceTo(tempPos);
-                            const minDist = 0.01;
-                            const maxDist = 0.15;
-                            let tPos = (dist - minDist) / (maxDist - minDist);
-                            tPos = Math.max(0, Math.min(1, tPos));
-
-                            // 2. Calculate angular displacement (rotation difference)
-                            const angle = smoothedGroup.quaternion.angleTo(tempQuat);
-                            const minAngle = 0.02;
-                            const maxAngle = 0.15;
-                            let tRot = (angle - minAngle) / (maxAngle - minAngle);
-                            tRot = Math.max(0, Math.min(1, tRot));
-
-                            // Scale the baseline adaptive filters according to our config.lerpFactor (baseline is 0.15)
-                            const scale = config.lerpFactor / 0.15;
-                            
-                            // Clamp factor between 0.001 and 1.0
-                            const posFactor = Math.min(1.0, Math.max(0.001, (0.015 + tPos * (0.18 - 0.015)) * scale));
-                            const rotFactor = Math.min(1.0, Math.max(0.001, (0.010 + tRot * (0.15 - 0.010)) * scale));
-
-                            // Interpolate position and rotation using adaptive weights
-                            smoothedGroup.position.lerp(tempPos, posFactor);
-                            smoothedGroup.quaternion.slerp(tempQuat, rotFactor);
-                            smoothedGroup.scale.copy(tempScale);
-                        }
-
-                        // Smoothly fade in video opacity
-                        if (videoMesh && videoMesh.material) {
-                            videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.95, 0.12);
-                        }
-                        smoothedGroup.visible = true;
-                    } else {
-                        isFirstTrackingFrame = true; // Reset snap flag when target is lost
-                        // Smoothly fade out video opacity before hiding
-                        if (smoothedGroup.visible) {
-                            if (videoMesh && videoMesh.material) {
-                                videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.0, 0.2);
-                                if (videoMesh.material.opacity < 0.01) {
-                                    smoothedGroup.visible = false;
-                                }
-                            } else {
-                                smoothedGroup.visible = false;
-                            }
-                        }
-                    }
-
-                    // In AR mode, MindAR camera feed runs in background
-                    renderer.render(scene, camera);
-                } else {
-                    // In Preview mode, orbitControls control previewCamera
-                    orbitControls.update();
-                    renderer.render(scene, previewCamera);
-                }
-            });
+                const labelGeom = new THREE.CylinderGeometry(
+                    config.radiusTop - 0.002,
+                    config.radiusBottom - 0.002,
+                    config.height,
+                    64,
+                    1,
+                    true,
+                    tStartRad,
+                    tLengthRad
+                );
+                const labelMat = new THREE.MeshBasicMaterial({
+                    map: labelTexture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
+                virtualLabelMesh.position.set(
+                    parseFloat(config.offsetX),
+                    parseFloat(config.offsetY),
+                    parseFloat(config.offsetZ)
+                );
+                virtualLabelMesh.rotation.set(
+                    THREE.MathUtils.degToRad(config.rotX),
+                    THREE.MathUtils.degToRad(config.rotY),
+                    THREE.MathUtils.degToRad(config.rotZ)
+                );
+                scene.add(virtualLabelMesh);
+            }
         }
 
         // Toggle Modes: Live AR or 3D Preview
@@ -904,132 +1656,59 @@
             const tabPreview = document.getElementById('tab-preview');
             const statusText = document.getElementById('status-text');
             const statusBadge = document.getElementById('status-badge');
+            const container = document.getElementById('container');
 
-            // Toggle Tab UI
             tabAr.classList.toggle('active', mode === 'AR');
             tabPreview.classList.toggle('active', mode === 'PREVIEW');
 
-            // Detach and clean up virtual elements
-            if (virtualBottleMesh) {
-                scene.remove(virtualBottleMesh);
-                virtualBottleMesh = null;
-            }
-            if (virtualLabelMesh) {
-                scene.remove(virtualLabelMesh);
-                virtualLabelMesh = null;
+            // Toggle camera video element (Hide background feed in preview mode to show clean 3D bottle)
+            if (cameraVideo) {
+                cameraVideo.style.display = (mode === 'PREVIEW') ? 'none' : 'block';
             }
 
             if (mode === 'PREVIEW') {
-                // Switch to Preview Mode
                 console.log('Switching to 3D Preview Calibration Mode');
                 statusText.innerText = '3D PREVIEW MODE';
                 statusBadge.className = 'status-badge preview';
 
-                // Enable orbit controls
                 orbitControls.enabled = true;
 
-                // Stop MindAR camera tracking overlay (stops web camera feed rendering)
-                if (mindarThree && mindarThree.video) {
-                    mindarThree.video.style.display = 'none'; // hide live video element
-                }
-
-                // Add the video mesh directly to the scene instead of tracking anchor/smoothed group
-                if (videoMesh.parent) {
-                    videoMesh.parent.remove(videoMesh);
-                }
-                scene.add(videoMesh);
+                // Reset preview camera and controls
+                previewCamera.position.set(0, 0, 8);
+                orbitControls.target.set(0, 0, 0);
+                orbitControls.update();
 
                 // Ensure video is visible in preview mode
                 if (videoMesh && videoMesh.material) {
                     videoMesh.material.opacity = 0.95;
                 }
 
-                // Create a semi-transparent glass-like bottle cylinder to help visualize
-                const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
-                const bottleGeom = new THREE.CylinderGeometry(
-                    config.radiusTop,
-                    config.radiusBottom,
-                    config.height * 1.8, // slightly taller than the video
-                    64
-                );
-                // Glass-like standard material
-                const bottleMat = new THREE.MeshStandardMaterial({
-                    color: 0x333333,
-                    transparent: true,
-                    opacity: 0.25,
-                    roughness: 0.1,
-                    metalness: 0.1,
-                    wireframe: false
-                });
-                virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
-                
-                // Position bottle cylinder centered at (0, 0, -avgRadius) 
-                // so the video cylinder segment lays perfectly on its front face!
-                virtualBottleMesh.position.set(0, 0, -avgRadius);
-                scene.add(virtualBottleMesh);
-
-                // Create the virtual label guide
-                if (labelTexture) {
-                    const thetaStartVal = 360 - config.thetaLength / 2;
-                    const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
-                    const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
-
-                    // We create a cylinder segment slightly smaller in radius (radius - 0.002)
-                    // so that the video mesh overlays on top of it.
-                    const labelGeom = new THREE.CylinderGeometry(
-                        config.radiusTop - 0.002,
-                        config.radiusBottom - 0.002,
-                        config.height,
-                        64,
-                        1,
-                        true,
-                        tStartRad,
-                        tLengthRad
-                    );
-                    const labelMat = new THREE.MeshBasicMaterial({
-                        map: labelTexture,
-                        side: THREE.DoubleSide,
-                        transparent: true,
-                        opacity: 0.8
-                    });
-                    virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
-                    virtualLabelMesh.position.set(
-                        parseFloat(config.offsetX),
-                        parseFloat(config.offsetY),
-                        parseFloat(config.offsetZ) - avgRadius
-                    );
-                    virtualLabelMesh.rotation.set(
-                        THREE.MathUtils.degToRad(config.rotX),
-                        THREE.MathUtils.degToRad(config.rotY),
-                        THREE.MathUtils.degToRad(config.rotZ)
-                    );
-                    scene.add(virtualLabelMesh);
-                }
-
-                // In preview mode, play video automatically so user can see it
+                updatePreviewMeshes();
                 videoElement.play().catch(err => console.log('Autoplay error in preview:', err));
+
+                if (container) {
+                    container.classList.add('preview-mode');
+                }
             } else {
-                // Switch to AR Tracking Mode
                 console.log('Switching to Live AR tracking');
                 statusText.innerText = 'SCANNING LABEL';
                 statusBadge.className = 'status-badge scanning';
 
-                // Disable orbit controls
                 orbitControls.enabled = false;
 
-                // Show MindAR camera video element
-                if (mindarThree && mindarThree.video) {
-                    mindarThree.video.style.display = 'block';
+                // Remove preview meshes
+                if (virtualBottleMesh) {
+                    scene.remove(virtualBottleMesh);
+                    virtualBottleMesh = null;
+                }
+                if (virtualLabelMesh) {
+                    scene.remove(virtualLabelMesh);
+                    virtualLabelMesh = null;
                 }
 
-                // Reset previewCamera rotation/positions
-                previewCamera.position.set(0, 0, 8);
-                orbitControls.target.set(0, 0, 0);
-
-                // Put the video mesh back to the smoothed group
-                scene.remove(videoMesh);
-                if (smoothedGroup) {
-                    smoothedGroup.add(videoMesh);
+                // Restore dynamic camera matrix
+                if (updateCameraProjection()) {
+                    projectionInitialized = true;
                 }
 
                 // Reset opacity to fade in on next track
@@ -1037,8 +1716,20 @@
                     videoMesh.material.opacity = 0.0;
                 }
 
-                // Pause video until target found
                 videoElement.pause();
+
+                if (container) {
+                    container.classList.remove('preview-mode');
+                }
+            }
+
+            // Immediately resize to update WebGL canvas layout correctly
+            if (window.handleResize) {
+                window.handleResize();
+                // Call again after transition starts/ends to be safe
+                setTimeout(window.handleResize, 100);
+                setTimeout(window.handleResize, 200);
+                setTimeout(window.handleResize, 400);
             }
         }
 
@@ -1048,8 +1739,15 @@
                 'radiusTop', 'radiusBottom', 'height',
                 'offsetX', 'offsetY', 'offsetZ',
                 'rotX', 'rotY', 'rotZ',
-                'thetaLength', 'lerpFactor'
+                'thetaLength', 'lerpFactor',
+                'minMatches', 'hammingCutoff', 'fovScale'
             ];
+            const geometryKeys = new Set([
+                'radiusTop', 'radiusBottom', 'height',
+                'offsetX', 'offsetY', 'offsetZ',
+                'rotX', 'rotY', 'rotZ',
+                'thetaLength'
+            ]);
 
             sliders.forEach(key => {
                 const slider = document.getElementById(key);
@@ -1057,74 +1755,202 @@
                     slider.addEventListener('input', (e) => {
                         const val = parseFloat(e.target.value);
                         config[key] = val;
-                        
+
                         // Update UI numerical value display
                         const valEl = document.getElementById(`val-${key}`);
                         if (valEl) {
-                            valEl.innerText = (key.startsWith('rot') || key.startsWith('theta')) 
-                                ? `${val}°` 
-                                : val.toFixed(2);
+                            if (key.startsWith('rot') || key.startsWith('theta')) {
+                                valEl.innerText = `${val}°`;
+                            } else if (key === 'minMatches' || key === 'hammingCutoff') {
+                                valEl.innerText = parseInt(val);
+                            } else if (key === 'fovScale') {
+                                valEl.innerText = val.toFixed(2);
+                            } else {
+                                valEl.innerText = val.toFixed(2);
+                            }
                         }
 
                         // Save current values to localstorage
                         saveConfig();
 
-                        // Rebuild cylinder geometry with new parameters
-                        rebuildCylinderMesh();
+                        if (geometryKeys.has(key)) {
+                            // 几何参数变化时，重建视频曲面并同步刷新 PnP 的 3D 参考点。
+                            rebuildCylinderMesh();
+                            updateReference3DPoints();
+                        }
 
-                        // If in preview mode, update the virtual bottle and label guide too
-                        if (currentMode === 'PREVIEW') {
-                            const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
-                            
-                            if (virtualBottleMesh) {
-                                scene.remove(virtualBottleMesh);
-                                const bottleGeom = new THREE.CylinderGeometry(
-                                    config.radiusTop,
-                                    config.radiusBottom,
-                                    config.height * 1.8,
-                                    64
-                                );
-                                const bottleMat = virtualBottleMesh.material;
-                                virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
-                                virtualBottleMesh.position.set(0, 0, -avgRadius);
-                                scene.add(virtualBottleMesh);
-                            }
-
-                            if (virtualLabelMesh) {
-                                scene.remove(virtualLabelMesh);
-                                const thetaStartVal = 360 - config.thetaLength / 2;
-                                const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
-                                const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
-
-                                const labelGeom = new THREE.CylinderGeometry(
-                                    config.radiusTop - 0.002,
-                                    config.radiusBottom - 0.002,
-                                    config.height,
-                                    64,
-                                    1,
-                                    true,
-                                    tStartRad,
-                                    tLengthRad
-                                );
-                                const labelMat = virtualLabelMesh.material;
-                                virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
-                                virtualLabelMesh.position.set(
-                                    parseFloat(config.offsetX),
-                                    parseFloat(config.offsetY),
-                                    parseFloat(config.offsetZ) - avgRadius
-                                );
-                                virtualLabelMesh.rotation.set(
-                                    THREE.MathUtils.degToRad(config.rotX),
-                                    THREE.MathUtils.degToRad(config.rotY),
-                                    THREE.MathUtils.degToRad(config.rotZ)
-                                );
-                                scene.add(virtualLabelMesh);
-                            }
+                        if (key === 'fovScale') {
+                            // 焦距系数只影响相机内参和 Three.js 投影，不改变视频贴图曲面。
+                            initCameraMatrix();
+                            projectionInitialized = false;
+                            updateCameraProjection();
                         }
                     });
                 }
             });
         }
+
+        // Handle resizing of the container (which might change between full screen and PiP)
+        function handleResize() {
+            const container = document.getElementById('container');
+            if (!container || !renderer) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            renderer.setSize(width, height);
+
+            previewCamera.aspect = width / height;
+            previewCamera.updateProjectionMatrix();
+
+            if (currentMode === 'AR') {
+                updateCameraProjection();
+            }
+        }
+        window.handleResize = handleResize;
+
+        // Initialize WebAR / Three.js
+        async function initAR() {
+            const container = document.getElementById('container');
+
+            // 1. Initialize native camera
+            cameraVideo = await setupCamera();
+
+            // 2. Setup Three.js scene
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+
+            // Setup main camera (pose solved dynamically via PnP)
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+
+            // Setup preview camera (controlled via OrbitControls)
+            previewCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+            previewCamera.position.set(0, 0, 8);
+
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            // 3. Initialize media, descriptors and tracking buffers
+            initVideo();
+            initTracker();
+            initTrackingMats();
+            initCameraMatrix();
+            await loadReferenceImage();
+
+            // Create target geometry meshes
+            rebuildCylinderMesh();
+
+            // Setup OrbitControls for preview mode
+            orbitControls = new OrbitControls(previewCamera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.05;
+            orbitControls.enabled = false;
+
+            // Trigger matrix updates on resize
+            window.addEventListener('resize', handleResize);
+
+            // Trigger initial projection matrix calculation
+            if (updateCameraProjection()) {
+                projectionInitialized = true;
+            }
+
+            // Animation render loop
+            renderer.setAnimationLoop(() => {
+                if (currentMode === 'AR') {
+                    processFrame();
+                    renderer.render(scene, camera);
+                } else {
+                    orbitControls.update();
+                    renderer.render(scene, previewCamera);
+                }
+            });
+        }
+
+        // Debug panel toggle logic
+        let debugVisible = true;
+        function toggleDebug() {
+            debugVisible = !debugVisible;
+            const content = document.getElementById('debug-stats-content');
+            const toggle = document.getElementById('debug-toggle');
+            if (content && toggle) {
+                if (debugVisible) {
+                    content.style.display = 'flex';
+                    toggle.innerText = '[Hide]';
+                } else {
+                    content.style.display = 'none';
+                    toggle.innerText = '[Show]';
+                }
+            }
+        }
+        window.toggleDebug = toggleDebug;
+
+        function copyDebugInfo() {
+            const refKp = document.getElementById('db-ref-kp')?.innerText || '0';
+            const frameKp = document.getElementById('db-frame-kp')?.innerText || '0';
+            const rawMatches = document.getElementById('db-raw-matches')?.innerText || '0';
+            const goodMatches = document.getElementById('db-good-matches')?.innerText || '0';
+            const bestScale = document.getElementById('db-best-scale')?.innerText || '-';
+            const dynamicMin = document.getElementById('db-dynamic-min')?.innerText || '0';
+            const inlierRatio = document.getElementById('db-inlier-ratio')?.innerText || '0%';
+            const pnpStatus = document.getElementById('db-pnp-status')?.innerText || 'Idle';
+            const pnpMethod = document.getElementById('db-pnp-method')?.innerText || 'None';
+            const pnpError = document.getElementById('db-pnp-error')?.innerText || 'None';
+
+            const info = `Ref Keypoints: ${refKp}
+Frame Keypoints: ${frameKp}
+Matches (Raw): ${rawMatches}
+Matches (Good): ${goodMatches}
+Best Scale: ${bestScale}
+Dynamic Min: ${dynamicMin}
+Inlier Ratio: ${inlierRatio}
+PnP Status: ${pnpStatus}
+PnP Method: ${pnpMethod}
+PnP Error: ${pnpError}`;
+
+            const proceedCopy = () => {
+                const btn = document.getElementById('btn-copy-debug');
+                if (btn) {
+                    btn.innerText = '✅ Copied!';
+                    setTimeout(() => {
+                        btn.innerText = '📋 Copy Debug Info';
+                    }, 2000);
+                }
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(info).then(proceedCopy).catch(err => {
+                    fallbackCopyText(info, proceedCopy);
+                });
+            } else {
+                fallbackCopyText(info, proceedCopy);
+            }
+        }
+
+        function fallbackCopyText(text, callback) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                callback();
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+        window.copyDebugInfo = copyDebugInfo;
 
         // Expose functions to window for HTML inline handlers
         window.resetCalibration = resetCalibration;
@@ -1140,17 +1966,18 @@
             document.getElementById('btn-start').addEventListener('click', async () => {
                 const overlay = document.getElementById('start-overlay');
                 overlay.classList.add('hidden');
-                
+
                 document.getElementById('status-text').innerText = 'INITIALIZING CAMERA';
                 try {
                     await initAR();
-                } catch(e) {
+                } catch (e) {
                     console.error('AR Initialization failed:', e);
-                    document.getElementById('status-text').innerText = 'AR INITS FAILED';
+                    document.getElementById('status-text').innerText = 'CAMERA FAILED';
                     document.getElementById('status-badge').style.color = '#e74c3c';
                 }
             });
         });
     </script>
 </body>
+
 </html>
