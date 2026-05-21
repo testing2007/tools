@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindAR Target Compiler</title>
+    <!-- Import Google Font Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --container-bg: #1f2833;
+            --primary-color: #66fcf1;
+            --secondary-color: #45f3ff;
+            --text-color: #c5c6c7;
+            --title-color: #ffffff;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0b0c10, #1f2833);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(31, 40, 51, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 2px rgba(255, 255, 255, 0.1);
+            text-align: center;
+            max-width: 550px;
+            width: 100%;
+            border: 1px solid rgba(102, 252, 241, 0.15);
+            box-sizing: border-box;
+        }
+
+        h2 {
+            color: var(--title-color);
+            margin-top: 0;
+            font-weight: 800;
+            font-size: 2.2rem;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-weight: 300;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 1.05rem;
+        }
+
+        code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--primary-color);
+            font-family: monospace;
+        }
+
+        .status {
+            margin: 25px 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--primary-color);
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+            transition: width 0.1s ease-out;
+        }
+
+        .log-box {
+            font-size: 0.85rem;
+            color: #8892b0;
+            text-align: left;
+            height: 160px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            line-height: 1.5;
+        }
+
+        .log-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        .log-box::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .log-box::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        .log-box div {
+            margin-bottom: 4px;
+            border-left: 2px solid transparent;
+            padding-left: 6px;
+        }
+        .log-box .log-info { border-left-color: var(--primary-color); }
+        .log-box .log-success { border-left-color: var(--success-color); color: #a6e22e; }
+        .log-box .log-error { border-left-color: var(--error-color); color: #f92672; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>MindAR Compiler</h2>
+        <p>Pre-processing target image into <code>targets.mind</code> for optimal tracking stability</p>
+        
+        <div class="status" id="status">Starting compilation...</div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="log-box" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { Compiler } from "./libs/mindar-image.prod.js";
+
+        const statusEl = document.getElementById('status');
+        const progressFill = document.getElementById('progressFill');
+        const logEl = document.getElementById('log');
+
+        function log(msg, type = 'info') {
+            console.log(msg);
+            const time = new Date().toLocaleTimeString();
+            const logClass = `log-${type}`;
+            logEl.innerHTML += `<div class="${logClass}">[${time}] ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        async function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+                img.src = url;
+            });
+        }
+
+        async function startCompile() {
+            try {
+                let img;
+                log("Attempting to load assets/mark.png...");
+                try {
+                    img = await loadImage('assets/mark.png');
+                    log("Loaded assets/mark.png successfully.", "success");
+                } catch (e) {
+                    log("assets/mark.png not found or failed to load. Trying assets/mark.jpg...", "error");
+                    try {
+                        img = await loadImage('assets/mark.jpg');
+                        log("Loaded assets/mark.jpg successfully.", "success");
+                    } catch (e2) {
+                        throw new Error("Could not load assets/mark.png or assets/mark.jpg. Please verify image is present in assets directory.");
+                    }
+                }
+
+                log(`Image dimensions: ${img.width}x${img.height}. Processing...`);
+                statusEl.innerText = "Initializing compiler...";
+
+                const compiler = new Compiler();
+                
+                log("Starting feature point extraction (this may take a few moments)...");
+                statusEl.innerText = "Extracting features...";
+
+                await compiler.compileImageTargets([img], (progress) => {
+                    progressFill.style.width = progress + '%';
+                    statusEl.innerText = `Compiling: ${progress.toFixed(1)}%`;
+                });
+
+                log("Feature extraction finished!", "success");
+                statusEl.innerText = "Exporting tracking data...";
+                const buffer = await compiler.exportData();
+
+                log(`Export complete. Data size: ${(buffer.byteLength / 1024).toFixed(1)} KB. Uploading...`);
+                statusEl.innerText = "Saving targets.mind...";
+                
+                const response = await fetch('/save-mind', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: buffer
+                });
+
+                if (response.ok) {
+                    log("Successfully saved to assets/targets.mind!", "success");
+                    statusEl.innerText = "Compilation Successful!";
+                    statusEl.style.color = "#2ecc71";
+                    progressFill.style.background = "linear-gradient(90deg, #2ecc71, #a6e22e)";
+                    progressFill.style.boxShadow = "0 0 10px rgba(46, 204, 113, 0.5)";
+                    log("You can close this tab now. The server will shut down automatically.", "success");
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Server failed to save: ${text}`);
+                }
+            } catch (err) {
+                log(err.message, "error");
+                statusEl.innerText = "Compilation Failed!";
+                statusEl.style.color = "#e74c3c";
+                progressFill.style.background = "#e74c3c";
+                progressFill.style.boxShadow = "0 0 10px rgba(231, 76, 60, 0.5)";
+            }
+        }
+
+        // Wait a small bit before starting to allow rendering
+        window.addEventListener('load', () => setTimeout(startCompile, 500));
+    </script>
+</body>
+</html>

@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自研酒标追踪 - 商业级 AR 贴合视频播放</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        video#webcam {
+            display: none;
+        }
+
+        canvas#render-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            transform: scaleX(-1);
+        }
+
+        /* 现代极简 HUD 交互控制层 */
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.85);
+            /* 现代深色磨砂玻璃效果 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 320px;
+            max-width: calc(100vw - 40px); /* 🌟 修复：自适应超窄屏幕，防止横向溢出 */
+            max-height: calc(100dvh - 40px); /* 🌟 修复：使用 dvh 适应移动端动态视口高度 */
+            max-height: calc(100% - 40px); /* 兼容回退 */
+            box-sizing: border-box; /* 🌟 修复：防止 padding 溢出导致高度超出视口而不可见 */
+            overflow-y: auto;
+            touch-action: auto; /* 🌟 修复：使用 auto 以确保各移动端浏览器及微信 webview 的原生滚动顺畅触发 */
+            -webkit-overflow-scrolling: touch; /* 🌟 移动端顺滑滚动 */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        #ui-overlay::-webkit-scrollbar {
+            width: 6px;
+        }
+        #ui-overlay::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #ui-overlay::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 3px;
+        }
+        #ui-overlay::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.45);
+        }
+
+        .header-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #38bdf8;
+            /* 天蓝色主视觉 */
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .divider {
+            border: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 12px 0;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        #status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            /* 红色未追踪 */
+            margin-right: 8px;
+            box-shadow: 0 0 8px #ef4444;
+            transition: all 0.3s ease;
+        }
+
+        #status-text {
+            font-weight: 500;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #0284c7;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.2s;
+            text-align: center;
+        }
+
+        .upload-label:hover {
+            background: #0369a1;
+        }
+
+        .upload-label.video-btn {
+            background: #475569;
+        }
+
+        .upload-label.video-btn:hover {
+            background: #334155;
+        }
+
+        .slider-group {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .slider-label {
+            font-size: 11px;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slider-control {
+            width: 100%;
+            accent-color: #38bdf8;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            height: 6px;
+            outline: none;
+            cursor: pointer;
+            margin: 4px 0 8px 0;
+        }
+
+        .tips-panel {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        /* 画面中央的扫描提示框 */
+        #scan-frame {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px;
+            height: 280px;
+            border: 2px dashed rgba(56, 189, 248, 0.5);
+            border-radius: 12px;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #scan-frame::before {
+            content: "将 农夫山泉 标签对准此区域";
+            font-size: 12px;
+            color: rgba(56, 189, 248, 0.8);
+            background: rgba(15, 23, 42, 0.8);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+    </style>
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入 MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- 引入刚刚编译出来的胶水代码 -->
+    <script src="./tracker_orb.js"></script>
+</head>
+
+<body>
+
+    <div id="canvas-container">
+        <!-- 扫描视觉辅助网格 -->
+        <div id="scan-frame"></div>
+
+        <div id="ui-overlay">
+            <div class="header-title">
+                <span>🍷 自研酒标 AR 渲染引擎</span>
+            </div>
+            <div class="status-container">
+                <span id="status-dot"></span>
+                <span id="status-text">初始化中...</span>
+            </div>
+
+            <div class="control-group">
+                <label class="upload-label" for="target-img">
+                    📁 自定义：更换识别图
+                </label>
+                <input type="file" id="target-img" accept="image/*">
+
+                <label class="upload-label video-btn" for="ar-video">
+                    📁 自定义：更换播放视频
+                </label>
+                <input type="file" id="ar-video" accept="video/mp4,video/quicktime">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>📷 相机视角 FOV (越大=广角):</span>
+                    <span id="fov-val">60°</span>
+                </div>
+                <input type="range" id="fov-slider" class="slider-control" min="35" max="90" step="1" value="60">
+                <div style="font-size:10px; color:#64748b; margin-top:-4px;">笔记本前置≈60°, 手机后置≈70°, 广角≈80°</div>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>酒瓶半径 (R_cyl):</span>
+                    <span id="radius-val">3.5 cm</span>
+                </div>
+                <input type="range" id="radius-slider" class="slider-control" min="0.015" max="0.100" step="0.001" value="0.035">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>滤波过程噪声 (Q):</span>
+                    <span id="kalman-q-val">0.10</span>
+                </div>
+                <input type="range" id="kalman-q-slider" class="slider-control" min="0.001" max="1.000" step="0.001" value="0.10">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>滤波测量噪声 (R):</span>
+                    <span id="kalman-r-val">0.50</span>
+                </div>
+                <input type="range" id="kalman-r-slider" class="slider-control" min="0.01" max="5.00" step="0.01" value="0.50">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Hamming 匹配阈值 (越小越严格):</span>
+                    <span id="hamming-val">48</span>
+                </div>
+                <input type="range" id="hamming-slider" class="slider-control" min="30" max="75" step="1" value="48">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Lowe's 比率阈值 (越小越严格):</span>
+                    <span id="ratio-val">0.80</span>
+                </div>
+                <input type="range" id="ratio-slider" class="slider-control" min="0.50" max="0.95" step="0.01" value="0.80">
+            </div>
+
+            <div class="divider"></div>
+            <div style="font-size: 12px; color: #38bdf8; font-weight: 600; margin-bottom: 8px;">⚙️ 画面镜像设置</div>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                    <span>镜像输入画面 (前置摄像头推荐勾选)</span>
+                    <input type="checkbox" id="mirror-input-checkbox" style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                    <span>CSS 镜像翻转画面 (左右反转视角)</span>
+                    <input type="checkbox" id="css-mirror-checkbox" checked style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+                </div>
+            </div>
+
+            <div class="status-container" style="margin-top: 12px; margin-bottom: 4px;">
+                <span id="finger-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; margin-right: 8px; box-shadow: 0 0 6px #94a3b8; transition: all 0.3s ease;"></span>
+                <span id="finger-status-text" style="font-size: 12px; color: #94a3b8;">指尖未触摸酒标</span>
+            </div>
+
+            <div class="tips-panel">
+                <strong>💡 极速体验说明：</strong><br>
+                1. 默认已加载 <strong>农夫山泉</strong> 模板与 AR 演示视频。<br>
+                2. 允许摄像头授权获取背景图像。<br>
+                3. 将摄像头对准农夫山泉瓶身红底标签，视频即可高稳同步贴合并播放！<br>
+                4. 你也可以随时上传本地的酒标与 MP4 视频替换默认设置。
+            </div>
+
+            <!-- 新增调试与特征可视化面板 -->
+            <div class="divider"></div>
+            <div style="font-size: 12px; color: #38bdf8; font-weight: 600; margin-bottom: 8px;">📊 实时检测诊断</div>
+            <div style="font-size: 11px; color: #94a3b8; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
+                <div>模板特征点: <span id="debug-target-kp" style="color: #fff; font-weight: bold;">0</span></div>
+                <div>匹配特征对: <span id="debug-matches" style="color: #fff; font-weight: bold;">0</span></div>
+                <div>RANSAC 内点: <span id="debug-inliers" style="color: #fff; font-weight: bold;">0</span></div>
+                <div>内点比例: <span id="debug-ratio" style="color: #fff; font-weight: bold;">0%</span></div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 10px; color: #94a3b8; margin-bottom: 4px;">模板特征图 (ORB 特征点标绿)</div>
+                <canvas id="debug-template-canvas" style="max-width: 100%; max-height: 150px; height: auto; width: auto; display: block; margin: 0 auto; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: #000;"></canvas>
+            </div>
+        </div>
+
+        <!-- 真实硬件视频底层渲染 -->
+        <video id="webcam" autoplay playsinline muted></video>
+        <!-- 3D AR 结合叠加层 -->
+        <canvas id="render-canvas"></canvas>
+        <!-- 像素提取中转画布 (隐藏) -->
+        <canvas id="processing-canvas" style="display: none;"></canvas>
+    </div>
+
+    <!-- 用于加载上传图像的隐藏 HTML Image -->
+    <img id="temp-img" style="display: none;">
+
+    <script>
+        // 一维常速度卡尔曼滤波器
+        class KalmanFilter1D {
+            constructor() {
+                this.x = 0; // 状态位置
+                this.v = 0; // 状态速度
+                this.P = [
+                    [1.0, 0.0],
+                    [0.0, 1.0]
+                ];
+                this.isInitialized = false;
+            }
+
+            reset(initX) {
+                this.x = initX;
+                this.v = 0;
+                this.P = [
+                    [1.0, 0.0],
+                    [0.0, 1.0]
+                ];
+                this.isInitialized = true;
+            }
+
+            predict(dt, sigmaA2) {
+                if (!this.isInitialized) return;
+                
+                const x_pred = this.x + this.v * dt;
+                const v_pred = this.v;
+
+                const dt2 = dt * dt;
+                const dt3 = dt2 * dt;
+                const Q00 = sigmaA2 * dt3 / 3.0;
+                const Q01 = sigmaA2 * dt2 / 2.0;
+                const Q11 = sigmaA2 * dt;
+
+                const P_pred_00 = this.P[0][0] + 2 * dt * this.P[0][1] + dt2 * this.P[1][1] + Q00;
+                const P_pred_01 = this.P[0][1] + dt * this.P[1][1] + Q01;
+                const P_pred_11 = this.P[1][1] + Q11;
+
+                this.x = x_pred;
+                this.v = v_pred;
+                this.P[0][0] = P_pred_00;
+                this.P[0][1] = P_pred_01;
+                this.P[1][0] = P_pred_01;
+                this.P[1][1] = P_pred_11;
+            }
+
+            update(z, R) {
+                if (!this.isInitialized) {
+                    this.reset(z);
+                    return this.x;
+                }
+
+                const S = this.P[0][0] + R;
+                if (Math.abs(S) < 1e-8) return this.x;
+
+                const K0 = this.P[0][0] / S;
+                const K1 = this.P[1][0] / S;
+
+                const y = z - this.x;
+                this.x = this.x + K0 * y;
+                this.v = this.v + K1 * y;
+
+                const P_new_00 = (1 - K0) * this.P[0][0];
+                const P_new_01 = (1 - K0) * this.P[0][1];
+                const P_new_11 = this.P[1][1] - K1 * this.P[0][1];
+
+                this.P[0][0] = P_new_00;
+                this.P[0][1] = P_new_01;
+                this.P[1][0] = P_new_01;
+                this.P[1][1] = P_new_11;
+
+                return this.x;
+            }
+        }
+
+        const camWidth = 640;
+        const camHeight = 480;
+
+        let wasmModule;
+        let tracker;
+        let pixelBufferPtr;
+        let videoElement;
+        let processCanvas;
+        let processCtx;
+
+        let renderer, scene, camera;
+        let videoPlane, videoTexture;
+        const arVideoElement = document.createElement('video');
+        arVideoElement.loop = true;
+        arVideoElement.muted = true;
+        arVideoElement.playsInline = true;
+        arVideoElement.crossOrigin = "anonymous";
+        arVideoElement.src = "resources/1.mp4";
+        let targetMesh; // 辅助追踪的边框网格
+
+        // 默认调节参数
+        let cylinderRadius = 0.035; // 3.5cm
+        let kalmanQ = 0.10;
+        let kalmanR = 0.50;
+        let mirrorInput = false; // 是否在匹配时镜像翻转输入帧，使前置镜像画面能正常与非镜像模板匹配
+
+        // 相机视角 FOV（水平角度，度）。不同设备差异较大：
+        //   笔记本前置摄像头: ~60°,  手机后置主摄: ~65°-80°
+        let cameraFovDeg = 60.0;
+        // 从水平 FOV 角度计算像素焦距 fx（fx=fy）
+        function focalFromFov(fovDeg) {
+            return (camWidth / 2) / Math.tan(fovDeg * Math.PI / 360);
+        }
+
+        // 实例滤波组 (3个平移分量，4个旋转四元数分量)
+        const kfX = new KalmanFilter1D();
+        const kfY = new KalmanFilter1D();
+        const kfZ = new KalmanFilter1D();
+        const kfQx = new KalmanFilter1D();
+        const kfQy = new KalmanFilter1D();
+        const kfQz = new KalmanFilter1D();
+        const kfQw = new KalmanFilter1D();
+
+        let lastTime = 0;
+
+        let currentPos = new THREE.Vector3();
+        let currentRot = new THREE.Quaternion();
+        let currentScl = new THREE.Vector3(1, 1, 1);
+
+        let targetPos = new THREE.Vector3();
+        let targetRot = new THREE.Quaternion();
+        let targetScl = new THREE.Vector3(1, 1, 1);
+
+        let isTargetRegistered = false;
+        let diagFrame = 0;
+        let diagTime = performance.now();
+
+        // MediaPipe Hands & Raycaster 相关
+        let hands;
+        let handsReady = false;
+        let indexFingerTip = null;
+        const raycaster = new THREE.Raycaster();
+        let isFingerTouching = false;
+
+        function recreateCylinderGeometry(radius) {
+            const physicalWidth = 0.12;
+            const physicalHeight = 0.15;
+            const thetaLength = physicalWidth / radius;
+
+            const geometry = new THREE.CylinderGeometry(
+                radius,
+                radius,
+                physicalHeight,
+                32,
+                1,
+                true,
+                -thetaLength / 2,   // ⚠️ 修正：圆弧中心必须在 theta=0 (+Z方向)，translate 后正好对齐 C++ 3D 模型原点
+                thetaLength
+            );
+
+            // 将圆柱体面平移，使其最前端位于 Z = 0（与 C++ 模型: Z=R*cos(theta)-R 完全对齐）
+            geometry.translate(0, 0, -radius);
+
+
+            if (videoPlane) {
+                videoPlane.geometry.dispose();
+                videoPlane.geometry = geometry;
+            }
+            if (targetMesh) {
+                targetMesh.geometry.dispose();
+                targetMesh.geometry = new THREE.EdgesGeometry(geometry);
+            }
+            return geometry;
+        }
+
+        function initThreeJS() {
+            const canvas = document.getElementById('render-canvas');
+            renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, alpha: true});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            scene = new THREE.Scene();
+
+            // 根据水平 FOV 计算 Three.js 所需的垂直 FOV
+            const hFovRad = cameraFovDeg * Math.PI / 180;
+            const vFovDeg = 2 * Math.atan(Math.tan(hFovRad / 2) * camHeight / camWidth) * (180 / Math.PI);
+            camera = new THREE.PerspectiveCamera(vFovDeg, window.innerWidth / window.innerHeight, 0.01, 10);
+
+            const videoElement = document.getElementById('webcam');
+            const bgTexture = new THREE.VideoTexture(videoElement);
+            scene.background = bgTexture;
+
+            const geometry = recreateCylinderGeometry(cylinderRadius);
+
+            videoTexture = new THREE.VideoTexture(arVideoElement);
+            videoTexture.minFilter = THREE.LinearFilter;
+            videoTexture.magFilter = THREE.LinearFilter;
+
+            const material = new THREE.MeshBasicMaterial({
+                map: videoTexture,
+                side: THREE.DoubleSide
+            });
+
+            videoPlane = new THREE.Mesh(geometry, material);
+            videoPlane.matrixAutoUpdate = false;
+            videoPlane.visible = false;
+            scene.add(videoPlane);
+
+            // 绿色边框辅助框
+            const edgeGeo = new THREE.EdgesGeometry(geometry);
+            const edgeMat = new THREE.LineBasicMaterial({color: 0x10b981, linewidth: 2});
+            targetMesh = new THREE.LineSegments(edgeGeo, edgeMat);
+            targetMesh.matrixAutoUpdate = false;
+            targetMesh.visible = false;
+            scene.add(targetMesh);
+
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
+        }
+
+        async function initCamera() {
+            videoElement = document.getElementById('webcam');
+            processCanvas = document.getElementById('processing-canvas');
+            processCanvas.width = camWidth;
+            processCanvas.height = camHeight;
+            processCtx = processCanvas.getContext('2d');
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: camWidth,
+                    height: camHeight,
+                    facingMode: 'environment'
+                },
+                audio: false
+            });
+            videoElement.srcObject = stream;
+            return new Promise((resolve) => {
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    resolve();
+                };
+            });
+        }
+
+        // 绘制调试特征点图
+        function drawDebugTemplate(img, w, h) {
+            console.log(`[可视化诊断] 开始绘制模板特征图，尺寸: ${w}x${h}`);
+            const canvas = document.getElementById('debug-template-canvas');
+            if (!canvas) return;
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            
+            // 1. 将图像绘制到画布上
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            // 2. 纯 JS 像素级灰度化，真实对齐 OpenCV 的 cvtColor(..., COLOR_RGBA2GRAY) 效果
+            try {
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                    data[i] = gray;     // R
+                    data[i + 1] = gray; // G
+                    data[i + 2] = gray; // B
+                }
+                ctx.putImageData(imgData, 0, 0);
+            } catch (e) {
+                console.error("[可视化诊断] 像素灰度化失败，降级使用 CSS 滤镜:", e);
+                ctx.filter = 'grayscale(100%)';
+                ctx.drawImage(img, 0, 0, w, h);
+                ctx.filter = 'none';
+            }
+
+            try {
+                const count = tracker.getTargetKeypointCount();
+                console.log(`[可视化诊断] 从 WASM 中读取的模板特征点数量: ${count}`);
+                document.getElementById('debug-target-kp').textContent = count;
+
+                const ptr = tracker.getTargetKeypointsPointer();
+                if (count > 0 && ptr !== 0) {
+                    const kps = new Float32Array(wasmModule.HEAPU8.buffer, ptr, count * 4);
+
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.7)';
+                    ctx.lineWidth = 1.5;
+                    for (let i = 0; i < count; i++) {
+                        const x = kps[i * 4];
+                        const y = kps[i * 4 + 1];
+                        const size = kps[i * 4 + 2];
+                        const angle = kps[i * 4 + 3];
+
+                        // 绘制特征中心点
+                        ctx.fillStyle = '#00ff00';
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
+                        ctx.fill();
+
+                        // 绘制特征尺度圆
+                        ctx.beginPath();
+                        ctx.arc(x, y, size / 2.0, 0, 2 * Math.PI);
+                        ctx.stroke();
+
+                        // 绘制特征方向指示连线 (若 angle >= 0)
+                        if (angle >= 0) {
+                            const angleRad = angle * Math.PI / 180.0;
+                            const targetX = x + (size / 2.0) * Math.cos(angleRad);
+                            const targetY = y + (size / 2.0) * Math.sin(angleRad);
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.lineTo(targetX, targetY);
+                            ctx.stroke();
+                        }
+                    }
+                } else {
+                    console.warn(`[可视化诊断] 特征点数 (${count}) <= 0 或指针 ptr (${ptr}) 为空！`);
+                }
+            } catch (e) {
+                console.error("绘制特征点图出错:", e);
+            }
+        }
+
+        // 核心：无拷贝直写并在 Wasm 侧提取注册特征点
+        function processAndRegister(img) {
+            try {
+                let w = img.naturalWidth;
+                let h = img.naturalHeight;
+
+                if (w === 0 || h === 0) {
+                    updateStatus("red", "⚠️ 载入图像尺寸异常！");
+                    return;
+                }
+
+                // 工业级自适应下采样 (最大尺寸控制在 800px 以免 Wasm 算力过载)
+                const MAX_DIM = 800;
+                if (w > MAX_DIM || h > MAX_DIM) {
+                    if (w > h) {
+                        h = Math.round((h * MAX_DIM) / w);
+                        w = MAX_DIM;
+                    } else {
+                        w = Math.round((w * MAX_DIM) / h);
+                        h = MAX_DIM;
+                    }
+                    console.log(`[自适应降采样激活] 特征模板尺寸缩放至: ${w}x${h}`);
+                }
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w;
+                tempCanvas.height = h;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0, w, h);
+                const imgData = tempCtx.getImageData(0, 0, w, h);
+
+                // 直接在 WASM 堆分配共享内存，零拷贝推送
+                const tempPtr = wasmModule._malloc(imgData.data.length);
+                wasmModule.HEAPU8.set(imgData.data, tempPtr);
+
+                // 物理尺寸设定：宽 12cm，高 15cm
+                const success = tracker.initTarget(tempPtr, w, h, 0.12, 0.15);
+                wasmModule._free(tempPtr);
+
+                if (success) {
+                    updateStatus("#10b981", "已成功注册模版！请将镜头对准图案");
+                    isTargetRegistered = true;
+                    document.getElementById('scan-frame').style.borderColor = "#10b981";
+                    drawDebugTemplate(img, w, h);
+                } else {
+                    updateStatus("red", "模版注册失败：该图像纹理特征过少！");
+                }
+            } catch (err) {
+                console.error("注册特征点失败:", err);
+                updateStatus("red", "注册特征点失败: " + err.message);
+            }
+        }
+
+        // 异步加载默认的农夫山泉模版
+        function loadDefaultLabel() {
+            if (window.location.protocol === 'file:') {
+                updateStatus("red", "⚠️ 浏览器安全限制：直接双击打开 HTML 文件无法读取本地图片像素。请使用本地服务器运行（如已运行的 http://127.0.0.1:5500/webar-poc/tracker_orb.html），或在下方手动上传任意图片进行识别。");
+                console.warn("本地文件协议限制 canvas.getImageData 读取，模板特征点将保持为0");
+                return;
+            }
+            updateStatus("orange", "正在异步拉取默认 农夫山泉 模版...");
+            const defaultUrl = "resources/nongfushanquan.jpg?t=" + new Date().getTime(); // 🌟 加上时间戳防止缓存与同源不触发 onload
+
+            const img = new Image(); // 🌟 每次新建 Image 对象，防止 DOM 复用状态污染与事件丢失
+            img.onload = () => {
+                processAndRegister(img);
+            };
+            img.onerror = (err) => {
+                updateStatus("red", "默认模版加载失败，请通过按钮手动上传");
+                console.error("默认模版加载失败:", err);
+            };
+            img.src = defaultUrl;
+        }
+
+        function registerWineLabel(imageSrc) {
+            updateStatus("orange", "正在提取自定义酒标特征点...");
+            const img = new Image(); // 🌟 每次新建 Image 对象，防止复用污染
+            img.onload = () => {
+                processAndRegister(img);
+            };
+            img.onerror = (err) => {
+                updateStatus("red", "自定义模版加载失败，请重新上传");
+                console.error("自定义模板加载失败:", err);
+            };
+            img.src = imageSrc;
+        }
+
+        function updateStatus(color, text) {
+            const dot = document.getElementById('status-dot');
+            dot.style.background = color;
+            dot.style.boxShadow = `0 0 8px ${color}`;
+            document.getElementById('status-text').innerHTML = text;
+        }
+
+        let cameraInitialized = false;
+        let wasmInitialized = false;
+
+        function tryStartTracking() {
+            if (cameraInitialized && wasmInitialized) {
+                console.log("[初始化] 相机与 WASM 模块均已就绪，启动渲染与追踪循环");
+                tick();
+            }
+        }
+
+        function bindUIEvents() {
+            // ── 相机视角 FOV 校准滑块（最影响贴合精度的参数）──
+            const fovSlider  = document.getElementById('fov-slider');
+            const fovValText = document.getElementById('fov-val');
+            fovSlider.addEventListener('input', (e) => {
+                cameraFovDeg = parseFloat(e.target.value);
+                fovValText.textContent = `${cameraFovDeg}°`;
+                // 1. 更新 C++ 追踪器内的相机内参
+                if (tracker) {
+                    tracker.setCameraFOV(cameraFovDeg, camWidth, camHeight);
+                }
+                // 2. 同步更新 Three.js 虚拟相机垂直 FOV
+                if (camera) {
+                    const hFovRad = cameraFovDeg * Math.PI / 180;
+                    const vFovDeg = 2 * Math.atan(Math.tan(hFovRad / 2) * camHeight / camWidth) * (180 / Math.PI);
+                    camera.fov = vFovDeg;
+                    camera.updateProjectionMatrix();
+                }
+                console.log(`[FOV更新] 水平FOV=${cameraFovDeg}°, 焦距f=${focalFromFov(cameraFovDeg).toFixed(1)}px`);
+            });
+
+            const radiusSlider = document.getElementById('radius-slider');
+            const radiusValText = document.getElementById('radius-val');
+            radiusSlider.addEventListener('input', (e) => {
+                cylinderRadius = parseFloat(e.target.value);
+                radiusValText.textContent = `${(cylinderRadius * 100).toFixed(1)} cm`;
+                if (tracker) {
+                    tracker.setCylinderRadius(cylinderRadius);
+                }
+                recreateCylinderGeometry(cylinderRadius);
+            });
+
+
+            const qSlider = document.getElementById('kalman-q-slider');
+            const qValText = document.getElementById('kalman-q-val');
+            qSlider.addEventListener('input', (e) => {
+                kalmanQ = parseFloat(e.target.value);
+                qValText.textContent = kalmanQ.toFixed(3);
+            });
+
+            const rSlider = document.getElementById('kalman-r-slider');
+            const rValText = document.getElementById('kalman-r-val');
+            rSlider.addEventListener('input', (e) => {
+                kalmanR = parseFloat(e.target.value);
+                rValText.textContent = kalmanR.toFixed(2);
+            });
+
+            const hammingSlider = document.getElementById('hamming-slider');
+            const hammingValText = document.getElementById('hamming-val');
+            hammingSlider.addEventListener('input', (e) => {
+                const threshold = parseFloat(e.target.value);
+                hammingValText.textContent = threshold;
+                if (tracker) {
+                    tracker.setHammingThreshold(threshold);
+                }
+            });
+
+            const ratioSlider = document.getElementById('ratio-slider');
+            const ratioValText = document.getElementById('ratio-val');
+            ratioSlider.addEventListener('input', (e) => {
+                const threshold = parseFloat(e.target.value);
+                ratioValText.textContent = threshold.toFixed(2);
+                if (tracker) {
+                    tracker.setRatioThreshold(threshold);
+                }
+            });
+
+            const mirrorInputCheckbox = document.getElementById('mirror-input-checkbox');
+            mirrorInputCheckbox.addEventListener('change', (e) => {
+                mirrorInput = e.target.checked;
+                console.log(`[设置更新] 镜像输入画面: ${mirrorInput}`);
+            });
+
+            const cssMirrorCheckbox = document.getElementById('css-mirror-checkbox');
+            cssMirrorCheckbox.addEventListener('change', (e) => {
+                const canvasEl = document.getElementById('render-canvas');
+                if (canvasEl) {
+                    if (e.target.checked) {
+                        canvasEl.style.transform = 'scaleX(-1)';
+                    } else {
+                        canvasEl.style.transform = 'none';
+                    }
+                }
+            });
+
+            document.getElementById('target-img').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => registerWineLabel(event.target.result);
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            document.getElementById('ar-video').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    arVideoElement.src = url;
+                    arVideoElement.load();
+                    arVideoElement.play().catch(e => console.log("等待交互触发播放"));
+                }
+            });
+        }
+
+        async function startCameraFlow() {
+            console.log("[初始化] 开始启动摄像头与 Three.js 流程...");
+            try {
+                await initCamera();
+                initThreeJS();
+                cameraInitialized = true;
+                console.log("[初始化] 摄像头与 Three.js 准备就绪");
+                
+                try {
+                    initMediaPipe();
+                } catch (err) {
+                    console.warn("MediaPipe Hands 载入失败，手势交互可能受限：", err);
+                }
+
+                tryStartTracking();
+            } catch (err) {
+                updateStatus("red", "相机启动失败，请检查浏览器权限。您仍可上传自定义图查看特征点。");
+                console.error("相机启动失败:", err);
+            }
+        }
+
+        function startWasmFlow() {
+            console.log("[初始化] 开始装载自研 C++ 特征解算层 (WASM)...");
+            Module().then((module) => {
+                wasmModule = module;
+
+                // 使用 FOV 角度计算焦距，比硬编码 camWidth*1.2 更接近真实摄像头
+                const f  = focalFromFov(cameraFovDeg);
+                const cx = camWidth  / 2;
+                const cy = camHeight / 2;
+                console.log(`[初始化] 相机焦距 f=${f.toFixed(1)}px (FOV=${cameraFovDeg}°)`);
+
+                tracker = new wasmModule.ARTracker(camWidth, camHeight, f, f, cx, cy);
+                tracker.setCylinderRadius(cylinderRadius);
+                pixelBufferPtr = tracker.getBufferPointer();
+
+                bindUIEvents();
+
+                wasmInitialized = true;
+                console.log("[初始化] WASM 模块与 ARTracker 准备就绪");
+
+                loadDefaultLabel();
+
+                tryStartTracking();
+            }).catch((err) => {
+                console.error("WASM 模块初始化失败：", err);
+                updateStatus("red", "WASM 加载崩溃，请检查编译产物或网络！");
+            });
+        }
+
+        window.onload = () => {
+            startCameraFlow();
+            startWasmFlow();
+        };
+
+        let isHandsProcessing = false;
+        function initMediaPipe() {
+            hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults((results) => {
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmark = results.multiHandLandmarks[0][8]; // index finger tip
+                    indexFingerTip = {
+                        x: landmark.x,
+                        y: landmark.y
+                    };
+                } else {
+                    indexFingerTip = null;
+                }
+            });
+
+            handsReady = true;
+        }
+
+        function tick() {
+            if (mirrorInput) {
+                // 水平翻转绘制到中转 canvas，实现图像反转后给 C++ tracker 识别
+                processCtx.save();
+                processCtx.translate(camWidth, 0);
+                processCtx.scale(-1, 1);
+                processCtx.drawImage(videoElement, 0, 0, camWidth, camHeight);
+                processCtx.restore();
+            } else {
+                processCtx.drawImage(videoElement, 0, 0, camWidth, camHeight);
+            }
+            const imgData = processCtx.getImageData(0, 0, camWidth, camHeight);
+            wasmModule.HEAPU8.set(imgData.data, pixelBufferPtr);
+
+            // 异步触发 MediaPipe Hands 进行手势计算
+            if (handsReady && !isHandsProcessing) {
+                isHandsProcessing = true;
+                hands.send({ image: videoElement }).then(() => {
+                    isHandsProcessing = false;
+                }).catch(e => {
+                    isHandsProcessing = false;
+                });
+            }
+
+            // 计算时间间隔 dt
+            const nowSec = performance.now() / 1000.0;
+            let dt = lastTime > 0 ? (nowSec - lastTime) : 0.016;
+            if (dt > 0.1) dt = 0.1; // 阈值拦截，防止后台切换回来后跳变
+            lastTime = nowSec;
+
+            if (isTargetRegistered) {
+                let pose = null;
+                try {
+                    pose = tracker.update();
+                    if (pose) {
+                        const matchesCount = pose.matchesCount;
+                        const inliersCount = pose.inliersCount;
+                        const ratio = matchesCount > 0 ? Math.round((inliersCount / matchesCount) * 100) : 0;
+                        
+                        document.getElementById('debug-matches').textContent = matchesCount;
+                        document.getElementById('debug-inliers').textContent = inliersCount;
+                        document.getElementById('debug-ratio').textContent = `${ratio}%`;
+                    }
+                    // 每 2 秒输出追踪诊断
+                    diagFrame++;
+                    const now = performance.now();
+                    if (now - diagTime > 2000) {
+                        const fps = Math.round(diagFrame / (now - diagTime) * 1000);
+                        console.log(`[追踪诊断] FPS:${fps} 追踪中:${pose && pose.isTracking} 匹配:${pose ? pose.matchesCount : 0} 内点:${pose ? pose.inliersCount : 0}`);
+                        diagFrame = 0;
+                        diagTime = now;
+                    }
+                } catch(e) {
+                    console.warn("WASM update 异常，跳过本帧：", e.message || e);
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(tick);
+                    return;
+                }
+
+                if (pose && pose.isTracking) {
+                    updateStatus("#10b981", "AR 同步中 (已锁定瓶贴)");
+                    document.getElementById('scan-frame').style.opacity = "0";
+
+                    const matrixValues = [];
+                    for (let i = 0; i < 16; i++) {
+                        matrixValues.push(pose.transformMatrix[i]);
+                    }
+
+                    const rawMatrix = new THREE.Matrix4();
+                    rawMatrix.fromArray(matrixValues);
+
+                    // 解构为独立的几何属性
+                    rawMatrix.decompose(targetPos, targetRot, targetScl);
+
+                    // 卡尔曼滤波平滑
+                    if (!videoPlane.visible) {
+                        // 首次捕获追踪，直接重置滤波器状态，避免启动惯性拖尾
+                        kfX.reset(targetPos.x);
+                        kfY.reset(targetPos.y);
+                        kfZ.reset(targetPos.z);
+                        kfQx.reset(targetRot.x);
+                        kfQy.reset(targetRot.y);
+                        kfQz.reset(targetRot.z);
+                        kfQw.reset(targetRot.w);
+
+                        currentPos.copy(targetPos);
+                        currentRot.copy(targetRot);
+                        currentScl.copy(targetScl);
+                    } else {
+                        // 状态预测
+                        kfX.predict(dt, kalmanQ);
+                        kfY.predict(dt, kalmanQ);
+                        kfZ.predict(dt, kalmanQ);
+                        kfQx.predict(dt, kalmanQ);
+                        kfQy.predict(dt, kalmanQ);
+                        kfQz.predict(dt, kalmanQ);
+                        kfQw.predict(dt, kalmanQ);
+
+                        // 旋转四元数符号对齐 (Sign Alignment)，防止四元数插值出现 180 度翻转闪烁
+                        let dot = kfQx.x * targetRot.x + kfQy.x * targetRot.y + kfQz.x * targetRot.z + kfQw.x * targetRot.w;
+                        if (dot < 0) {
+                            targetRot.x = -targetRot.x;
+                            targetRot.y = -targetRot.y;
+                            targetRot.z = -targetRot.z;
+                            targetRot.w = -targetRot.w;
+                        }
+
+                        // 滤波更新
+                        currentPos.x = kfX.update(targetPos.x, kalmanR);
+                        currentPos.y = kfY.update(targetPos.y, kalmanR);
+                        currentPos.z = kfZ.update(targetPos.z, kalmanR);
+
+                        currentRot.x = kfQx.update(targetRot.x, kalmanR);
+                        currentRot.y = kfQy.update(targetRot.y, kalmanR);
+                        currentRot.z = kfQz.update(targetRot.z, kalmanR);
+                        currentRot.w = kfQw.update(targetRot.w, kalmanR);
+                        currentRot.normalize();
+
+                        // 缩放直接赋值
+                        currentScl.copy(targetScl);
+                    }
+
+                    const smoothedMatrix = new THREE.Matrix4();
+                    smoothedMatrix.compose(currentPos, currentRot, currentScl);
+
+                    videoPlane.matrix.copy(smoothedMatrix);
+                    videoPlane.matrixWorldNeedsUpdate = true;
+                    videoPlane.visible = true;
+
+                    targetMesh.matrix.copy(smoothedMatrix);
+                    targetMesh.matrixWorldNeedsUpdate = true;
+                    targetMesh.visible = true;
+
+                    if (arVideoElement.paused && !isFingerTouching) {
+                        // 只有在非手指暂停状态下，检测到追踪才自动播放
+                        arVideoElement.play().catch(e => console.log("等待手势激活音频通道"));
+                    }
+                } else {
+                    updateStatus("orange", "未检测到模板，请将镜头对准图案");
+                    document.getElementById('scan-frame').style.opacity = "1";
+
+                    videoPlane.visible = false;
+                    targetMesh.visible = false;
+
+                    // 重置卡尔曼滤波器的初始化状态，便于下次重新捕获
+                    kfX.isInitialized = false;
+                    kfY.isInitialized = false;
+                    kfZ.isInitialized = false;
+                    kfQx.isInitialized = false;
+                    kfQy.isInitialized = false;
+                    kfQz.isInitialized = false;
+                    kfQw.isInitialized = false;
+
+                    if (!arVideoElement.paused) {
+                        arVideoElement.pause();
+                    }
+                }
+            }
+
+            // 射线碰撞手势判断 (Raycaster)
+            if (videoPlane.visible && indexFingerTip) {
+                // MediaPipe 坐标 (0~1) 映射到 Three.js NDC 坐标 (-1 ~ 1)
+                const ndc = new THREE.Vector2(
+                    indexFingerTip.x * 2 - 1,
+                    1 - indexFingerTip.y * 2
+                );
+
+                raycaster.setFromCamera(ndc, camera);
+                const intersects = raycaster.intersectObject(videoPlane);
+
+                if (intersects.length > 0) {
+                    if (!isFingerTouching) {
+                        isFingerTouching = true;
+                        // 触发：切换播放/暂停
+                        if (arVideoElement.paused) {
+                            arVideoElement.play().catch(e => console.error("视频播放失败:", e));
+                        } else {
+                            arVideoElement.pause();
+                        }
+                    }
+                    const touchDot = document.getElementById('finger-status-dot');
+                    const touchText = document.getElementById('finger-status-text');
+                    touchDot.style.background = "#10b981";
+                    touchDot.style.boxShadow = "0 0 8px #10b981";
+                    touchText.textContent = "指尖已触摸酒标 (触发播放/暂停)";
+                } else {
+                    isFingerTouching = false;
+                    const touchDot = document.getElementById('finger-status-dot');
+                    const touchText = document.getElementById('finger-status-text');
+                    touchDot.style.background = "#94a3b8";
+                    touchDot.style.boxShadow = "0 0 6px #94a3b8";
+                    touchText.textContent = "指尖未触摸酒标";
+                }
+            } else {
+                isFingerTouching = false;
+                const touchDot = document.getElementById('finger-status-dot');
+                const touchText = document.getElementById('finger-status-text');
+                touchDot.style.background = "#94a3b8";
+                touchDot.style.boxShadow = "0 0 6px #94a3b8";
+                touchText.textContent = "指尖未触摸酒标";
+            }
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(tick);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>

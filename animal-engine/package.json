@@ -1,0 +1,22 @@
+{
+  "name": "animal-engine",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:mp-weixin": "set UNI_INPUT_DIR=.&& uni -p mp-weixin",
+    "build:mp-weixin": "set UNI_INPUT_DIR=.&& uni build -p mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-5000720260410001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-5000720260410001",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.28",
+    "@dcloudio/vite-plugin-uni": "3.0.0-5000720260410001",
+    "@vue/compiler-sfc": "3.4.21",
+    "sass": "^1.77.8",
+    "vite": "5.2.8"
+  },
+  "packageManager": "pnpm@10.33.1+sha512.05ba3c1d5d1c18f68df06470d74055e62d41fc110a0c660db1b2dfb2785327f04cf0f68345d4609bc52089e7fa0343c31593b2f9594e2c5d5da426230acc9820"
+}

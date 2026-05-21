@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WebAR Curved Label Tracking & Calibration</title>
+    <!-- Import Google Font Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f1016;
+            --primary: #00f2fe;
+            --primary-glow: rgba(0, 242, 254, 0.4);
+            --secondary: #4facfe;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(15, 23, 42, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border-focus: rgba(0, 242, 254, 0.3);
+            --success: #2ecc71;
+            --warning: #f1c40f;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text);
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Container for AR/Three.js Renderer */
+        #container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphic UI Overlays */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            color: var(--text);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Top Bar Info */
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .status-badge.scanning {
+            color: var(--warning);
+            border-color: rgba(241, 196, 15, 0.3);
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.15);
+        }
+
+        .status-badge.detected {
+            color: var(--success);
+            border-color: rgba(46, 204, 113, 0.3);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.15);
+        }
+
+        .status-badge.preview {
+            color: var(--primary);
+            border-color: rgba(0, 242, 254, 0.3);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: currentColor;
+            display: inline-block;
+        }
+
+        /* Mode Switcher Tabs */
+        .tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            font-weight: 600;
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        /* Control Panel (Calibration) */
+        #control-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #control-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        #control-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+            margin-bottom: 4px;
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 6px 0;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255,255,255,0.02);
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .slider-val {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--primary-glow);
+            transition: transform 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Action Buttons */
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* Start / Launch Overlay */
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .logo-container {
+            position: relative;
+            margin-bottom: 30px;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.1);
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        .logo-icon {
+            font-size: 4rem;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.2rem;
+            margin: 0 0 12px 0;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overlay-desc {
+            font-size: 1rem;
+            color: var(--text-muted);
+            max-width: 400px;
+            margin: 0 0 35px 0;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 242, 254, 0.1); }
+            50% { transform: scale(1.05); box-shadow: 0 0 45px rgba(0, 242, 254, 0.25); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 242, 254, 0.1); }
+        }
+
+        /* Hide logic */
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+
+        /* Responsive layout */
+        @media(max-width: 600px) {
+            #control-panel {
+                width: 90%;
+                left: 5%;
+                right: 5%;
+                bottom: 15px;
+                max-height: 50vh;
+            }
+            #top-bar {
+                top: 15px;
+            }
+        }
+    </style>
+
+    <!-- Import Importmap for ES Modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "./libs/three.module.js",
+        "three/addons/controls/OrbitControls.js": "./libs/OrbitControls.js",
+        "three/addons/renderers/CSS3DRenderer.js": "./libs/CSS3DRenderer.js",
+        "mindar-image-three": "./libs/mindar-image-three.prod.js"
+      }
+    }
+    </script>
+</head>
+<body>
+
+    <!-- Start Overlay Screen -->
+    <div id="start-overlay">
+        <div class="logo-container">
+            <span class="logo-icon">🍾</span>
+        </div>
+        <h1>Curved WebAR Tracker</h1>
+        <p class="overlay-desc">Experience augmented reality on wine bottles and cylindrical surfaces. Scan your bottle label to play video content.</p>
+        <button id="btn-start" class="btn btn-primary" style="font-size: 1.1rem; padding: 14px 32px; border-radius: 12px;">Launch WebAR</button>
+    </div>
+
+    <!-- Container for the renderer -->
+    <div id="container"></div>
+
+    <!-- Top Status Bar -->
+    <div id="top-bar" class="glass-panel">
+        <div class="status-badge scanning" id="status-badge">
+            <span class="status-dot"></span>
+            <span id="status-text">INITIALIZING</span>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-ar" onclick="switchMode('AR')">🎥 Live AR</button>
+            <button class="tab-btn" id="tab-preview" onclick="switchMode('PREVIEW')">🍾 3D Preview</button>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div id="control-panel" class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title">⚙️ Calibration Panel</span>
+            <button class="btn" style="padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;" onclick="resetCalibration()">Reset</button>
+        </div>
+
+        <!-- Curvature Settings -->
+        <div>
+            <div class="section-title">Curvature (Bottle Size)</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Upper Radius</span>
+                    <span class="slider-val" id="val-radiusTop">1.20</span>
+                </div>
+                <input type="range" id="radiusTop" min="0.1" max="4.0" step="0.05" value="1.2">
+                
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Lower Radius</span>
+                    <span class="slider-val" id="val-radiusBottom">1.20</span>
+                </div>
+                <input type="range" id="radiusBottom" min="0.1" max="4.0" step="0.05" value="1.2">
+                
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Cylinder Height</span>
+                    <span class="slider-val" id="val-height">1.80</span>
+                </div>
+                <input type="range" id="height" min="0.1" max="5.0" step="0.05" value="1.8">
+            </div>
+        </div>
+
+        <!-- Align Offsets -->
+        <div>
+            <div class="section-title">Align Offsets (Position)</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Offset X (Left/Right)</span>
+                    <span class="slider-val" id="val-offsetX">0.00</span>
+                </div>
+                <input type="range" id="offsetX" min="-2.0" max="2.0" step="0.02" value="0.0">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Offset Y (Up/Down)</span>
+                    <span class="slider-val" id="val-offsetY">0.00</span>
+                </div>
+                <input type="range" id="offsetY" min="-2.0" max="2.0" step="0.02" value="0.0">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Offset Z (Depth)</span>
+                    <span class="slider-val" id="val-offsetZ">0.00</span>
+                </div>
+                <input type="range" id="offsetZ" min="-2.0" max="2.0" step="0.02" value="0.0">
+            </div>
+        </div>
+
+        <!-- Rotation Adjustments -->
+        <div>
+            <div class="section-title">Rotation Adjustments</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Tilt X (Pitch)</span>
+                    <span class="slider-val" id="val-rotX">0°</span>
+                </div>
+                <input type="range" id="rotX" min="-180" max="180" step="1" value="0">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Yaw Y (Spin)</span>
+                    <span class="slider-val" id="val-rotY">0°</span>
+                </div>
+                <input type="range" id="rotY" min="-180" max="180" step="1" value="0">
+
+                <div class="slider-label" style="margin-top: 10px;">
+                    <span>Roll Z (Twist)</span>
+                    <span class="slider-val" id="val-rotZ">0°</span>
+                </div>
+                <input type="range" id="rotZ" min="-180" max="180" step="1" value="0">
+            </div>
+        </div>
+
+        <!-- Wrap Parameters -->
+        <div>
+            <div class="section-title">Wrap Coverage</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Arc Angle (Span)</span>
+                    <span class="slider-val" id="val-thetaLength">180°</span>
+                </div>
+                <input type="range" id="thetaLength" min="30" max="360" step="5" value="180">
+            </div>
+        </div>
+
+        <!-- Tracking Response Settings -->
+        <div>
+            <div class="section-title">Tracking Response</div>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Responsiveness</span>
+                    <span class="slider-val" id="val-lerpFactor">0.15</span>
+                </div>
+                <input type="range" id="lerpFactor" min="0.02" max="1.0" step="0.02" value="0.15">
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.2;">
+                    Higher = instant lock onto bottle (no lag, potential jitter). Lower = smoother tracking (more lag). Use 1.0 for zero-lag lock.
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Sound Control -->
+        <div style="margin-top: 5px;">
+            <button class="btn btn-primary" id="btn-mute" style="width: 100%;" onclick="toggleMute()">
+                🔊 Unmute Video Audio
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { MindARThree } from 'mindar-image-three';
+
+        // Default calibration configuration (optimized for standard Nongfu Spring bottle & cropped target)
+        const defaultConfig = {
+            radiusTop: 0.80,
+            radiusBottom: 0.80,
+            height: 1.33,
+            offsetX: 0.00,
+            offsetY: 0.00,
+            offsetZ: 0.05,
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0,
+            thetaLength: 73,
+            lerpFactor: 0.15
+        };
+
+        let config = { ...defaultConfig };
+        let currentMode = 'AR'; // 'AR' or 'PREVIEW'
+        let mindarThree = null;
+        let renderer, scene, camera, previewCamera;
+        let orbitControls = null;
+        
+        // Scene meshes
+        let arAnchor = null;
+        let videoMesh = null;
+        let virtualBottleMesh = null;
+        let smoothedGroup = null;
+        
+        // Video elements
+        let videoElement = null;
+        let videoTexture = null;
+
+        // Label guide elements
+        let labelTexture = null;
+        let virtualLabelMesh = null;
+
+        // Load config from localStorage
+        function loadConfig() {
+            const saved = localStorage.getItem('webar_curved_calibration');
+            if (saved) {
+                try {
+                    config = JSON.parse(saved);
+                    let isUpdated = false;
+                    // Sync config back with defaults if keys are missing
+                    for (let key in defaultConfig) {
+                        if (config[key] === undefined) {
+                            config[key] = defaultConfig[key];
+                            isUpdated = true;
+                        }
+                    }
+                    // Auto-migrate if loading old flat cylinder calibration from past sessions
+                    if (config.radiusTop === 1.20 && config.radiusBottom === 1.20 && config.thetaLength === 180) {
+                        console.log("Detected old default calibration. Migrating to new curved defaults.");
+                        config = { ...defaultConfig };
+                        isUpdated = true;
+                    }
+                    if (isUpdated) {
+                        saveConfig();
+                    }
+                } catch(e) {
+                    console.error('Failed to parse saved config, using defaults');
+                    config = { ...defaultConfig };
+                }
+            }
+            updateSlidersUI();
+        }
+
+        // Save config to localStorage
+        function saveConfig() {
+            localStorage.setItem('webar_curved_calibration', JSON.stringify(config));
+        }
+
+        // Sync slider inputs with configuration values
+        function updateSlidersUI() {
+            for (let key in config) {
+                const slider = document.getElementById(key);
+                if (slider) {
+                    slider.value = config[key];
+                    const valEl = document.getElementById(`val-${key}`);
+                    if (valEl) {
+                        valEl.innerText = (key.startsWith('rot') || key.startsWith('theta')) 
+                            ? `${config[key]}°` 
+                            : parseFloat(config[key]).toFixed(2);
+                    }
+                }
+            }
+        }
+
+        // Reset calibration
+        function resetCalibration() {
+            config = { ...defaultConfig };
+            saveConfig();
+            updateSlidersUI();
+            rebuildCylinderMesh();
+        }
+
+        // Video control
+        function initVideo() {
+            videoElement = document.createElement('video');
+            videoElement.src = 'assets/attach.mp4';
+            videoElement.loop = true;
+            videoElement.muted = true; // Required to autoplay in browsers
+            videoElement.playsInline = true;
+            videoElement.setAttribute('webkit-playsinline', 'true');
+            videoElement.setAttribute('crossorigin', 'anonymous');
+            videoElement.load();
+
+            videoTexture = new THREE.VideoTexture(videoElement);
+            videoTexture.minFilter = THREE.LinearFilter;
+            videoTexture.magFilter = THREE.LinearFilter;
+            videoTexture.format = THREE.RGBAFormat;
+
+            // Load label texture for preview guide
+            const loader = new THREE.TextureLoader();
+            labelTexture = loader.load('assets/mark.jpg', (texture) => {
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                console.log('Label guide texture loaded successfully');
+            }, undefined, (err) => {
+                console.error('Failed to load label guide texture:', err);
+            });
+        }
+
+        function toggleMute() {
+            if (!videoElement) return;
+            videoElement.muted = !videoElement.muted;
+            const btn = document.getElementById('btn-mute');
+            if (videoElement.muted) {
+                btn.innerHTML = '🔊 Unmute Video Audio';
+                btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                btn.style.color = 'var(--text)';
+            } else {
+                btn.innerHTML = '🔇 Mute Video Audio';
+                btn.style.background = 'linear-gradient(135deg, var(--success), #27ae60)';
+                btn.style.color = '#fff';
+            }
+        }
+
+        // Create the Cylinder Mesh which renders the video
+        function createCylinderMesh() {
+            // Auto-center the video segment at 0 degrees (facing the camera +Z in Three.js CylinderGeometry)
+            // relative to the cylinder's center, so that the center of the video segment
+            // lies exactly on the front face of the bottle.
+            const thetaStartVal = 360 - config.thetaLength / 2;
+            const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
+            const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
+
+            const geometry = new THREE.CylinderGeometry(
+                config.radiusTop,
+                config.radiusBottom,
+                config.height,
+                64, // radialSegments for smoothness
+                1,  // heightSegments
+                true, // openEnded (no top and bottom caps)
+                tStartRad,
+                tLengthRad
+            );
+
+            // Using double sided so we don't accidentally clip it if face normals are flipped
+            const material = new THREE.MeshBasicMaterial({
+                map: videoTexture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.0 // Start at 0, will fade in when target is detected
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Adjust position
+            // Center of cylinder is set to offsetZ minus the radius to align the front edge at Z = 0
+            const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
+            mesh.position.set(
+                parseFloat(config.offsetX),
+                parseFloat(config.offsetY),
+                parseFloat(config.offsetZ) - avgRadius
+            );
+
+            // Adjust rotation
+            mesh.rotation.set(
+                THREE.MathUtils.degToRad(config.rotX),
+                THREE.MathUtils.degToRad(config.rotY),
+                THREE.MathUtils.degToRad(config.rotZ)
+            );
+
+            return mesh;
+        }
+
+        function rebuildCylinderMesh() {
+            if (!videoTexture) return;
+
+            // Remove old mesh from parent (anchor or scene)
+            let parent = null;
+            if (videoMesh) {
+                parent = videoMesh.parent;
+                parent.remove(videoMesh);
+            }
+
+            // Create new mesh
+            videoMesh = createCylinderMesh();
+
+            // Re-add to parent
+            if (parent) {
+                parent.add(videoMesh);
+            }
+        }
+
+        // Initialize WebAR / Three.js
+        async function initAR() {
+            const container = document.getElementById('container');
+            
+            // 1. Initialize MindARThree with optimized smoothing parameters
+            mindarThree = new MindARThree({
+                container: container,
+                imageTargetSrc: 'assets/targets.mind',
+                filterMinCF: 0.0001, // Lower cutoff frequency to reduce static jitter
+                filterBeta: 0.005,    // Reduce speed coefficient to make movement smoother
+                missTolerance: 15,    // Prevent flickering when target is briefly lost
+                warmupTolerance: 5    // Confirm lock before showing
+            });
+
+            // Extract Three.js elements
+            renderer = mindarThree.renderer;
+            scene = mindarThree.scene;
+            camera = mindarThree.camera;
+
+            // Setup preview camera for 3D Preview Mode (separate perspective)
+            previewCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            previewCamera.position.set(0, 0, 8);
+
+            // Add lighting for virtual bottle in preview mode
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            // 2. Set up video and mesh
+            initVideo();
+            videoMesh = createCylinderMesh();
+
+            // Create a smoothed group that we will interpolate in the render loop
+            smoothedGroup = new THREE.Group();
+            smoothedGroup.visible = false;
+            smoothedGroup.add(videoMesh);
+            scene.add(smoothedGroup);
+
+            // 3. Create AR Anchor group (index 0 corresponds to the single mark image)
+            arAnchor = mindarThree.addAnchor(0);
+
+            // 4. Hook up Target found/lost events
+            const statusText = document.getElementById('status-text');
+            const statusBadge = document.getElementById('status-badge');
+
+            arAnchor.onTargetFound = () => {
+                if (currentMode !== 'AR') return;
+                console.log('Target Label Found!');
+                statusText.innerText = 'TARGET DETECTED';
+                statusBadge.className = 'status-badge detected';
+                videoElement.play().catch(err => console.log('Autoplay error:', err));
+            };
+
+            arAnchor.onTargetLost = () => {
+                if (currentMode !== 'AR') return;
+                console.log('Target Label Lost!');
+                statusText.innerText = 'SCANNING LABEL';
+                statusBadge.className = 'status-badge scanning';
+                videoElement.pause();
+            };
+
+            // Setup OrbitControls for preview mode
+            orbitControls = new OrbitControls(previewCamera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.05;
+            orbitControls.enabled = false; // Disabled by default in AR mode
+
+            // Rebuild mesh when window sizes change
+            window.addEventListener('resize', () => {
+                previewCamera.aspect = window.innerWidth / window.innerHeight;
+                previewCamera.updateProjectionMatrix();
+                // MindAR handles the main camera aspect ratio internally on resize
+            });
+
+            // Start the AR tracking
+            await mindarThree.start();
+            
+            // Set status
+            statusText.innerText = 'SCANNING LABEL';
+            statusBadge.className = 'status-badge scanning';
+
+            let isFirstTrackingFrame = true;
+
+            // Temp variables for matrix decomposition
+            const tempPos = new THREE.Vector3();
+            const tempQuat = new THREE.Quaternion();
+            const tempScale = new THREE.Vector3();
+
+            // Start animation loop
+            renderer.setAnimationLoop(() => {
+                if (currentMode === 'AR') {
+                    if (arAnchor && arAnchor.group.visible) {
+                        // Decompose the tracking matrix to get world position/rotation/scale
+                        arAnchor.group.matrix.decompose(tempPos, tempQuat, tempScale);
+
+                        if (isFirstTrackingFrame) {
+                            // Snap immediately on the very first frame to avoid visible sliding/floating lag
+                            smoothedGroup.position.copy(tempPos);
+                            smoothedGroup.quaternion.copy(tempQuat);
+                            smoothedGroup.scale.copy(tempScale);
+                            isFirstTrackingFrame = false;
+                        } else if (config.lerpFactor >= 0.99) {
+                            // Instant lock (zero-lag tracking, bypass filtering completely)
+                            smoothedGroup.position.copy(tempPos);
+                            smoothedGroup.quaternion.copy(tempQuat);
+                            smoothedGroup.scale.copy(tempScale);
+                        } else {
+                            // 1. Calculate distance (translation displacement) between frames
+                            const dist = smoothedGroup.position.distanceTo(tempPos);
+                            const minDist = 0.01;
+                            const maxDist = 0.15;
+                            let tPos = (dist - minDist) / (maxDist - minDist);
+                            tPos = Math.max(0, Math.min(1, tPos));
+
+                            // 2. Calculate angular displacement (rotation difference)
+                            const angle = smoothedGroup.quaternion.angleTo(tempQuat);
+                            const minAngle = 0.02;
+                            const maxAngle = 0.15;
+                            let tRot = (angle - minAngle) / (maxAngle - minAngle);
+                            tRot = Math.max(0, Math.min(1, tRot));
+
+                            // Scale the baseline adaptive filters according to our config.lerpFactor (baseline is 0.15)
+                            const scale = config.lerpFactor / 0.15;
+                            
+                            // Clamp factor between 0.001 and 1.0
+                            const posFactor = Math.min(1.0, Math.max(0.001, (0.015 + tPos * (0.18 - 0.015)) * scale));
+                            const rotFactor = Math.min(1.0, Math.max(0.001, (0.010 + tRot * (0.15 - 0.010)) * scale));
+
+                            // Interpolate position and rotation using adaptive weights
+                            smoothedGroup.position.lerp(tempPos, posFactor);
+                            smoothedGroup.quaternion.slerp(tempQuat, rotFactor);
+                            smoothedGroup.scale.copy(tempScale);
+                        }
+
+                        // Smoothly fade in video opacity
+                        if (videoMesh && videoMesh.material) {
+                            videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.95, 0.12);
+                        }
+                        smoothedGroup.visible = true;
+                    } else {
+                        isFirstTrackingFrame = true; // Reset snap flag when target is lost
+                        // Smoothly fade out video opacity before hiding
+                        if (smoothedGroup.visible) {
+                            if (videoMesh && videoMesh.material) {
+                                videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.0, 0.2);
+                                if (videoMesh.material.opacity < 0.01) {
+                                    smoothedGroup.visible = false;
+                                }
+                            } else {
+                                smoothedGroup.visible = false;
+                            }
+                        }
+                    }
+
+                    // In AR mode, MindAR camera feed runs in background
+                    renderer.render(scene, camera);
+                } else {
+                    // In Preview mode, orbitControls control previewCamera
+                    orbitControls.update();
+                    renderer.render(scene, previewCamera);
+                }
+            });
+        }
+
+        // Toggle Modes: Live AR or 3D Preview
+        function switchMode(mode) {
+            if (mode === currentMode) return;
+            currentMode = mode;
+
+            const tabAr = document.getElementById('tab-ar');
+            const tabPreview = document.getElementById('tab-preview');
+            const statusText = document.getElementById('status-text');
+            const statusBadge = document.getElementById('status-badge');
+
+            // Toggle Tab UI
+            tabAr.classList.toggle('active', mode === 'AR');
+            tabPreview.classList.toggle('active', mode === 'PREVIEW');
+
+            // Detach and clean up virtual elements
+            if (virtualBottleMesh) {
+                scene.remove(virtualBottleMesh);
+                virtualBottleMesh = null;
+            }
+            if (virtualLabelMesh) {
+                scene.remove(virtualLabelMesh);
+                virtualLabelMesh = null;
+            }
+
+            if (mode === 'PREVIEW') {
+                // Switch to Preview Mode
+                console.log('Switching to 3D Preview Calibration Mode');
+                statusText.innerText = '3D PREVIEW MODE';
+                statusBadge.className = 'status-badge preview';
+
+                // Enable orbit controls
+                orbitControls.enabled = true;
+
+                // Stop MindAR camera tracking overlay (stops web camera feed rendering)
+                if (mindarThree && mindarThree.video) {
+                    mindarThree.video.style.display = 'none'; // hide live video element
+                }
+
+                // Add the video mesh directly to the scene instead of tracking anchor/smoothed group
+                if (videoMesh.parent) {
+                    videoMesh.parent.remove(videoMesh);
+                }
+                scene.add(videoMesh);
+
+                // Ensure video is visible in preview mode
+                if (videoMesh && videoMesh.material) {
+                    videoMesh.material.opacity = 0.95;
+                }
+
+                // Create a semi-transparent glass-like bottle cylinder to help visualize
+                const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
+                const bottleGeom = new THREE.CylinderGeometry(
+                    config.radiusTop,
+                    config.radiusBottom,
+                    config.height * 1.8, // slightly taller than the video
+                    64
+                );
+                // Glass-like standard material
+                const bottleMat = new THREE.MeshStandardMaterial({
+                    color: 0x333333,
+                    transparent: true,
+                    opacity: 0.25,
+                    roughness: 0.1,
+                    metalness: 0.1,
+                    wireframe: false
+                });
+                virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
+                
+                // Position bottle cylinder centered at (0, 0, -avgRadius) 
+                // so the video cylinder segment lays perfectly on its front face!
+                virtualBottleMesh.position.set(0, 0, -avgRadius);
+                scene.add(virtualBottleMesh);
+
+                // Create the virtual label guide
+                if (labelTexture) {
+                    const thetaStartVal = 360 - config.thetaLength / 2;
+                    const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
+                    const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
+
+                    // We create a cylinder segment slightly smaller in radius (radius - 0.002)
+                    // so that the video mesh overlays on top of it.
+                    const labelGeom = new THREE.CylinderGeometry(
+                        config.radiusTop - 0.002,
+                        config.radiusBottom - 0.002,
+                        config.height,
+                        64,
+                        1,
+                        true,
+                        tStartRad,
+                        tLengthRad
+                    );
+                    const labelMat = new THREE.MeshBasicMaterial({
+                        map: labelTexture,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
+                    virtualLabelMesh.position.set(
+                        parseFloat(config.offsetX),
+                        parseFloat(config.offsetY),
+                        parseFloat(config.offsetZ) - avgRadius
+                    );
+                    virtualLabelMesh.rotation.set(
+                        THREE.MathUtils.degToRad(config.rotX),
+                        THREE.MathUtils.degToRad(config.rotY),
+                        THREE.MathUtils.degToRad(config.rotZ)
+                    );
+                    scene.add(virtualLabelMesh);
+                }
+
+                // In preview mode, play video automatically so user can see it
+                videoElement.play().catch(err => console.log('Autoplay error in preview:', err));
+            } else {
+                // Switch to AR Tracking Mode
+                console.log('Switching to Live AR tracking');
+                statusText.innerText = 'SCANNING LABEL';
+                statusBadge.className = 'status-badge scanning';
+
+                // Disable orbit controls
+                orbitControls.enabled = false;
+
+                // Show MindAR camera video element
+                if (mindarThree && mindarThree.video) {
+                    mindarThree.video.style.display = 'block';
+                }
+
+                // Reset previewCamera rotation/positions
+                previewCamera.position.set(0, 0, 8);
+                orbitControls.target.set(0, 0, 0);
+
+                // Put the video mesh back to the smoothed group
+                scene.remove(videoMesh);
+                if (smoothedGroup) {
+                    smoothedGroup.add(videoMesh);
+                }
+
+                // Reset opacity to fade in on next track
+                if (videoMesh && videoMesh.material) {
+                    videoMesh.material.opacity = 0.0;
+                }
+
+                // Pause video until target found
+                videoElement.pause();
+            }
+        }
+
+        // Connect sliders to JS and trigger cylinder updates
+        function setupSliderListeners() {
+            const sliders = [
+                'radiusTop', 'radiusBottom', 'height',
+                'offsetX', 'offsetY', 'offsetZ',
+                'rotX', 'rotY', 'rotZ',
+                'thetaLength', 'lerpFactor'
+            ];
+
+            sliders.forEach(key => {
+                const slider = document.getElementById(key);
+                if (slider) {
+                    slider.addEventListener('input', (e) => {
+                        const val = parseFloat(e.target.value);
+                        config[key] = val;
+                        
+                        // Update UI numerical value display
+                        const valEl = document.getElementById(`val-${key}`);
+                        if (valEl) {
+                            valEl.innerText = (key.startsWith('rot') || key.startsWith('theta')) 
+                                ? `${val}°` 
+                                : val.toFixed(2);
+                        }
+
+                        // Save current values to localstorage
+                        saveConfig();
+
+                        // Rebuild cylinder geometry with new parameters
+                        rebuildCylinderMesh();
+
+                        // If in preview mode, update the virtual bottle and label guide too
+                        if (currentMode === 'PREVIEW') {
+                            const avgRadius = (parseFloat(config.radiusTop) + parseFloat(config.radiusBottom)) / 2;
+                            
+                            if (virtualBottleMesh) {
+                                scene.remove(virtualBottleMesh);
+                                const bottleGeom = new THREE.CylinderGeometry(
+                                    config.radiusTop,
+                                    config.radiusBottom,
+                                    config.height * 1.8,
+                                    64
+                                );
+                                const bottleMat = virtualBottleMesh.material;
+                                virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
+                                virtualBottleMesh.position.set(0, 0, -avgRadius);
+                                scene.add(virtualBottleMesh);
+                            }
+
+                            if (virtualLabelMesh) {
+                                scene.remove(virtualLabelMesh);
+                                const thetaStartVal = 360 - config.thetaLength / 2;
+                                const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
+                                const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
+
+                                const labelGeom = new THREE.CylinderGeometry(
+                                    config.radiusTop - 0.002,
+                                    config.radiusBottom - 0.002,
+                                    config.height,
+                                    64,
+                                    1,
+                                    true,
+                                    tStartRad,
+                                    tLengthRad
+                                );
+                                const labelMat = virtualLabelMesh.material;
+                                virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
+                                virtualLabelMesh.position.set(
+                                    parseFloat(config.offsetX),
+                                    parseFloat(config.offsetY),
+                                    parseFloat(config.offsetZ) - avgRadius
+                                );
+                                virtualLabelMesh.rotation.set(
+                                    THREE.MathUtils.degToRad(config.rotX),
+                                    THREE.MathUtils.degToRad(config.rotY),
+                                    THREE.MathUtils.degToRad(config.rotZ)
+                                );
+                                scene.add(virtualLabelMesh);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Expose functions to window for HTML inline handlers
+        window.resetCalibration = resetCalibration;
+        window.toggleMute = toggleMute;
+        window.switchMode = switchMode;
+
+        // Bootstrap on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            setupSliderListeners();
+
+            // Wire up Start overlay launch button
+            document.getElementById('btn-start').addEventListener('click', async () => {
+                const overlay = document.getElementById('start-overlay');
+                overlay.classList.add('hidden');
+                
+                document.getElementById('status-text').innerText = 'INITIALIZING CAMERA';
+                try {
+                    await initAR();
+                } catch(e) {
+                    console.error('AR Initialization failed:', e);
+                    document.getElementById('status-text').innerText = 'AR INITS FAILED';
+                    document.getElementById('status-badge').style.color = '#e74c3c';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

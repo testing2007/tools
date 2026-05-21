@@ -1,0 +1,17 @@
+{
+  "name": "animal-engine",
+  "appid": "__UNI__ANIMAL_ENGINE__",
+  "description": "微信小程序动效样板",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "vueVersion": "3",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx5bf15495100fea73",
+    "setting": {
+      "urlCheck": false,
+      "minified": true,
+      "es6": true
+    }
+  }
+}

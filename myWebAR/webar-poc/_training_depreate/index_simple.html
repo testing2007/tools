@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR WASM 极简极速 POC 验证</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 隐藏底层视频，仅在 Canvas 离屏处理 */
+        video {
+            display: none;
+        }
+
+        canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+    </style>
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 导入 Emscripten 编译生成的胶水代码 -->
+    <script src="./tracker.js"></script>
+</head>
+
+<body>
+
+    <div id="canvas-container">
+        <div id="info">正在初始化 WASM 零拷贝 AR 引擎...</div>
+        <video id="video" autoplay playsinline muted></video>
+        <!-- 视频绘制与像素读取 Canvas -->
+        <canvas id="processing-canvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        const width = 640;
+        const height = 480;
+        let wasmModule, tracker, pixelBufferPtr;
+        let video, canvas, ctx;
+        let renderer, scene, camera, arCube;
+
+        // 1. 初始化 Three.js 场景
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            // 相机 FOV 设为 60 度
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10);
+
+            renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // 创建一个 3D 立方体作为 AR 锚点
+            const geometry = new THREE.BoxGeometry(0.15, 0.15, 0.15); // 15 厘米大小
+            const material = new THREE.MeshNormalMaterial();
+            arCube = new THREE.Mesh(geometry, material);
+
+            // 关键：接管物体的矩阵更新
+            arCube.matrixAutoUpdate = false;
+            scene.add(arCube);
+
+            // 添加半球光源
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
+        }
+
+        // 2. 启动摄像头
+        async function initCamera() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('processing-canvas');
+            canvas.width = width;
+            canvas.height = height;
+            ctx = canvas.getContext('2d');
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {width: width, height: height, facingMode: 'environment'},
+                audio: false
+            });
+            video.srcObject = stream;
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve();
+                };
+            });
+        }
+
+        // 3. 页面加载入口
+        window.onload = async () => {
+            document.getElementById('info').innerHTML = "正在拉取摄像头流...";
+            await initCamera();
+            initThreeJS();
+
+            document.getElementById('info').innerHTML = "正在装载 WASM 核心模块...";
+
+            // Module 是 Emscripten 全局生成的入口
+            Module().then((module) => {
+                wasmModule = module;
+
+                // 实例化 C++ 类
+                tracker = new wasmModule.ARTracker(width, height);
+                // 关键点：获取 C++ 底层堆内存中的缓冲指针首地址
+                pixelBufferPtr = tracker.getBufferPointer();
+
+                document.getElementById('info').innerHTML = "WASM 零拷贝管线已跑通！3D 矩阵实时同步中...";
+                tick();
+            });
+        };
+
+        // 4. 每帧渲染循环
+        // 4. 每帧渲染循环
+        function tick() {
+            // 1. 绘制当前视频帧到离屏 canvas 中
+            ctx.drawImage(video, 0, 0, width, height);
+            const imgData = ctx.getImageData(0, 0, width, height);
+
+            // 2. 🌟 零拷贝核心：得益于 -s EXPORTED_RUNTIME_METHODS="['HEAPU8']"，这里 100% 安全
+            wasmModule.HEAPU8.set(imgData.data, pixelBufferPtr);
+
+            // 3. 调用 C++ 算法，计算当前帧的新姿态
+            const pose = tracker.update();
+
+            if (pose.isTracking) {
+                // 4. 🌟 既然你的环境支持原生数组，直接用循环和 [i] 读取，效率最高！
+                const matrixValues = [];
+                for (let i = 0; i < 16; i++) {
+                    matrixValues.push(pose.transformMatrix[i]);
+                }
+
+                // 5. 将 16 个浮点值套用进 Three.js 的 4x4 矩阵
+                const mat = new THREE.Matrix4();
+                mat.fromArray(matrixValues);
+
+                // 6. 更新立方体的变换矩阵
+                arCube.matrix.copy(mat);
+                arCube.matrixWorldNeedsUpdate = true;
+            }
+
+            // 5. 渲染 3D 场景
+            renderer.render(scene, camera);
+
+            // 6. 持续循环
+            requestAnimationFrame(tick);
+        }
+        // 4. 每帧渲染循环
+        // function tick() {
+        //     // 绘制当前视频帧到离屏 canvas 中
+        //     ctx.drawImage(video, 0, 0, width, height);
+        //     const imgData = ctx.getImageData(0, 0, width, height);
+
+        //     // 🌟 零拷贝核心：使用全局 Module.HEAPU8 确保内存视图绝对可用
+        //     // 如果你用了方法 2 重新编译，这里保持原样 wasmModule.HEAPU8 也可以
+        //     if (Module.HEAPU8) {
+        //         Module.HEAPU8.set(imgData.data, pixelBufferPtr);
+        //     } else if (wasmModule.HEAPU8) {
+        //         wasmModule.HEAPU8.set(imgData.data, pixelBufferPtr);
+        //     }
+
+        //     // 调用 C++ 算法，计算当前帧的新姿态
+        //     const pose = tracker.update();
+
+        //     if (pose.isTracking) {
+        //         const matrixValues = [];
+        //         for (let i = 0; i < 16; i++) {
+        //             // 🌟 修复点：改用 .get(i) 读取 Emscripten 包装的 std::array 元素
+        //             matrixValues.push(pose.transformMatrix.get(i));
+        //         }
+
+        //         // 将 16 个浮点值套用进 Three.js 的 4x4 矩阵
+        //         const mat = new THREE.Matrix4();
+        //         mat.fromArray(matrixValues);
+
+        //         // 更新立方体的变换矩阵
+        //         arCube.matrix.copy(mat);
+        //         arCube.matrixWorldNeedsUpdate = true;
+        //     }
+
+        //     // 渲染 3D 场景
+        //     renderer.render(scene, camera);
+
+        //     requestAnimationFrame(tick);
+        // }
+        // function tick() {
+        //     // 绘制当前视频帧到离屏 canvas 中
+        //     ctx.drawImage(video, 0, 0, width, height);
+        //     const imgData = ctx.getImageData(0, 0, width, height);
+
+        //     // 🌟 零拷贝核心：将网页端获取的像素 Uint8Array 数据直接“盖”在 C++ 申请的内存地址上
+        //     wasmModule.HEAPU8.set(imgData.data, pixelBufferPtr);
+
+        //     // 调用 C++ 算法，计算当前帧的新姿态
+        //     const pose = tracker.update();
+
+        //     if (pose.isTracking) {
+        //         // 此时，因为 pose.transformMatrix 是一个 WASM 内部的指针/数组，我们需要将其读出并赋给 Three.js
+        //         // Emscripten 传出固定数组有多种方法，为避免报错，我们直接从 WASM 堆中按偏移读取这 16 个 float 值
+        //         const matrixValues = [];
+        //         for (let i = 0; i < 16; i++) {
+        //             // C++ 结构体中 transformMatrix 的偏移（由于 isTracking 在前且是 bool，实际需根据内存对齐读取。
+        //             // 简便起见，此处直接使用 C++ 传递回来的数组结构）
+        //             matrixValues.push(pose.transformMatrix[i]);
+        //         }
+
+        //         // 将 16 个浮点值套用进 Three.js 的 4x4 矩阵
+        //         const mat = new THREE.Matrix4();
+        //         mat.fromArray(matrixValues);
+
+        //         // 更新立方体的变换矩阵
+        //         arCube.matrix.copy(mat);
+        //         arCube.matrixWorldNeedsUpdate = true;
+        //     }
+
+        //     // 渲染 3D 场景
+        //     renderer.render(scene, camera);
+
+        //     requestAnimationFrame(tick);
+        // }
+
+        // 窗口尺寸自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>

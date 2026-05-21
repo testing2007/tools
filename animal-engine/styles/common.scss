@@ -1,0 +1,25 @@
+$theme-bg: #f6f3ee;
+$theme-card: rgba(255, 255, 255, 0.9);
+$theme-line: rgba(113, 84, 65, 0.12);
+$theme-primary: #c56f49;
+$theme-primary-deep: #a84d31;
+$theme-text: #2f241f;
+$theme-muted: #8e776a;
+$theme-gold: #f0cf92;
+
+.safe-bottom-space {
+  height: calc(148rpx + env(safe-area-inset-bottom));
+}
+
+.glass-card {
+  border: 1rpx solid $theme-line;
+  background: $theme-card;
+  box-shadow: 0 14rpx 40rpx rgba(84, 52, 35, 0.08);
+  backdrop-filter: blur(16rpx);
+}
+
+.brand-gradient-text {
+  background: linear-gradient(135deg, #ce7a54, #8d4d34);
+  -webkit-background-clip: text;
+  color: transparent;
+}
