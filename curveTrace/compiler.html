@@ -3,242 +3,1008 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindAR Target Compiler</title>
+    <title>WebAR Curved Label Target Compiler</title>
     <!-- Import Google Font Outfit -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0b0c10;
-            --container-bg: #1f2833;
-            --primary-color: #66fcf1;
-            --secondary-color: #45f3ff;
-            --text-color: #c5c6c7;
-            --title-color: #ffffff;
-            --success-color: #2ecc71;
-            --error-color: #e74c3c;
+            --bg-dark: #0f1016;
+            --primary: #00f2fe;
+            --primary-glow: rgba(0, 242, 254, 0.4);
+            --secondary: #4facfe;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(15, 23, 42, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #0b0c10, #1f2833);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at 50% 30%, #1a233a 0%, #090a0f 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
         }
 
         .container {
-            background: rgba(31, 40, 51, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 2px rgba(255, 255, 255, 0.1);
-            text-align: center;
-            max-width: 550px;
             width: 100%;
-            border: 1px solid rgba(102, 252, 241, 0.15);
-            box-sizing: border-box;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 24px;
+            z-index: 10;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         h2 {
-            color: var(--title-color);
-            margin-top: 0;
+            margin: 0;
             font-weight: 800;
-            font-size: 2.2rem;
-            letter-spacing: 1px;
-            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            font-size: 1.8rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        p {
-            font-weight: 300;
-            line-height: 1.6;
-            margin-bottom: 30px;
-            font-size: 1.05rem;
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-top: -10px;
         }
 
-        code {
-            background: rgba(0,0,0,0.3);
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: var(--primary-color);
-            font-family: monospace;
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+            margin-top: 10px;
         }
 
-        .status {
-            margin: 25px 0;
-            font-size: 1.25rem;
+        /* Slider Controls */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            border-radius: 16px;
+        }
+
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .slider-val {
+            color: var(--primary);
             font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--primary-color);
-            min-height: 38px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--primary-glow);
+            transition: transform 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Quality Checker Dashboard */
+        .quality-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 18px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .score-circle {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0%, rgba(255,255,255,0.05) 0%);
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+            transition: background 0.5s ease;
         }
 
-        .progress-bar {
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: #141722;
+        }
+
+        .score-inner {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .score-num {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .score-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quality-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            height: 12px;
-            border-radius: 6px;
+        }
+
+        .metric-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .metric-status {
+            font-weight: 600;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
             overflow: hidden;
-            margin-bottom: 30px;
-            border: 1px solid rgba(255,255,255,0.05);
         }
 
-        .progress-fill {
-            width: 0%;
+        .bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            border-radius: 6px;
-            box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
-            transition: width 0.1s ease-out;
+            width: 0%;
+            border-radius: 3px;
+            background: var(--primary);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .log-box {
+        .feedback-box {
+            background: rgba(231, 76, 60, 0.06);
+            border: 1px dashed rgba(231, 76, 60, 0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
             font-size: 0.85rem;
+            line-height: 1.45;
+            color: var(--text-muted);
+        }
+
+        .feedback-box.good {
+            background: rgba(46, 204, 113, 0.06);
+            border-color: rgba(46, 204, 113, 0.2);
+        }
+
+        /* Features Visualizer */
+        .viz-panel {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 18px;
+            padding: 12px;
+            overflow: hidden;
+            position: relative;
+            min-height: 300px;
+            max-height: 480px;
+        }
+
+        #visualizer-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Log console */
+        .log-box {
+            font-size: 0.8rem;
             color: #8892b0;
             text-align: left;
-            height: 160px;
+            height: 110px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.4);
-            padding: 15px;
-            border-radius: 10px;
+            padding: 12px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.03);
             font-family: 'Consolas', 'Courier New', Courier, monospace;
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         .log-box::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
-        .log-box::-webkit-scrollbar-track {
-            background: transparent;
-        }
+
         .log-box::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
         }
-        .log-box div {
+
+        .log-item {
             margin-bottom: 4px;
-            border-left: 2px solid transparent;
+            border-left: 2px solid var(--text-muted);
             padding-left: 6px;
         }
-        .log-box .log-info { border-left-color: var(--primary-color); }
-        .log-box .log-success { border-left-color: var(--success-color); color: #a6e22e; }
-        .log-box .log-error { border-left-color: var(--error-color); color: #f92672; }
+        .log-item.success { border-left-color: var(--success); color: #a6e22e; }
+        .log-item.error { border-left-color: var(--danger); color: #f92672; }
+        .log-item.info { border-left-color: var(--primary); color: #66fcf1; }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
+    <script>
+        // Init OpenCV module handler
+        window.Module = {
+            onRuntimeInitialized: function () {
+                console.log('OpenCV.js successfully loaded.');
+                window.cvInitialized = true;
+                const event = new CustomEvent('opencv-ready');
+                window.dispatchEvent(event);
+            }
+        };
+    </script>
+    <script async src="https://docs.opencv.org/4.5.5/opencv.js" type="text/javascript"></script>
 </head>
 <body>
     <div class="container">
-        <h2>MindAR Compiler</h2>
-        <p>Pre-processing target image into <code>targets.mind</code> for optimal tracking stability</p>
-        
-        <div class="status" id="status">Starting compilation...</div>
-        
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+        <!-- Control Calibration Panel -->
+        <div class="glass-panel">
+            <div>
+                <h2>Target Compiler</h2>
+                <div class="subtitle">Extract feature targets and compute 3D curved labels for OpenCV-based WebAR tracking.</div>
+            </div>
+
+            <!-- Image Input Selector -->
+            <div>
+                <div class="section-title">Reference Target Source</div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn" style="flex: 1; padding: 10px;" id="btn-load-default">🍾 Use assets/mark.jpg</button>
+                    <label class="btn" style="flex: 1; padding: 10px; text-align: center; cursor: pointer;">
+                        📤 Upload Image
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Curvature Settings -->
+            <div>
+                <div class="section-title">Curvature Settings (Physical Bottle)</div>
+                <div class="slider-group" style="margin-top: 10px;">
+                    <div class="slider-item">
+                        <div class="slider-label">
+                            <span>Upper Radius (Top R)</span>
+                            <span class="slider-val" id="val-radiusTop">0.80</span>
+                        </div>
+                        <input type="range" id="radiusTop" min="0.10" max="3.00" step="0.05" value="0.80">
+                    </div>
+
+                    <div class="slider-item">
+                        <div class="slider-label">
+                            <span>Lower Radius (Bottom R)</span>
+                            <span class="slider-val" id="val-radiusBottom">0.80</span>
+                        </div>
+                        <input type="range" id="radiusBottom" min="0.10" max="3.00" step="0.05" value="0.80">
+                    </div>
+
+                    <div class="slider-item">
+                        <div class="slider-label">
+                            <span>Cylinder Height (H)</span>
+                            <span class="slider-val" id="val-height">1.33</span>
+                        </div>
+                        <input type="range" id="height" min="0.10" max="4.00" step="0.05" value="1.33">
+                    </div>
+
+                    <div class="slider-item">
+                        <div class="slider-label">
+                            <span>Arc Angle (Span)</span>
+                            <span class="slider-val" id="val-thetaLength">73°</span>
+                        </div>
+                        <input type="range" id="thetaLength" min="30" max="360" step="5" value="73">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Rating Indicator -->
+            <div>
+                <div class="section-title">Target Quality Analysis</div>
+                <div class="quality-card" style="margin-top: 10px;">
+                    <div class="score-circle" id="score-circle">
+                        <div class="score-inner">
+                            <span class="score-num" id="score-val">0</span>
+                            <span class="score-label">Score</span>
+                        </div>
+                    </div>
+                    <div class="quality-metrics">
+                        <div class="metric-bar">
+                            <div class="metric-info">
+                                <span>Keypoints Count</span>
+                                <span class="metric-status" id="status-count">Pending</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="fill-count"></div>
+                            </div>
+                        </div>
+
+                        <div class="metric-bar">
+                            <div class="metric-info">
+                                <span>Feature Distribution</span>
+                                <span class="metric-status" id="status-dist">Pending</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="fill-dist"></div>
+                            </div>
+                        </div>
+
+                        <div class="metric-bar">
+                            <div class="metric-info">
+                                <span>Pattern Uniqueness</span>
+                                <span class="metric-status" id="status-unique">Pending</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="fill-unique"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feedback-box" id="feedback-box" style="margin-top: 10px;">
+                    Please load a reference target image to begin compilation analysis.
+                </div>
+            </div>
         </div>
-        
-        <div class="log-box" id="log"></div>
+
+        <!-- Features Visualization Panel -->
+        <div class="glass-panel viz-panel">
+            <div>
+                <div class="section-title" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🎯 Keypoint Features Visualizer</span>
+                    <span id="img-dim" style="font-size: 0.75rem; text-transform: none; color: var(--text-muted);">No image loaded</span>
+                </div>
+                <div class="canvas-container" style="margin-top: 15px;">
+                    <canvas id="visualizer-canvas"></canvas>
+                    <div id="loader-placeholder" style="position: absolute; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">🖼️</div>
+                        <div>No target image loaded yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console Log Box -->
+            <div class="log-box" id="log-console">
+                <div class="log-item info">[System] Waiting for OpenCV.js engine loading...</div>
+            </div>
+
+            <!-- Execution Buttons -->
+            <div class="actions">
+                <button class="btn" id="btn-download" disabled>💾 Save target.json (Local)</button>
+                <button class="btn btn-primary" id="btn-compile" disabled>⚡ Compile & Sync Server</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
-        import { Compiler } from "./libs/mindar-image.prod.js";
+        let loadedImg = null;
+        let cvReady = false;
+        let compilerConfig = {
+            radiusTop: 0.80,
+            radiusBottom: 0.80,
+            height: 1.33,
+            thetaLength: 73
+        };
+        let compiledResult = null;
 
-        const statusEl = document.getElementById('status');
-        const progressFill = document.getElementById('progressFill');
-        const logEl = document.getElementById('log');
+        const logConsole = document.getElementById('log-console');
 
         function log(msg, type = 'info') {
             console.log(msg);
             const time = new Date().toLocaleTimeString();
-            const logClass = `log-${type}`;
-            logEl.innerHTML += `<div class="${logClass}">[${time}] ${msg}</div>`;
-            logEl.scrollTop = logEl.scrollHeight;
+            logConsole.innerHTML += `<div class="log-item ${type}">[${time}] ${msg}</div>`;
+            logConsole.scrollTop = logConsole.scrollHeight;
         }
 
-        async function loadImage(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error(`Failed to load: ${url}`));
-                img.src = url;
-            });
-        }
-
-        async function startCompile() {
-            try {
-                let img;
-                log("Attempting to load assets/mark.png...");
-                try {
-                    img = await loadImage('assets/mark.png');
-                    log("Loaded assets/mark.png successfully.", "success");
-                } catch (e) {
-                    log("assets/mark.png not found or failed to load. Trying assets/mark.jpg...", "error");
+        // Initialize UI Elements
+        function setupUI() {
+            const sliders = ['radiusTop', 'radiusBottom', 'height', 'thetaLength'];
+            sliders.forEach(key => {
+                const slider = document.getElementById(key);
+                const valDisplay = document.getElementById(`val-${key}`);
+                
+                // Load saved calibration values if any
+                const saved = localStorage.getItem('webar_curved_calibration');
+                if (saved) {
                     try {
-                        img = await loadImage('assets/mark.jpg');
-                        log("Loaded assets/mark.jpg successfully.", "success");
-                    } catch (e2) {
-                        throw new Error("Could not load assets/mark.png or assets/mark.jpg. Please verify image is present in assets directory.");
+                        const parsed = JSON.parse(saved);
+                        if (parsed[key] !== undefined) {
+                            slider.value = parsed[key];
+                            compilerConfig[key] = parseFloat(parsed[key]);
+                        }
+                    } catch (e) {}
+                }
+
+                valDisplay.innerText = key === 'thetaLength' ? `${slider.value}°` : parseFloat(slider.value).toFixed(2);
+
+                slider.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    compilerConfig[key] = val;
+                    valDisplay.innerText = key === 'thetaLength' ? `${val}°` : val.toFixed(2);
+                    
+                    // Sync calibration dynamically back to localstorage for double-testing consistency
+                    saveCalibrationToLocal();
+
+                    // If image is already loaded, re-evaluate and re-draw target projection points
+                    if (loadedImg && cvReady) {
+                        evaluateAndDrawFeatures(false); // fast recompute
+                    }
+                });
+            });
+
+            // Default image loading button
+            document.getElementById('btn-load-default').addEventListener('click', () => {
+                loadImgSrc('assets/mark.jpg');
+            });
+
+            // File upload selector
+            document.getElementById('file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    loadImgSrc(event.target.result, file.name);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Download target.json
+            document.getElementById('btn-download').addEventListener('click', () => {
+                if (!compiledResult) return;
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(compiledResult, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "target.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                log("Target config downloaded locally successfully.", "success");
+            });
+
+            // Save to compile server
+            document.getElementById('btn-compile').addEventListener('click', saveToServer);
+        }
+
+        function saveCalibrationToLocal() {
+            const saved = localStorage.getItem('webar_curved_calibration') || '{}';
+            try {
+                const parsed = JSON.parse(saved);
+                parsed.radiusTop = compilerConfig.radiusTop;
+                parsed.radiusBottom = compilerConfig.radiusBottom;
+                parsed.height = compilerConfig.height;
+                parsed.thetaLength = compilerConfig.thetaLength;
+                localStorage.setItem('webar_curved_calibration', JSON.stringify(parsed));
+            } catch (e) {}
+        }
+
+        function loadImgSrc(src, filename = 'mark.jpg') {
+            log(`Loading reference image: ${filename}...`);
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = src;
+            img.onload = () => {
+                loadedImg = img;
+                document.getElementById('img-dim').innerText = `${img.width}x${img.height} px`;
+                document.getElementById('loader-placeholder').classList.add('hidden');
+                log(`Image loaded successfully: ${img.width}x${img.height}. Evaluating...`, 'success');
+                if (cvReady) {
+                    evaluateAndDrawFeatures(true);
+                } else {
+                    log("OpenCV is still initializing. Features will compile automatically when ready.");
+                }
+            };
+            img.onerror = () => {
+                log(`Failed to load target image: ${filename}. Please verify the path.`, 'error');
+            };
+        }
+
+        // OpenCV init callback handler
+        window.addEventListener('opencv-ready', () => {
+            cvReady = true;
+            log("OpenCV.js engine initialized successfully.", "success");
+            
+            // Enable compilation if image loaded beforehand
+            if (loadedImg) {
+                evaluateAndDrawFeatures(true);
+            } else {
+                log("Please load or upload a target image to begin compilation.");
+            }
+        });
+
+        // Curvature projection helper
+        function mapPixelToCylinder3D(u, v, W, H, radiusTop, radiusBottom, height) {
+            const scale = height / H;
+            const u_centered = u - W / 2;
+            const Y = (H / 2 - v) * scale;
+
+            // Interpolate radius based on height (frustum support)
+            const t = (Y + height / 2) / height;
+            const r_at_y = radiusBottom + (radiusTop - radiusBottom) * t;
+
+            // Map horizontal pixel distance to cylinder angle theta
+            const theta = (u_centered * scale) / r_at_y;
+
+            return {
+                X: r_at_y * Math.sin(theta),
+                Y: Y,
+                Z: r_at_y * Math.cos(theta)
+            };
+        }
+
+        // Evaluation & visualizer loop
+        function evaluateAndDrawFeatures(fullRecalculate = true) {
+            if (!loadedImg || !cvReady) return;
+
+            const canvas = document.getElementById('visualizer-canvas');
+            canvas.width = loadedImg.width;
+            canvas.height = loadedImg.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(loadedImg, 0, 0);
+
+            let orb = null;
+            let matcher = null;
+            let srcMat = null;
+            let grayMat = null;
+
+            try {
+                // Initialize temporary OpenCV matrices
+                srcMat = cv.imread(canvas);
+                grayMat = new cv.Mat();
+                cv.cvtColor(srcMat, grayMat, cv.COLOR_RGBA2GRAY);
+
+                if (cv.ORB && cv.ORB.create) {
+                    orb = cv.ORB.create(1000);
+                } else {
+                    orb = new cv.ORB(1000);
+                }
+                matcher = new cv.BFMatcher(cv.NORM_HAMMING, true);
+
+                // 1. Perform Multi-Scale Keypoint Detection for Target Package levels
+                const scales = [1.0, 0.75, 0.5, 0.35];
+                const levelsData = [];
+
+                let baseKeypoints = null;
+                let baseDescriptors = null;
+
+                for (const scale of scales) {
+                    const scaledW = Math.max(1, Math.round(loadedImg.width * scale));
+                    const scaledH = Math.max(1, Math.round(loadedImg.height * scale));
+                    const scaledGray = new cv.Mat();
+
+                    if (scale === 1.0) {
+                        grayMat.copyTo(scaledGray);
+                    } else {
+                        cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
+                    }
+
+                    const levelKeypoints = new cv.KeyPointVector();
+                    const levelDescriptors = new cv.Mat();
+                    
+                    const mask = new cv.Mat();
+                    orb.detectAndCompute(scaledGray, mask, levelKeypoints, levelDescriptors);
+                    mask.delete();
+
+                    const keypointsArray = [];
+                    const points3DArray = [];
+                    const originalPoints = [];
+
+                    for (let i = 0; i < levelKeypoints.size(); i++) {
+                        const kp = levelKeypoints.get(i);
+                        const origX = kp.pt.x / scale;
+                        const origY = kp.pt.y / scale;
+
+                        originalPoints.push({ x: origX, y: origY });
+
+                        // Compute 3D Cylindrical point for PnP solve mapping
+                        const pt3D = mapPixelToCylinder3D(
+                            origX, origY, 
+                            loadedImg.width, loadedImg.height, 
+                            compilerConfig.radiusTop, 
+                            compilerConfig.radiusBottom, 
+                            compilerConfig.height
+                        );
+                        points3DArray.push(pt3D);
+
+                        keypointsArray.push({
+                            x: kp.pt.x,
+                            y: kp.pt.y,
+                            size: kp.size,
+                            angle: kp.angle,
+                            response: kp.response
+                        });
+                    }
+
+                    const flatDescriptors = Array.from(levelDescriptors.data);
+
+                    levelsData.push({
+                        scale,
+                        width: scaledW,
+                        height: scaledH,
+                        originalPoints,
+                        points3D: points3DArray,
+                        keypoints: keypointsArray,
+                        descriptors: flatDescriptors
+                    });
+
+                    if (scale === 1.0) {
+                        baseKeypoints = levelKeypoints;
+                        baseDescriptors = levelDescriptors;
+                    } else {
+                        levelKeypoints.delete();
+                        levelDescriptors.delete();
+                    }
+
+                    scaledGray.delete();
+                }
+
+                // 2. Target Quality Checker Metrics
+                const kpCount = baseKeypoints.size();
+                
+                // A. Count Quality Score
+                let countScore = Math.min(100, Math.round((kpCount / 400) * 100));
+
+                // B. Distribution Score (Grid occupancy check)
+                const gridW = 4;
+                const gridH = 4;
+                const cells = Array(gridW * gridH).fill(0);
+                for (let i = 0; i < kpCount; i++) {
+                    const kp = baseKeypoints.get(i);
+                    const cellX = Math.min(gridW - 1, Math.floor((kp.pt.x / loadedImg.width) * gridW));
+                    const cellY = Math.min(gridH - 1, Math.floor((kp.pt.y / loadedImg.height) * gridH));
+                    cells[cellY * gridW + cellX]++;
+                }
+                const activeCells = cells.filter(cnt => cnt >= 3).length; // Cell counts as active if it has >= 3 features
+                const distScore = Math.round((activeCells / 16) * 100);
+
+                // C. Uniqueness Score (Auto-correlation descriptor similarity)
+                let uniquenessScore = 100;
+                let repeatingMatchesRatio = 0.0;
+                
+                if (kpCount >= 10 && !baseDescriptors.empty()) {
+                    const matches = new cv.DMatchVectorVector();
+                    try {
+                        matcher.knnMatch(baseDescriptors, baseDescriptors, matches, 2);
+                        let repeatCount = 0;
+                        for (let i = 0; i < matches.size(); i++) {
+                            const knn = matches.get(i);
+                            if (knn.size() >= 2) {
+                                const m2 = knn.get(1); // 2nd closest keypoint match
+                                if (m2.distance < 45) { // low hamming distance threshold
+                                    repeatCount++;
+                                }
+                            }
+                        }
+                        repeatingMatchesRatio = repeatCount / matches.size();
+                        uniquenessScore = Math.max(0, Math.round(100 - (repeatingMatchesRatio * 150)));
+                    } catch(err) {
+                        console.warn("KNN Match failed on descriptors self-comparison", err);
+                    } finally {
+                        matches.delete();
                     }
                 }
 
-                log(`Image dimensions: ${img.width}x${img.height}. Processing...`);
-                statusEl.innerText = "Initializing compiler...";
+                // Compile aggregate score
+                const aggregateScore = Math.round((countScore * 0.35) + (distScore * 0.40) + (uniquenessScore * 0.25));
 
-                const compiler = new Compiler();
-                
-                log("Starting feature point extraction (this may take a few moments)...");
-                statusEl.innerText = "Extracting features...";
+                // Update Quality Dashboard UI
+                document.getElementById('score-val').innerText = aggregateScore;
+                document.getElementById('score-circle').style.background = `conic-gradient(${aggregateScore >= 70 ? 'var(--success)' : aggregateScore >= 45 ? 'var(--warning)' : 'var(--danger)'} ${aggregateScore}%, rgba(255,255,255,0.05) ${aggregateScore}%)`;
 
-                await compiler.compileImageTargets([img], (progress) => {
-                    progressFill.style.width = progress + '%';
-                    statusEl.innerText = `Compiling: ${progress.toFixed(1)}%`;
-                });
+                document.getElementById('status-count').innerText = `${kpCount} pts`;
+                document.getElementById('fill-count').style.width = `${countScore}%`;
+                setMetricColor('fill-count', 'status-count', countScore);
 
-                log("Feature extraction finished!", "success");
-                statusEl.innerText = "Exporting tracking data...";
-                const buffer = await compiler.exportData();
+                document.getElementById('status-dist').innerText = `${Math.round((activeCells/16)*100)}% coverage`;
+                document.getElementById('fill-dist').style.width = `${distScore}%`;
+                setMetricColor('fill-dist', 'status-dist', distScore);
 
-                log(`Export complete. Data size: ${(buffer.byteLength / 1024).toFixed(1)} KB. Uploading...`);
-                statusEl.innerText = "Saving targets.mind...";
-                
-                const response = await fetch('/save-mind', {
+                document.getElementById('status-unique').innerText = `${Math.round(uniquenessScore)}% unique`;
+                document.getElementById('fill-unique').style.width = `${uniquenessScore}%`;
+                setMetricColor('fill-unique', 'status-unique', uniquenessScore);
+
+                // Build Actionable Suggestions Feedback
+                let feedback = "";
+                let goodTarget = true;
+                const feedbackEl = document.getElementById('feedback-box');
+
+                if (kpCount < 100) {
+                    feedback += "⚠️ <b>Low feature count:</b> Target image has too few keypoints. Avoid smooth vector graphics and plain logos.<br>";
+                    goodTarget = false;
+                }
+                if (distScore < 50) {
+                    feedback += "⚠️ <b>Poor distribution:</b> Keypoints are heavily clustered. Ensure detail is spread evenly across all corners of the label.<br>";
+                    goodTarget = false;
+                }
+                if (uniquenessScore < 50) {
+                    feedback += "⚠️ <b>High pattern repetition:</b> The image contains repetitive grids or textures. This may cause tracking drift or jitters.<br>";
+                    goodTarget = false;
+                }
+
+                if (goodTarget) {
+                    feedbackEl.className = "feedback-box good";
+                    feedbackEl.innerHTML = "✨ <b>Excellent target image!</b> Features are rich, unique, and well distributed. Suitable for curved 3D tracking.";
+                } else {
+                    feedbackEl.className = "feedback-box";
+                    feedbackEl.innerHTML = feedback || "Target is fair. Adding more detailed textures will enhance tracking stability.";
+                }
+
+                // Draw detected keypoints as visual indicators on preview
+                ctx.fillStyle = 'rgba(0, 255, 100, 0.7)';
+                ctx.strokeStyle = 'rgba(0, 255, 100, 0.9)';
+                ctx.lineWidth = 1.5;
+
+                for (let i = 0; i < kpCount; i++) {
+                    const kp = baseKeypoints.get(i);
+                    const x = kp.pt.x;
+                    const y = kp.pt.y;
+                    const r = Math.max(2, kp.size / 4);
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+
+                // Generate compiled outputs
+                compiledResult = {
+                    targetId: "wine_label",
+                    imageWidth: loadedImg.width,
+                    imageHeight: loadedImg.height,
+                    radiusTop: compilerConfig.radiusTop,
+                    radiusBottom: compilerConfig.radiusBottom,
+                    height: compilerConfig.height,
+                    thetaLength: compilerConfig.thetaLength,
+                    quality: {
+                        score: aggregateScore,
+                        keypointsCount: kpCount,
+                        distributionScore: distScore,
+                        uniquenessScore: uniquenessScore,
+                        repeatingRatio: repeatingMatchesRatio
+                    },
+                    levels: levelsData
+                };
+
+                // Enable UI button triggers
+                document.getElementById('btn-download').disabled = false;
+                document.getElementById('btn-compile').disabled = false;
+
+                if (fullRecalculate) {
+                    log(`Extracted ${kpCount} base features. Quality score: ${aggregateScore}/100.`, 'success');
+                }
+
+                // Cleanup OpenCV local memory matrices
+                baseKeypoints.delete();
+                baseDescriptors.delete();
+
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('auto') === 'true') {
+                    log("Auto-save mode triggered. Saving target to server...");
+                    saveToServer().then(() => {
+                        log("Auto-save completed. You can close this tab or page.", "success");
+                    });
+                }
+
+            } catch(e) {
+                log(`Error analyzing target image features: ${e.message || e}`, 'error');
+            } finally {
+                if (srcMat) srcMat.delete();
+                if (grayMat) grayMat.delete();
+                if (orb) orb.delete();
+                if (matcher) matcher.delete();
+            }
+        }
+
+        function setMetricColor(barId, statusId, score) {
+            const bar = document.getElementById(barId);
+            const status = document.getElementById(statusId);
+            const color = score >= 75 ? 'var(--success)' : score >= 45 ? 'var(--warning)' : 'var(--danger)';
+            bar.style.backgroundColor = color;
+            status.style.color = color;
+        }
+
+        async function saveToServer() {
+            if (!compiledResult) return;
+            const btn = document.getElementById('btn-compile');
+            const btnText = btn.innerText;
+
+            btn.disabled = true;
+            btn.innerText = "Syncing with Server...";
+            log("Sending target.json compiled package to server...");
+
+            try {
+                const buffer = new TextEncoder().encode(JSON.stringify(compiledResult));
+                const response = await fetch('/save-target', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/octet-stream' },
                     body: buffer
                 });
 
                 if (response.ok) {
-                    log("Successfully saved to assets/targets.mind!", "success");
-                    statusEl.innerText = "Compilation Successful!";
-                    statusEl.style.color = "#2ecc71";
-                    progressFill.style.background = "linear-gradient(90deg, #2ecc71, #a6e22e)";
-                    progressFill.style.boxShadow = "0 0 10px rgba(46, 204, 113, 0.5)";
-                    log("You can close this tab now. The server will shut down automatically.", "success");
+                    log("Successfully saved compiled target to assets/target.json!", "success");
+                    btn.innerText = "✓ Synced successfully";
+                    btn.style.background = 'linear-gradient(135deg, var(--success), #27ae60)';
+                    btn.style.color = '#fff';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerText = btnText;
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 3000);
                 } else {
-                    const text = await response.text();
-                    throw new Error(`Server failed to save: ${text}`);
+                    const errText = await response.text();
+                    throw new Error(errText);
                 }
-            } catch (err) {
-                log(err.message, "error");
-                statusEl.innerText = "Compilation Failed!";
-                statusEl.style.color = "#e74c3c";
-                progressFill.style.background = "#e74c3c";
-                progressFill.style.boxShadow = "0 0 10px rgba(231, 76, 60, 0.5)";
+            } catch(e) {
+                log(`Failed to save target to server: ${e.message}`, 'error');
+                btn.disabled = false;
+                btn.innerText = btnText;
             }
         }
 
-        // Wait a small bit before starting to allow rendering
-        window.addEventListener('load', () => setTimeout(startCompile, 500));
+        // Bootstrap on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            setupUI();
+            
+            // Check if openCV already initialized before listener attached
+            if (window.cvInitialized) {
+                window.dispatchEvent(new CustomEvent('opencv-ready'));
+            }
+
+            // Auto-load default label if present in assets folder
+            loadImgSrc('assets/mark.jpg');
+        });
     </script>
 </body>
 </html>

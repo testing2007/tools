@@ -41,6 +41,7 @@ const server = http.createServer((req, res) => {
                 else if (ext === '.mp4') contentType = 'video/mp4';
                 else if (ext === '.css') contentType = 'text/css';
                 else if (ext === '.mind') contentType = 'application/octet-stream';
+                else if (ext === '.json') contentType = 'application/json';
 
                 console.log(`[GET] 200 - ${req.url} (${contentType})`);
                 res.writeHead(200, { 
@@ -52,7 +53,8 @@ const server = http.createServer((req, res) => {
                 res.end(content);
             }
         });
-    } else if (req.method === 'POST' && req.url === '/save-mind') {
+    } else if (req.method === 'POST' && (req.url === '/save-mind' || req.url === '/save-target')) {
+        const isJson = req.url === '/save-target';
         let body = [];
         req.on('data', chunk => body.push(chunk));
         req.on('end', () => {
@@ -62,12 +64,13 @@ const server = http.createServer((req, res) => {
                 if (!fs.existsSync('./assets')) {
                     fs.mkdirSync('./assets');
                 }
-                fs.writeFileSync('./assets/targets.mind', buffer);
-                console.log('Successfully saved targets.mind to assets/targets.mind!');
+                const filename = isJson ? './assets/target.json' : './assets/targets.mind';
+                fs.writeFileSync(filename, buffer);
+                console.log(`Successfully saved ${filename}!`);
                 res.writeHead(200, { 'Content-Type': 'text/plain' });
                 res.end('Saved successfully');
             } catch (err) {
-                console.error('Failed to save targets.mind:', err);
+                console.error(`Failed to save file:`, err);
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end('Failed to save file: ' + err.message);
             }
