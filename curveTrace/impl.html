@@ -665,6 +665,9 @@
                 <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">├─ LK Flow: <span id="perf-flow">0.0ms</span></div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">├─ ORB/Match: <span id="perf-orb">0.0ms</span></div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">└─ PnP Solve: <span id="perf-pnp">0.0ms</span></div>
+                <div style="display: flex; justify-content: space-between;">rVFC Frames: <span id="db-rvfc-frames" style="color: var(--text); font-weight: 600;">-</span></div>
+                <div style="display: flex; justify-content: space-between;">Pose Age: <span id="db-pose-age" style="color: var(--text); font-weight: 600;">-</span></div>
+                <div style="display: flex; justify-content: space-between;">Frame Late: <span id="db-frame-late" style="color: var(--text); font-weight: 600;">-</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Status: <span id="db-pnp-status"
                         style="color: var(--text); font-weight: 600;">Idle</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Method: <span id="db-pnp-method"
@@ -676,6 +679,11 @@
                     style="margin-top: 8px; width: 100%; padding: 6px; border-radius: 8px; font-size: 0.75rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.2); color: var(--primary);"
                     onclick="copyDebugInfo()">
                     📋 Copy Debug Info
+                </button>
+                <button class="btn" id="btn-reproj-overlay"
+                    style="margin-top: 4px; width: 100%; padding: 6px; border-radius: 8px; font-size: 0.75rem; background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.2); color: var(--primary);"
+                    onclick="toggleReprojOverlay()">
+                    🟢 Show Reproj Overlay
                 </button>
             </div>
         </div>
@@ -738,7 +746,7 @@
         let refHeight = 0;
         let refKeypoints = null;
         let refDescriptors = null;
-        const REF_LEVEL_SCALES = [1.0, 0.75, 0.5, 0.35];
+        const REF_LEVEL_SCALES = [1.0, 0.75, 0.5, 0.35, 0.25, 0.18];
         let refLevels = [];
         let lastSuccessScaleLevel = null;
 
@@ -787,6 +795,24 @@
         const prevTargetPos = new THREE.Vector3();
         const prevTargetQuat = new THREE.Quaternion();
         let lastTargetUpdateTime = 0;
+
+        // Camera background WebGL rendering (replaces DOM video display layer)
+        let cameraFeedTexture = null;
+        let cameraFeedScene = null;
+        let cameraFeedCamera = null;
+        let cameraFeedMesh = null;
+
+        // rVFC frame timing metadata for diagnostics
+        let lastPoseMeta = null;
+
+        // Lightweight pose prediction state
+        const poseVelocity = new THREE.Vector3();
+        let lastPoseSample = null;
+
+        // Reprojection debug overlay state
+        let debugOverlayCanvas = null;
+        let debugOverlayCtx = null;
+        let showReprojOverlay = false;
 
         // Load config from localStorage
         function loadConfig() {
@@ -921,13 +947,8 @@
             video.setAttribute('autoplay', '');
             video.setAttribute('playsinline', '');
             video.setAttribute('muted', '');
-            video.style.position = 'absolute';
-            video.style.top = '0';
-            video.style.left = '0';
-            video.style.width = '100vw';
-            video.style.height = '100vh';
-            video.style.objectFit = 'cover';
-            video.style.zIndex = '0';
+            // Camera video is hidden — feed rendered as Three.js WebGL background instead of DOM layer
+            video.style.display = 'none';
             document.body.appendChild(video);
 
             const constraints = {
@@ -1663,6 +1684,8 @@
                     flowRefPoints = nextRefPoints;
                     frameGray.copyTo(prevFlowGray);
                     flowFrameCounter++;
+                    // Draw reprojection diagnostic overlay (green = tracked 2D, red = projected 3D)
+                    drawReprojectionPoints(nextFramePoints, nextObjPoints);
                 }
 
                 return {
@@ -2078,6 +2101,25 @@
                 if (perfOrb) perfOrb.innerText = `${lastOrbTime.toFixed(1)}ms`;
                 const perfPnp = document.getElementById('perf-pnp');
                 if (perfPnp) perfPnp.innerText = `${lastPnpTime.toFixed(1)}ms`;
+
+                // rVFC frame metadata timing diagnostics
+                if (lastPoseMeta) {
+                    const nowMeta = performance.now();
+                    const poseAge = nowMeta - lastPoseMeta.solvedAt;
+                    const frameLate = nowMeta - (lastPoseMeta.expectedDisplayTime || nowMeta);
+                    const dbRvfcFrames = document.getElementById('db-rvfc-frames');
+                    if (dbRvfcFrames) dbRvfcFrames.innerText = lastPoseMeta.presentedFrames || '-';
+                    const dbPoseAge = document.getElementById('db-pose-age');
+                    if (dbPoseAge) {
+                        dbPoseAge.innerText = `${poseAge.toFixed(1)}ms`;
+                        dbPoseAge.style.color = poseAge > 30 ? '#e74c3c' : 'var(--text)';
+                    }
+                    const dbFrameLate = document.getElementById('db-frame-late');
+                    if (dbFrameLate) {
+                        dbFrameLate.innerText = `${frameLate.toFixed(1)}ms`;
+                        dbFrameLate.style.color = frameLate > 5 ? '#e74c3c' : 'var(--success)';
+                    }
+                }
             }
 
             const statusText = document.getElementById('status-text');
@@ -2096,6 +2138,19 @@
                     if (flowState === 'TRACKING_FLOW') {
                         currentPos.copy(targetPos);
                         currentQuat.copy(targetQuat);
+                        // EMA-smoothed pose velocity for prediction (alpha=0.25 damps high-freq noise)
+                        const nowPred = performance.now();
+                        if (lastPoseSample) {
+                            const dtPred = Math.max((nowPred - lastPoseSample.time) / 1000, 0.001);
+                            const rawVelocity = new THREE.Vector3()
+                                .copy(currentPos).sub(lastPoseSample.pos)
+                                .multiplyScalar(1.0 / dtPred);
+                            // Exponential moving average: smooth out frame-to-frame noise
+                            poseVelocity.lerp(rawVelocity, 0.25);
+                        } else {
+                            poseVelocity.set(0, 0, 0);
+                        }
+                        lastPoseSample = { pos: currentPos.clone(), time: nowPred };
                     } else {
                         const factor = config.trackingMode === 'fast'
                             ? Number(config.lerpFactor)
@@ -2112,7 +2167,15 @@
 
                 // Update Three.js camera pose directly
                 camera.matrixAutoUpdate = false;
-                camera.position.copy(currentPos);
+                // Prediction dead zone: suppress prediction when nearly stationary to prevent noise jitter
+                // Only predict when velocity exceeds 0.015 units/sec (empirical threshold)
+                const velMag = poseVelocity.length();
+                if (flowState === 'TRACKING_FLOW' && lastPoseSample && velMag > 0.015) {
+                    const predictedPos = currentPos.clone().addScaledVector(poseVelocity, 0.020);
+                    camera.position.copy(predictedPos);
+                } else {
+                    camera.position.copy(currentPos);
+                }
                 camera.quaternion.copy(currentQuat);
                 camera.updateMatrix();
                 camera.updateMatrixWorld(true);
@@ -2145,7 +2208,7 @@
         }
 
         // Live AR Frame-by-Frame feature extraction & PnP processing loop
-        function processFrame() {
+        function processFrame(rvfcMetadata) {
             if (currentMode !== 'AR' || !cameraVideo) return;
             if (cameraVideo.readyState < 2) return;
             const frameStartTime = performance.now();
@@ -2221,8 +2284,13 @@
                         reprojErrVal = flowResult.reprojErr || 0.0;
                         dynamicMinMatches = config.flowMinPoints;
 
-                        // Periodically run background ORB matching to inject fresh features & fix drift
-                        if (flowFrameCounter % config.orbRelocalizeInterval === 0) {
+                        // Drift correction: run ORB only when pose is drifting OR at long safety interval
+                        // Avoids expensive ORB causing 90ms frame-late spikes during stable tracking
+                        const reprojDrifting = reprojErrVal > 2.5;
+                        const safetyInterval = Math.max(config.orbRelocalizeInterval * 5, 30);
+                        const shouldCorrect = (reprojDrifting && flowFrameCounter % config.orbRelocalizeInterval === 0)
+                            || (flowFrameCounter % safetyInterval === 0);
+                        if (shouldCorrect) {
                             ensureFrameFeatures();
                             runDriftCorrection(localFrameKeypoints, localFrameDescriptors);
                         }
@@ -2334,6 +2402,16 @@
                 }
             }
 
+            // Record rVFC frame metadata for timing diagnostics
+            if (trackingSuccess && rvfcMetadata) {
+                lastPoseMeta = {
+                    mediaTime: rvfcMetadata.mediaTime,
+                    expectedDisplayTime: rvfcMetadata.expectedDisplayTime,
+                    presentationTime: rvfcMetadata.presentationTime,
+                    presentedFrames: rvfcMetadata.presentedFrames || 0,
+                    solvedAt: performance.now()
+                };
+            }
             updateUIAndRenderer(trackingSuccess, goodMatchesCount, bestScaleText, dynamicMinMatches, bestInlierRatio, reprojErrVal, pnpStatus, pnpMethod, pnpError, pnpInlierCount, poseConfidence, frameStartTime);
         }
 
@@ -2351,23 +2429,185 @@
                 fallbackTimeoutId = null;
             }
 
-            const process = () => {
+            const process = (now, metadata) => {
                 if (currentMode === 'AR') {
-                    processFrame();
+                    processFrame(metadata || null);
                 }
                 if ('requestVideoFrameCallback' in cameraVideo) {
                     rvfcId = cameraVideo.requestVideoFrameCallback(process);
                 } else {
-                    fallbackTimeoutId = setTimeout(process, 1000 / 30);
+                    fallbackTimeoutId = setTimeout(() => process(performance.now(), null), 1000 / 30);
                 }
             };
 
             if ('requestVideoFrameCallback' in cameraVideo) {
                 rvfcId = cameraVideo.requestVideoFrameCallback(process);
             } else {
-                fallbackTimeoutId = setTimeout(process, 1000 / 30);
+                fallbackTimeoutId = setTimeout(() => process(performance.now(), null), 1000 / 30);
             }
         }
+
+        // ============================================================
+        // Three.js WebGL Camera Background (replaces DOM video layer)
+        // ============================================================
+
+        function initCameraBackground() {
+            if (!cameraVideo) return;
+            cameraFeedTexture = new THREE.VideoTexture(cameraVideo);
+            cameraFeedTexture.minFilter = THREE.LinearFilter;
+            cameraFeedTexture.magFilter = THREE.LinearFilter;
+            cameraFeedTexture.generateMipmaps = false;
+
+            cameraFeedScene = new THREE.Scene();
+            cameraFeedCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            const material = new THREE.MeshBasicMaterial({
+                map: cameraFeedTexture,
+                depthTest: false,
+                depthWrite: false
+            });
+
+            cameraFeedMesh = new THREE.Mesh(geometry, material);
+            cameraFeedScene.add(cameraFeedMesh);
+
+            updateCameraFeedUV();
+        }
+
+        // Update camera feed UV to simulate object-fit: cover behavior
+        function updateCameraFeedUV() {
+            if (!cameraFeedTexture || !cameraVideo) return;
+            const videoW = cameraVideo.videoWidth;
+            const videoH = cameraVideo.videoHeight;
+            if (!videoW || !videoH) return;
+
+            const container = document.getElementById('container');
+            const screenW = container ? container.clientWidth : window.innerWidth;
+            const screenH = container ? container.clientHeight : window.innerHeight;
+
+            const videoAR = videoW / videoH;
+            const screenAR = screenW / screenH;
+
+            let scaleU, scaleV, offsetU, offsetV;
+            if (videoAR > screenAR) {
+                // Video wider than screen — crop horizontally to cover
+                scaleU = screenAR / videoAR;
+                scaleV = 1;
+                offsetU = (1 - scaleU) / 2;
+                offsetV = 0;
+            } else {
+                // Video taller than screen — crop vertically to cover
+                scaleU = 1;
+                scaleV = videoAR / screenAR;
+                offsetU = 0;
+                offsetV = (1 - scaleV) / 2;
+            }
+
+            cameraFeedTexture.repeat.set(scaleU, scaleV);
+            cameraFeedTexture.offset.set(offsetU, offsetV);
+        }
+
+        // ============================================================
+        // Reprojection Debug Overlay
+        // ============================================================
+
+        function initDebugOverlay() {
+            debugOverlayCanvas = document.createElement('canvas');
+            debugOverlayCanvas.style.position = 'absolute';
+            debugOverlayCanvas.style.left = '0';
+            debugOverlayCanvas.style.top = '0';
+            debugOverlayCanvas.style.pointerEvents = 'none';
+            debugOverlayCanvas.style.zIndex = '20';
+            document.body.appendChild(debugOverlayCanvas);
+            debugOverlayCtx = debugOverlayCanvas.getContext('2d');
+            updateOverlaySize();
+        }
+
+        function updateOverlaySize() {
+            if (!debugOverlayCanvas) return;
+            debugOverlayCanvas.width = window.innerWidth;
+            debugOverlayCanvas.height = window.innerHeight;
+        }
+
+        function clearDebugOverlay() {
+            if (!debugOverlayCtx || !debugOverlayCanvas) return;
+            debugOverlayCtx.clearRect(0, 0, debugOverlayCanvas.width, debugOverlayCanvas.height);
+        }
+
+        // Draw reprojection diagnostic: green = tracked feature points, red = projected 3D points
+        function drawReprojectionPoints(framePoints, objPoints) {
+            if (!showReprojOverlay || !debugOverlayCtx || !debugOverlayCanvas) return;
+            if (!framePoints || !objPoints || framePoints.length === 0) {
+                clearDebugOverlay();
+                return;
+            }
+
+            clearDebugOverlay();
+
+            const videoW = cameraVideo ? cameraVideo.videoWidth : trackW;
+            const videoH = cameraVideo ? cameraVideo.videoHeight : trackH;
+            const screenW = debugOverlayCanvas.width;
+            const screenH = debugOverlayCanvas.height;
+            const coverScale = Math.max(screenW / videoW, screenH / videoH);
+            const dispW = videoW * coverScale;
+            const dispH = videoH * coverScale;
+            const dx = (dispW - screenW) / 2;
+            const dy = (dispH - screenH) / 2;
+
+            const nativeScaleX = videoW / trackW;
+            const nativeScaleY = videoH / trackH;
+            const toScreenX = (tx) => tx * nativeScaleX * coverScale - dx;
+            const toScreenY = (ty) => ty * nativeScaleY * coverScale - dy;
+
+            const ctx = debugOverlayCtx;
+
+            // Green dots: LK-tracked 2D feature points
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.85)';
+            for (const pt of framePoints) {
+                ctx.beginPath();
+                ctx.arc(toScreenX(pt.x), toScreenY(pt.y), 5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // Red dots: projected 3D points using current rvec/tvec
+            if (rvec && tvec && !rvec.empty() && !tvec.empty() && cameraMatrixMat && objPoints.length > 0) {
+                let projectedMat = null;
+                let objPointsMat = null;
+                try {
+                    const objData = [];
+                    for (const p of objPoints) { objData.push(p.X, p.Y, p.Z); }
+                    objPointsMat = cv.matFromArray(objPoints.length, 3, cv.CV_32F, objData);
+                    projectedMat = new cv.Mat();
+                    cv.projectPoints(objPointsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, projectedMat);
+                    const projData = projectedMat.data32F;
+                    ctx.fillStyle = 'rgba(231, 76, 60, 0.85)';
+                    for (let i = 0; i < objPoints.length; i++) {
+                        const px = projData[i * 2], py = projData[i * 2 + 1];
+                        if (isFinite(px) && isFinite(py)) {
+                            ctx.beginPath();
+                            ctx.arc(toScreenX(px), toScreenY(py), 3, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+                } catch (e) { /* ignore overlay errors */ } finally {
+                    if (projectedMat) projectedMat.delete();
+                    if (objPointsMat) objPointsMat.delete();
+                }
+            }
+        }
+
+        function toggleReprojOverlay() {
+            showReprojOverlay = !showReprojOverlay;
+            const btn = document.getElementById('btn-reproj-overlay');
+            if (btn) {
+                btn.innerText = showReprojOverlay ? '🔴 Hide Reproj Overlay' : '🟢 Show Reproj Overlay';
+                btn.style.background = showReprojOverlay ? 'rgba(231, 76, 60, 0.2)' : 'rgba(0, 242, 254, 0.1)';
+                btn.style.borderColor = showReprojOverlay ? 'rgba(231, 76, 60, 0.4)' : 'rgba(0, 242, 254, 0.2)';
+                btn.style.color = showReprojOverlay ? '#e74c3c' : 'var(--primary)';
+            }
+            if (!showReprojOverlay) clearDebugOverlay();
+        }
+        window.toggleReprojOverlay = toggleReprojOverlay;
 
         // Rebuild cylinder geometry which renders the video
         function createCylinderMesh() {
@@ -2514,10 +2754,8 @@
             tabAr.classList.toggle('active', mode === 'AR');
             tabPreview.classList.toggle('active', mode === 'PREVIEW');
 
-            // Toggle camera video element (Hide background feed in preview mode to show clean 3D bottle)
-            if (cameraVideo) {
-                cameraVideo.style.display = (mode === 'PREVIEW') ? 'none' : 'block';
-            }
+            // Camera video is always hidden — feed rendered via Three.js WebGL background in AR mode
+            // (no DOM display change needed)
 
             if (isFront) {
                 if (mode === 'AR') {
@@ -2678,6 +2916,9 @@
             if (currentMode === 'AR') {
                 updateCameraProjection();
             }
+            // Sync camera feed UV crop and overlay canvas size on resize
+            updateCameraFeedUV();
+            updateOverlaySize();
         }
         window.handleResize = handleResize;
 
@@ -2693,6 +2934,7 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.setClearColor(0x000000, 0);
+            renderer.autoClear = false; // Manual clear for two-pass camera background + AR rendering
             container.appendChild(renderer.domElement);
 
             if (isFront) {
@@ -2700,6 +2942,10 @@
             }
 
             scene = new THREE.Scene();
+
+            // Initialize WebGL camera background (replaces DOM video) and debug overlay
+            initCameraBackground();
+            initDebugOverlay();
 
             // Setup main camera (pose solved dynamically via PnP)
             camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
@@ -2742,11 +2988,19 @@
             // Start video frame processing loop separately
             startVideoProcessingLoop();
 
-            // Animation render loop
+            // Animation render loop: two-pass — camera background first, then AR content
             renderer.setAnimationLoop(() => {
+                renderer.clear();
                 if (currentMode === 'AR') {
+                    // Pass 1: render camera feed as WebGL background (same display chain as AR mesh)
+                    if (cameraFeedScene && cameraFeedCamera) {
+                        renderer.render(cameraFeedScene, cameraFeedCamera);
+                    }
+                    // Pass 2: render AR content over camera background
+                    renderer.clearDepth();
                     renderer.render(scene, camera);
                 } else {
+                    // Preview mode: orbit-controlled 3D scene (transparent canvas, body bg shows through)
                     orbitControls.update();
                     renderer.render(scene, previewCamera);
                 }
