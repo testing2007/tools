@@ -552,12 +552,11 @@
             <div class="slider-group">
                 <div class="slider-label">
                     <span>Responsiveness</span>
-                    <span class="slider-val" id="val-lerpFactor">0.15</span>
+                    <span class="slider-val" id="val-lerpFactor">0.04</span>
                 </div>
-                <input type="range" id="lerpFactor" min="0.02" max="1.0" step="0.02" value="0.15">
+                <input type="range" id="lerpFactor" min="0.0" max="0.30" step="0.01" value="0.04">
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; line-height: 1.2;">
-                    Higher = instant lock onto bottle (no lag, potential jitter). Lower = smoother tracking (more lag).
-                    Use 1.0 for zero-lag lock.
+                    Fast mode uses this as micro-smoothing only. 0 = zero-lag, higher = smoother but slower.
                 </div>
             </div>
         </div>
@@ -634,6 +633,14 @@
                         style="color: var(--text); font-weight: 600;">0</span></div>
                 <div style="display: flex; justify-content: space-between;">Inlier Ratio: <span id="db-inlier-ratio"
                         style="color: var(--text); font-weight: 600;">0%</span></div>
+                <div style="display: flex; justify-content: space-between;">Tracking Mode: <span id="db-tracking-mode"
+                        style="color: var(--text); font-weight: 600;">SCANNING</span></div>
+                <div style="display: flex; justify-content: space-between;">Flow Points: <span id="db-flow-points"
+                        style="color: var(--text); font-weight: 600;">0</span></div>
+                <div style="display: flex; justify-content: space-between;">Flow Ratio: <span id="db-flow-ratio"
+                        style="color: var(--text); font-weight: 600;">0%</span></div>
+                <div style="display: flex; justify-content: space-between;">Frame Cost: <span id="db-frame-cost"
+                        style="color: var(--text); font-weight: 600;">0ms</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Status: <span id="db-pnp-status"
                         style="color: var(--text); font-weight: 600;">Idle</span></div>
                 <div style="display: flex; justify-content: space-between;">PnP Method: <span id="db-pnp-method"
@@ -666,10 +673,14 @@
             rotY: 0,
             rotZ: 0,
             thetaLength: 73,
-            lerpFactor: 0.15,
+            lerpFactor: 0.04,
             minMatches: 12,
             hammingCutoff: 55,
-            fovScale: 1.05
+            fovScale: 1.05,
+            trackingMode: "fast",
+            flowMinPoints: 12,
+            flowMinRatio: 0.45,
+            orbRelocalizeInterval: 12
         };
 
         let config = { ...defaultConfig };
@@ -711,6 +722,13 @@
         let frameGray = null;
         let frameKeypoints = null;
         let frameDescriptors = null;
+        let prevFlowGray = null;
+        let flowObjPoints = [];
+        let flowFramePoints = [];
+        let flowRefPoints = [];
+        let flowState = 'SCANNING';
+        let flowFrameCounter = 0;
+        let lastFlowRatio = 0.0;
 
         let cameraMatrixMat = null;
         let distCoeffsMat = null;
@@ -1054,6 +1072,7 @@
 
             frameMat = new cv.Mat(trackH, trackW, cv.CV_8UC4);
             frameGray = new cv.Mat();
+            prevFlowGray = new cv.Mat();
 
             cameraMatrixMat = new cv.Mat(3, 3, cv.CV_64F);
             distCoeffsMat = cv.Mat.zeros(4, 1, cv.CV_64F);
@@ -1164,10 +1183,257 @@
             return true;
         }
 
+        function resetFlowTracking(mode = 'SCANNING') {
+            flowState = mode;
+            flowObjPoints = [];
+            flowFramePoints = [];
+            flowRefPoints = [];
+            flowFrameCounter = 0;
+            lastFlowRatio = 0.0;
+        }
+
+        function seedFlowTracking(level, matches, localFrameKeypoints) {
+            flowObjPoints = [];
+            flowFramePoints = [];
+            flowRefPoints = [];
+
+            for (const m of matches.slice(0, 80)) {
+                const pt3D = level.points3D[m.queryIdx];
+                const refPt = level.originalPoints[m.queryIdx];
+                const kp = localFrameKeypoints.get(m.trainIdx);
+                if (!pt3D || !refPt || !kp) continue;
+
+                flowObjPoints.push({ X: pt3D.X, Y: pt3D.Y, Z: pt3D.Z });
+                flowRefPoints.push({ x: refPt.x, y: refPt.y });
+                flowFramePoints.push({ x: kp.pt.x, y: kp.pt.y });
+            }
+
+            if (flowFramePoints.length >= config.flowMinPoints) {
+                frameGray.copyTo(prevFlowGray);
+                flowState = 'TRACKING_FLOW';
+                flowFrameCounter = 1;
+                lastFlowRatio = 1.0;
+            } else {
+                resetFlowTracking('RELOCALIZING');
+            }
+        }
+
+        function applySolvedPose(rvecMat, tvecMat, poseConfidenceSource, statusPrefix) {
+            cv.Rodrigues(rvecMat, RMat);
+            const rD = RMat.data64F;
+            const tD = tvecMat.data64F;
+
+            if (!isFinite(tD[0]) || !isFinite(tD[1]) || !isFinite(tD[2]) || tD[2] <= 0.1) {
+                return { success: false, status: 'Rejected Behind/Inf' };
+            }
+
+            const m = new THREE.Matrix4();
+            m.set(
+                rD[0], rD[1], rD[2], tD[0],
+                -rD[3], -rD[4], -rD[5], -tD[1],
+                -rD[6], -rD[7], -rD[8], -tD[2],
+                0, 0, 0, 1
+            );
+
+            const camWorldMatrix = m.clone().invert();
+            const tempCamPos = new THREE.Vector3();
+            const tempCamQuat = new THREE.Quaternion();
+            camWorldMatrix.decompose(tempCamPos, tempCamQuat, new THREE.Vector3());
+
+            const dist = tempCamPos.length();
+            if (dist < 0.5 || dist > 25.0) {
+                return { success: false, status: `Rejected Dist: ${dist.toFixed(2)}` };
+            }
+
+            const now = performance.now();
+            const hasRecentPose = !isFirstTrackingFrame && (now - lastSuccessTime < 350);
+            const lastPosePos = lastSuccessTime > 0 ? targetPos : currentPos;
+            const lastPoseQuat = lastSuccessTime > 0 ? targetQuat : currentQuat;
+            const positionJump = hasRecentPose ? tempCamPos.distanceTo(lastPosePos) : 0;
+            const rotationJump = hasRecentPose ? tempCamQuat.angleTo(lastPoseQuat) : 0;
+            const maxPositionJump = flowState === 'TRACKING_FLOW'
+                ? Math.max(0.35, lastPosePos.length() * 0.40)
+                : Math.max(0.18, lastPosePos.length() * 0.22);
+            const maxRotationJump = THREE.MathUtils.degToRad(flowState === 'TRACKING_FLOW' ? 45 : 28);
+
+            // 光流模式优先低延迟，所以门控比 ORB 重定位宽一些，只拦截明显飞走的单帧解。
+            if (hasRecentPose && (positionJump > maxPositionJump || rotationJump > maxRotationJump)) {
+                return {
+                    success: false,
+                    status: `Rejected Jump: ${positionJump.toFixed(2)} / ${THREE.MathUtils.radToDeg(rotationJump).toFixed(0)}°`
+                };
+            }
+
+            targetPos.copy(tempCamPos);
+            targetQuat.copy(tempCamQuat);
+            lastSuccessTime = now;
+            return {
+                success: true,
+                status: statusPrefix,
+                confidence: THREE.MathUtils.clamp(poseConfidenceSource, 0.25, 1.0)
+            };
+        }
+
+        function solvePoseFromArrays(objPointList, imgPointList, minPoints, poseConfidenceSource, statusPrefix = 'Success (Flow PnP)') {
+            if (objPointList.length < minPoints || imgPointList.length < minPoints) {
+                return { success: false, status: `Need >= ${minPoints} flow points`, method: 'None', error: 'None', inliers: 0 };
+            }
+
+            let objPointsMat = null;
+            let imgPointsMat = null;
+            let pnpInliersMat = null;
+
+            try {
+                const objData = [];
+                const imgData = [];
+                for (let i = 0; i < objPointList.length; i++) {
+                    const p3 = objPointList[i];
+                    const p2 = imgPointList[i];
+                    objData.push(p3.X, p3.Y, p3.Z);
+                    imgData.push(p2.x, p2.y);
+                }
+
+                objPointsMat = cv.matFromArray(objPointList.length, 3, cv.CV_32F, objData);
+                imgPointsMat = cv.matFromArray(imgPointList.length, 2, cv.CV_32F, imgData);
+                const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
+                let success = false;
+                let method = 'solvePnP';
+                let pnpInlierCount = objPointList.length;
+
+                if (cv.solvePnPRansac) {
+                    pnpInliersMat = new cv.Mat();
+                    success = cv.solvePnPRansac(
+                        objPointsMat,
+                        imgPointsMat,
+                        cameraMatrixMat,
+                        distCoeffsMat,
+                        rvec,
+                        tvec,
+                        false,
+                        50,
+                        5.0,
+                        0.99,
+                        pnpInliersMat,
+                        pnpFlags
+                    );
+                    pnpInlierCount = pnpInliersMat.rows || pnpInliersMat.data32S?.length || 0;
+                    method = `Flow solvePnPRansac (${pnpInlierCount})`;
+                } else {
+                    success = cv.solvePnP(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, pnpFlags);
+                    method = 'Flow solvePnP';
+                }
+
+                const minPnpInliers = Math.max(8, Math.ceil(minPoints * 0.75));
+                if (success && pnpInlierCount < minPnpInliers) {
+                    return { success: false, status: `Low Flow PnP Inliers: ${pnpInlierCount}`, method, error: 'None', inliers: pnpInlierCount };
+                }
+
+                if (!success) {
+                    return { success: false, status: 'Failed (Flow PnP)', method, error: 'None', inliers: pnpInlierCount };
+                }
+
+                const pose = applySolvedPose(rvec, tvec, poseConfidenceSource, statusPrefix);
+                return { ...pose, method, error: 'None', inliers: pnpInlierCount };
+            } catch (err) {
+                return { success: false, status: 'Flow PnP Exception', method: 'Flow PnP', error: err.message || String(err), inliers: 0 };
+            } finally {
+                if (objPointsMat) objPointsMat.delete();
+                if (imgPointsMat) imgPointsMat.delete();
+                if (pnpInliersMat) pnpInliersMat.delete();
+            }
+        }
+
+        function tryTrackWithOpticalFlow() {
+            if (flowState !== 'TRACKING_FLOW' || flowFramePoints.length < config.flowMinPoints || !prevFlowGray || prevFlowGray.empty()) {
+                return { success: false, status: 'Flow Not Ready', points: 0, ratio: 0, method: 'None', error: 'None' };
+            }
+
+            let prevPtsMat = null;
+            let nextPtsMat = null;
+            let statusMat = null;
+            let errMat = null;
+
+            try {
+                const prevPts = [];
+                for (const pt of flowFramePoints) {
+                    prevPts.push(pt.x, pt.y);
+                }
+
+                prevPtsMat = cv.matFromArray(flowFramePoints.length, 1, cv.CV_32FC2, prevPts);
+                nextPtsMat = new cv.Mat();
+                statusMat = new cv.Mat();
+                errMat = new cv.Mat();
+                const winSize = new cv.Size(21, 21);
+                const criteria = new cv.TermCriteria(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 20, 0.03);
+
+                cv.calcOpticalFlowPyrLK(prevFlowGray, frameGray, prevPtsMat, nextPtsMat, statusMat, errMat, winSize, 3, criteria);
+
+                const nextData = nextPtsMat.data32F;
+                const statusData = statusMat.data;
+                const nextObjPoints = [];
+                const nextFramePoints = [];
+                const nextRefPoints = [];
+
+                for (let i = 0; i < flowFramePoints.length; i++) {
+                    if (statusData[i] !== 1) continue;
+                    const x = nextData[i * 2];
+                    const y = nextData[i * 2 + 1];
+                    if (!isFinite(x) || !isFinite(y) || x < 0 || y < 0 || x >= trackW || y >= trackH) continue;
+
+                    nextObjPoints.push(flowObjPoints[i]);
+                    nextFramePoints.push({ x, y });
+                    nextRefPoints.push(flowRefPoints[i]);
+                }
+
+                const flowRatio = flowFramePoints.length > 0 ? nextFramePoints.length / flowFramePoints.length : 0;
+                lastFlowRatio = flowRatio;
+
+                if (nextFramePoints.length < config.flowMinPoints || flowRatio < config.flowMinRatio) {
+                    return {
+                        success: false,
+                        status: `Flow Lost: ${nextFramePoints.length}/${flowFramePoints.length}`,
+                        points: nextFramePoints.length,
+                        ratio: flowRatio,
+                        method: 'LK Flow',
+                        error: 'None'
+                    };
+                }
+
+                const poseConfidenceSource = (flowRatio * 0.65) + (Math.min(nextFramePoints.length / 40, 1) * 0.35);
+                const poseResult = solvePoseFromArrays(
+                    nextObjPoints,
+                    nextFramePoints,
+                    config.flowMinPoints,
+                    poseConfidenceSource,
+                    'Success (Flow)'
+                );
+
+                if (poseResult.success) {
+                    flowObjPoints = nextObjPoints;
+                    flowFramePoints = nextFramePoints;
+                    flowRefPoints = nextRefPoints;
+                    frameGray.copyTo(prevFlowGray);
+                    flowFrameCounter++;
+                }
+
+                return {
+                    ...poseResult,
+                    points: nextFramePoints.length,
+                    ratio: flowRatio
+                };
+            } finally {
+                if (prevPtsMat) prevPtsMat.delete();
+                if (nextPtsMat) nextPtsMat.delete();
+                if (statusMat) statusMat.delete();
+                if (errMat) errMat.delete();
+            }
+        }
+
         // Live AR Frame-by-Frame feature extraction & PnP processing loop
         function processFrame() {
             if (currentMode !== 'AR' || !cameraVideo) return;
             if (cameraVideo.readyState < 2) return;
+            const frameStartTime = performance.now();
 
             // Dynamically initialize camera projection matrix when camera dimensions are ready
             if (!projectionInitialized) {
@@ -1184,12 +1450,18 @@
             let bestScaleText = "-";
             let dynamicMinMatches = Math.round(config.minMatches);
             let bestInlierRatio = 0.0;
+            let pnpInlierCount = 0;
+            let poseConfidence = 1.0;
+            let flowPointCount = flowFramePoints.length;
+            let flowRatio = lastFlowRatio;
+            let trackingModeText = flowState;
 
             // Local transient variables for memory cleanup
             let localFrameKeypoints = null;
             let localFrameDescriptors = null;
             let objPointsMat = null;
             let imgPointsMat = null;
+            let pnpInliersMat = null;
 
             try {
                 // Update ref keypoints display
@@ -1206,17 +1478,46 @@
                 tempMat.delete();
                 cv.cvtColor(frameMat, frameGray, cv.COLOR_RGBA2GRAY);
 
-                // Allocate per-frame keypoints and descriptors
-                localFrameKeypoints = new cv.KeyPointVector();
-                localFrameDescriptors = new cv.Mat();
+                const shouldTryFlow = config.trackingMode === 'fast'
+                    && flowState === 'TRACKING_FLOW'
+                    && flowFramePoints.length >= config.flowMinPoints
+                    && (flowFrameCounter % config.orbRelocalizeInterval !== 0);
 
-                // Compute ORB features on frame (reuse maskMat to prevent memory leaks)
-                orb.detectAndCompute(frameGray, maskMat, localFrameKeypoints, localFrameDescriptors);
+                if (shouldTryFlow) {
+                    const flowResult = tryTrackWithOpticalFlow();
+                    flowPointCount = flowResult.points || 0;
+                    flowRatio = flowResult.ratio || 0;
+                    pnpStatus = flowResult.status || pnpStatus;
+                    pnpMethod = flowResult.method || pnpMethod;
+                    pnpError = flowResult.error || pnpError;
+                    pnpInlierCount = flowResult.inliers || 0;
 
-                const dbFrameKp = document.getElementById('db-frame-kp');
-                if (dbFrameKp) dbFrameKp.innerText = localFrameKeypoints.size();
+                    if (flowResult.success) {
+                        trackingSuccess = true;
+                        goodMatchesCount = flowPointCount;
+                        bestInlierRatio = flowRatio;
+                        bestScaleText = 'flow';
+                        dynamicMinMatches = config.flowMinPoints;
+                        poseConfidence = flowResult.confidence || poseConfidence;
+                        trackingModeText = 'TRACKING_FLOW';
+                    } else {
+                        resetFlowTracking('RELOCALIZING');
+                        trackingModeText = 'RELOCALIZING';
+                    }
+                }
 
-                if (!localFrameDescriptors.empty() && refLevels.some(level => !level.descriptors.empty())) {
+                if (!trackingSuccess) {
+                    // Allocate per-frame keypoints and descriptors
+                    localFrameKeypoints = new cv.KeyPointVector();
+                    localFrameDescriptors = new cv.Mat();
+
+                    // Compute ORB features on frame (reuse maskMat to prevent memory leaks)
+                    orb.detectAndCompute(frameGray, maskMat, localFrameKeypoints, localFrameDescriptors);
+
+                    const dbFrameKp = document.getElementById('db-frame-kp');
+                    if (dbFrameKp) dbFrameKp.innerText = localFrameKeypoints.size();
+
+                    if (!localFrameDescriptors.empty() && refLevels.some(level => !level.descriptors.empty())) {
                     let bestLevelResult = null;
 
                     for (const level of refLevels) {
@@ -1350,27 +1651,75 @@
                             objPointsMat = cv.matFromArray(numPts, 3, cv.CV_32F, objPoints);
                             imgPointsMat = cv.matFromArray(numPts, 2, cv.CV_32F, imgPoints);
 
-                            const useExtrinsicGuess = false;
                             const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
-                            pnpMethod = "solvePnP (8 args)";
+                            pnpMethod = "solvePnP";
 
                             let success = false;
                             try {
-                                success = cv.solvePnP(
-                                    objPointsMat,
-                                    imgPointsMat,
-                                    cameraMatrixMat,
-                                    distCoeffsMat,
-                                    rvec,
-                                    tvec,
-                                    useExtrinsicGuess,
-                                    pnpFlags
-                                );
+                                if (cv.solvePnPRansac) {
+                                    if (pnpInliersMat) {
+                                        pnpInliersMat.delete();
+                                        pnpInliersMat = null;
+                                    }
+                                    pnpInliersMat = new cv.Mat();
+                                    success = cv.solvePnPRansac(
+                                        objPointsMat,
+                                        imgPointsMat,
+                                        cameraMatrixMat,
+                                        distCoeffsMat,
+                                        rvec,
+                                        tvec,
+                                        false,
+                                        80,
+                                        6.0,
+                                        0.99,
+                                        pnpInliersMat,
+                                        pnpFlags
+                                    );
+                                    pnpInlierCount = pnpInliersMat.rows || pnpInliersMat.data32S?.length || 0;
+                                    pnpMethod = `solvePnPRansac (${pnpInlierCount})`;
+                                } else {
+                                    success = cv.solvePnP(
+                                        objPointsMat,
+                                        imgPointsMat,
+                                        cameraMatrixMat,
+                                        distCoeffsMat,
+                                        rvec,
+                                        tvec,
+                                        false,
+                                        pnpFlags
+                                    );
+                                    pnpInlierCount = numPts;
+                                    pnpMethod = "solvePnP fallback";
+                                }
                                 pnpStatus = success ? "Success (PnP)" : "Failed (PnP)";
                             } catch (err) {
-                                pnpError = err.message || String(err);
-                                console.error('cv.solvePnP threw error:', err);
-                                pnpStatus = "PnP Exception";
+                                console.warn('solvePnPRansac failed, falling back to solvePnP:', err);
+                                try {
+                                    success = cv.solvePnP(
+                                        objPointsMat,
+                                        imgPointsMat,
+                                        cameraMatrixMat,
+                                        distCoeffsMat,
+                                        rvec,
+                                        tvec,
+                                        false,
+                                        pnpFlags
+                                    );
+                                    pnpInlierCount = numPts;
+                                    pnpMethod = "solvePnP fallback";
+                                    pnpStatus = success ? "Success (PnP)" : "Failed (PnP)";
+                                } catch (fallbackErr) {
+                                    pnpError = fallbackErr.message || String(fallbackErr);
+                                    console.error('cv.solvePnP threw error:', fallbackErr);
+                                    pnpStatus = "PnP Exception";
+                                }
+                            }
+
+                            const minPnpInliers = Math.max(8, Math.ceil(dynamicMinMatches * 0.75));
+                            if (success && pnpInlierCount < minPnpInliers) {
+                                success = false;
+                                pnpStatus = `Low PnP Inliers: ${pnpInlierCount}`;
                             }
 
                             if (success) {
@@ -1401,10 +1750,33 @@
                                     // Validate camera distance in Three.js units (between 0.5 and 25.0)
                                     const dist = tempCamPos.length();
                                     if (dist >= 0.5 && dist <= 25.0) {
-                                        targetPos.copy(tempCamPos);
-                                        targetQuat.copy(tempCamQuat);
-                                        trackingSuccess = true;
-                                        lastSuccessTime = performance.now();
+                                        const now = performance.now();
+                                        const hasRecentPose = !isFirstTrackingFrame && (now - lastSuccessTime < 350);
+                                        const lastPosePos = lastSuccessTime > 0 ? targetPos : currentPos;
+                                        const lastPoseQuat = lastSuccessTime > 0 ? targetQuat : currentQuat;
+                                        const positionJump = hasRecentPose ? tempCamPos.distanceTo(lastPosePos) : 0;
+                                        const rotationJump = hasRecentPose ? tempCamQuat.angleTo(lastPoseQuat) : 0;
+                                        const maxPositionJump = Math.max(0.18, lastPosePos.length() * 0.22);
+                                        const maxRotationJump = THREE.MathUtils.degToRad(28);
+
+                                        // 瓶身贴合最怕单帧误解导致“飞一下”，近期连续跟踪时拒绝突发的大位移/大旋转解。
+                                        if (hasRecentPose && (positionJump > maxPositionJump || rotationJump > maxRotationJump)) {
+                                            pnpStatus = `Rejected Jump: ${positionJump.toFixed(2)} / ${THREE.MathUtils.radToDeg(rotationJump).toFixed(0)}°`;
+                                        } else {
+                                            targetPos.copy(tempCamPos);
+                                            targetQuat.copy(tempCamQuat);
+                                            poseConfidence = THREE.MathUtils.clamp(
+                                                (bestInlierRatio * 0.55) + (Math.min(goodMatchesCount / Math.max(dynamicMinMatches * 2, 1), 1) * 0.45),
+                                                0.35,
+                                                1.0
+                                            );
+                                            trackingSuccess = true;
+                                            lastSuccessTime = now;
+                                            seedFlowTracking(level, topMatches, localFrameKeypoints);
+                                            flowPointCount = flowFramePoints.length;
+                                            flowRatio = lastFlowRatio;
+                                            trackingModeText = flowState;
+                                        }
                                     } else {
                                         pnpStatus = `Rejected Dist: ${dist.toFixed(2)}`;
                                     }
@@ -1422,11 +1794,18 @@
                             pnpStatus = `Low Ratio: ${Math.round(inlierRatio * 100)}%`;
                         }
                     }
+                        } else {
+                            pnpStatus = "No Match Scale";
+                        }
                     } else {
-                        pnpStatus = "No Match Scale";
+                        pnpStatus = "No Descriptors";
                     }
-                } else {
-                    pnpStatus = "No Descriptors";
+                }
+
+                if (!trackingSuccess && flowState === 'TRACKING_FLOW' && (performance.now() - lastSuccessTime < 500)) {
+                    // 周期性 ORB 校验没命中时不要卡住光流帧号，下一帧继续用 LK 快速跟踪。
+                    flowFrameCounter++;
+                    trackingModeText = 'TRACKING_FLOW';
                 }
             } catch (err) {
                 pnpError = err.message || String(err);
@@ -1438,6 +1817,7 @@
                 if (localFrameDescriptors) localFrameDescriptors.delete();
                 if (objPointsMat) objPointsMat.delete();
                 if (imgPointsMat) imgPointsMat.delete();
+                if (pnpInliersMat) pnpInliersMat.delete();
             }
 
             // Update debug UI
@@ -1456,12 +1836,25 @@
             if (dbDynamicMin) dbDynamicMin.innerText = dynamicMinMatches;
             const dbInlierRatio = document.getElementById('db-inlier-ratio');
             if (dbInlierRatio) dbInlierRatio.innerText = `${Math.round(bestInlierRatio * 100)}%`;
+            const dbTrackingMode = document.getElementById('db-tracking-mode');
+            if (dbTrackingMode) dbTrackingMode.innerText = trackingModeText || flowState;
+            const dbFlowPoints = document.getElementById('db-flow-points');
+            if (dbFlowPoints) dbFlowPoints.innerText = flowPointCount;
+            const dbFlowRatio = document.getElementById('db-flow-ratio');
+            if (dbFlowRatio) dbFlowRatio.innerText = `${Math.round(flowRatio * 100)}%`;
+            const dbFrameCost = document.getElementById('db-frame-cost');
+            if (dbFrameCost) dbFrameCost.innerText = `${Math.round(performance.now() - frameStartTime)}ms`;
 
             if (bestScaleText === "-") {
                 const dbRawMatches = document.getElementById('db-raw-matches');
                 if (dbRawMatches) dbRawMatches.innerText = "0";
                 const dbGoodMatches = document.getElementById('db-good-matches');
                 if (dbGoodMatches) dbGoodMatches.innerText = "0";
+            } else if (bestScaleText === "flow") {
+                const dbRawMatches = document.getElementById('db-raw-matches');
+                if (dbRawMatches) dbRawMatches.innerText = flowPointCount;
+                const dbGoodMatches = document.getElementById('db-good-matches');
+                if (dbGoodMatches) dbGoodMatches.innerText = `${flowPointCount} (${Math.round(flowRatio * 100)}%)`;
             }
 
             const statusText = document.getElementById('status-text');
@@ -1477,8 +1870,10 @@
                     currentQuat.copy(targetQuat);
                     isFirstTrackingFrame = false;
                 } else {
-                    const factor = config.lerpFactor;
-                    if (factor >= 0.99) {
+                    const factor = config.trackingMode === 'fast'
+                        ? Number(config.lerpFactor)
+                        : Math.max(0.04, config.lerpFactor * poseConfidence);
+                    if (factor <= 0.001 || factor >= 0.99) {
                         currentPos.copy(targetPos);
                         currentQuat.copy(targetQuat);
                     } else {
@@ -1505,6 +1900,7 @@
                 statusText.innerText = `SCANNING LABEL (${goodMatchesCount} matches)`;
                 statusBadge.className = 'status-badge scanning';
                 isFirstTrackingFrame = true;
+                resetFlowTracking('SCANNING');
 
                 // Pause video & fade out
                 if (videoElement) {
@@ -1899,6 +2295,10 @@
             const bestScale = document.getElementById('db-best-scale')?.innerText || '-';
             const dynamicMin = document.getElementById('db-dynamic-min')?.innerText || '0';
             const inlierRatio = document.getElementById('db-inlier-ratio')?.innerText || '0%';
+            const trackingMode = document.getElementById('db-tracking-mode')?.innerText || 'SCANNING';
+            const flowPoints = document.getElementById('db-flow-points')?.innerText || '0';
+            const flowRatio = document.getElementById('db-flow-ratio')?.innerText || '0%';
+            const frameCost = document.getElementById('db-frame-cost')?.innerText || '0ms';
             const pnpStatus = document.getElementById('db-pnp-status')?.innerText || 'Idle';
             const pnpMethod = document.getElementById('db-pnp-method')?.innerText || 'None';
             const pnpError = document.getElementById('db-pnp-error')?.innerText || 'None';
@@ -1910,6 +2310,10 @@ Matches (Good): ${goodMatches}
 Best Scale: ${bestScale}
 Dynamic Min: ${dynamicMin}
 Inlier Ratio: ${inlierRatio}
+Tracking Mode: ${trackingMode}
+Flow Points: ${flowPoints}
+Flow Ratio: ${flowRatio}
+Frame Cost: ${frameCost}
 PnP Status: ${pnpStatus}
 PnP Method: ${pnpMethod}
 PnP Error: ${pnpError}`;
