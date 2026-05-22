@@ -468,9 +468,63 @@
                 onclick="resetCalibration()">Reset</button>
         </div>
 
+        <!-- Physical Dimensions (mm) — drives geometry automatically -->
+        <div id="section-physdims">
+            <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>📐 Physical Dimensions (mm)</span>
+                <label style="font-size:0.7rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                    <input type="checkbox" id="usePhysicalDims" checked
+                        onchange="onPhysDimToggle(this.checked)"
+                        style="accent-color:var(--primary);">
+                    Auto
+                </label>
+            </div>
+            <div class="slider-group" id="physdims-group">
+                <!-- Label Width -->
+                <div class="slider-label">
+                    <span>Label Width (arc, mm)</span>
+                    <span class="slider-val" id="val-labelWidthMm">72</span>
+                </div>
+                <input type="range" id="labelWidthMm" min="20" max="300" step="1" value="72"
+                    oninput="onPhysDimInput('labelWidthMm', this.value)">
+
+                <!-- Label Height -->
+                <div class="slider-label" style="margin-top:10px;">
+                    <span>Label Height (mm)</span>
+                    <span class="slider-val" id="val-labelHeightMm">96</span>
+                </div>
+                <input type="range" id="labelHeightMm" min="20" max="300" step="1" value="96"
+                    oninput="onPhysDimInput('labelHeightMm', this.value)">
+
+                <!-- Radius Top -->
+                <div class="slider-label" style="margin-top:10px;">
+                    <span>Bottle Radius Top (mm)</span>
+                    <span class="slider-val" id="val-radiusTopMm">30</span>
+                </div>
+                <input type="range" id="radiusTopMm" min="5" max="100" step="1" value="30"
+                    oninput="onPhysDimInput('radiusTopMm', this.value)">
+
+                <!-- Radius Bottom -->
+                <div class="slider-label" style="margin-top:10px;">
+                    <span>Bottle Radius Bottom (mm)</span>
+                    <span class="slider-val" id="val-radiusBottomMm">30</span>
+                </div>
+                <input type="range" id="radiusBottomMm" min="5" max="100" step="1" value="30"
+                    oninput="onPhysDimInput('radiusBottomMm', this.value)">
+
+                <!-- Computed preview -->
+                <div id="physdims-derived"
+                    style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,242,254,0.06);border:1px solid rgba(0,242,254,0.15);font-size:0.72rem;line-height:1.7;color:var(--text-muted);">
+                    <div>→ Arc Angle: <b id="derived-theta" style="color:var(--primary);">—</b></div>
+                    <div>→ Height (units): <b id="derived-height" style="color:var(--primary);">—</b></div>
+                    <div>→ Radius Ratio: <b id="derived-rbot" style="color:var(--primary);">—</b></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Curvature Settings -->
         <div>
-            <div class="section-title">Curvature (Bottle Size)</div>
+            <div class="section-title">Curvature (Manual override when Auto is OFF)</div>
             <div class="slider-group">
                 <div class="slider-label">
                     <span>Upper Radius</span>
@@ -583,11 +637,38 @@
                 </div>
                 <input type="range" id="hammingCutoff" min="40" max="90" step="1" value="55">
 
-                <div class="slider-label" style="margin-top: 10px;">
-                    <span>Camera FOV / 焦距系数</span>
-                    <span class="slider-val" id="val-fovScale">1.05</span>
+
+                <!-- Camera intrinsics section -->
+                <div style="margin-top:12px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">📷 Camera Intrinsics</div>
+
+                    <div class="slider-label">
+                        <span>fx Scale (horiz focal)</span>
+                        <span class="slider-val" id="val-fxScale">1.05</span>
+                    </div>
+                    <input type="range" id="fxScale" min="0.60" max="2.00" step="0.01" value="1.05">
+
+                    <div class="slider-label" style="margin-top:10px;">
+                        <span>fy Scale (vert focal)</span>
+                        <span class="slider-val" id="val-fyScale">1.05</span>
+                    </div>
+                    <input type="range" id="fyScale" min="0.60" max="2.00" step="0.01" value="1.05">
+
+                    <div class="slider-label" style="margin-top:10px;">
+                        <span>cx Ratio (principal pt X)</span>
+                        <span class="slider-val" id="val-cxRatio">0.50</span>
+                    </div>
+                    <input type="range" id="cxRatio" min="0.30" max="0.70" step="0.005" value="0.5">
+
+                    <div class="slider-label" style="margin-top:10px;">
+                        <span>cy Ratio (principal pt Y)</span>
+                        <span class="slider-val" id="val-cyRatio">0.50</span>
+                    </div>
+                    <input type="range" id="cyRatio" min="0.30" max="0.70" step="0.005" value="0.5">
+
+                    <!-- Legacy fovScale kept hidden for backward compatibility -->
+                    <input type="hidden" id="fovScale" value="1.05">
                 </div>
-                <input type="range" id="fovScale" min="0.75" max="1.60" step="0.01" value="1.05">
 
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Lost Persistence</span>
@@ -664,6 +745,10 @@
                         style="color: var(--text); font-weight: 600;">0%</span></div>
                 <div style="display: flex; justify-content: space-between;">Frame Cost: <span id="db-frame-cost"
                         style="color: var(--text); font-weight: 600;">0ms</span></div>
+                <div style="display: flex; justify-content: space-between;">Zone Err (C/L/R): <span id="db-zone-clr"
+                        style="color: var(--text); font-weight: 600;">- / - / -</span></div>
+                <div style="display: flex; justify-content: space-between;">Zone Err (T/B/Max): <span id="db-zone-tbm"
+                        style="color: var(--text); font-weight: 600;">- / - / -</span></div>
                 <div
                     style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; padding-left: 10px;">
                     ├─ Copy/Gray: <span id="perf-gray">0.0ms</span></div>
@@ -707,22 +792,40 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // Default calibration configuration (optimized for standard Nongfu Spring bottle & cropped target)
+        // Default calibration configuration
         const defaultConfig = {
+            // -- Physical dimensions (mm) -- drives geometric params automatically --
+            labelWidthMm: 72,       // Label arc width in millimeters
+            labelHeightMm: 96,      // Label height in millimeters
+            radiusTopMm: 30,        // Bottle radius at top edge of label (mm)
+            radiusBottomMm: 30,     // Bottle radius at bottom edge of label (mm)
+            usePhysicalDims: true,  // If true, auto-compute thetaLength/height/radius from mm values
+
+            // -- Geometry (auto-derived when usePhysicalDims=true, otherwise manual) --
             radiusTop: 0.80,
             radiusBottom: 0.80,
             height: 1.33,
+            thetaLength: 73,
+
+            // -- Position and rotation offsets --
             offsetX: 0.00,
             offsetY: 0.00,
             offsetZ: 0.05,
             rotX: 0,
             rotY: 0,
             rotZ: 0,
-            thetaLength: 73,
+
+            // -- Camera intrinsics --
+            fovScale: 1.05,     // legacy fallback (used when fxScale/fyScale not set)
+            fxScale: 1.05,      // horizontal focal length = trackW * fxScale
+            fyScale: 1.05,      // vertical focal length   = trackW * fyScale  (use trackW, not trackH, for square pixels)
+            cxRatio: 0.5,       // principal point X as fraction of trackW  (0.5 = centre)
+            cyRatio: 0.5,       // principal point Y as fraction of trackH  (0.5 = centre)
+
+            // -- Tracking response --
             lerpFactor: 0.45,
             minMatches: 12,
             hammingCutoff: 55,
-            fovScale: 1.05,
             trackingMode: "fast",
             flowMinPoints: 12,
             flowMinRatio: 0.45,
@@ -732,6 +835,41 @@
         };
 
         let config = { ...defaultConfig };
+
+        /**
+         * Compute geometry params from physical mm measurements and write them into config.
+         * Call whenever mm fields change, then push updated config to worker.
+         *
+         * All Three.js units use radiusTopMm as the reference unit (= 1.0).
+         * This makes all distances proportional and scale-agnostic.
+         */
+        function computePhysicalDerivedParams() {
+            if (!config.usePhysicalDims) return;
+
+            const rTopMm    = Math.max(1, Number(config.radiusTopMm));
+            const rBotMm    = Math.max(1, Number(config.radiusBottomMm));
+            const wMm       = Math.max(1, Number(config.labelWidthMm));
+            const hMm       = Math.max(1, Number(config.labelHeightMm));
+
+            // Normalise: radiusTopMm → 1.0 reference unit
+            config.radiusTop    = 1.0;
+            config.radiusBottom = rBotMm / rTopMm;
+            config.height       = hMm   / rTopMm;
+
+            // Arc angle: label_arc_width / radius  (in radians → degrees)
+            const thetaRad      = wMm / rTopMm;   // arc-length / radius = angle (rad)
+            config.thetaLength  = thetaRad * (180 / Math.PI);
+
+            // Physical width/height in Three.js units (for worker's corrected mapping)
+            config.labelPhysicalWidth  = thetaRad;          // = arc length in normalised units
+            config.labelPhysicalHeight = config.height;
+
+            console.log(
+                `[PhysDims] r=${rTopMm}mm → theta=${config.thetaLength.toFixed(1)}°  ` +
+                `h=${config.height.toFixed(3)}  rBot=${config.radiusBottom.toFixed(3)}`
+            );
+        }
+
         let currentMode = 'AR'; // 'AR' or 'PREVIEW'
         let renderer, scene, camera, previewCamera;
         let orbitControls = null;
@@ -793,6 +931,8 @@
         let debugOverlayCanvas = null;
         let debugOverlayCtx = null;
         let showReprojOverlay = false;
+        let lastReprojPoints = [];
+        let lastZoneErrors = {};
 
         // ── Web Worker state ────────────────────────────────────────
         let cvWorker = null;
@@ -820,14 +960,14 @@
                             isUpdated = true;
                         }
                     }
-                    if (isUpdated) {
-                        saveConfig();
-                    }
+                    if (isUpdated) saveConfig();
                 } catch (e) {
                     console.error('Failed to parse saved config, using defaults');
                     config = { ...defaultConfig };
                 }
             }
+            // Always recompute derived params so geometry is consistent
+            computePhysicalDerivedParams();
             updateSlidersUI();
         }
 
@@ -840,36 +980,101 @@
         function updateSlidersUI() {
             for (let key in config) {
                 const slider = document.getElementById(key);
-                if (slider) {
+                if (slider && slider.type !== 'checkbox') {
                     slider.value = config[key];
-                    const valEl = document.getElementById(`val-${key}`);
-                    if (valEl) {
-                        if (key.startsWith('rot') || key.startsWith('theta')) {
-                            valEl.innerText = `${config[key]}°`;
-                        } else if (key === 'minMatches' || key === 'hammingCutoff' || key === 'orbMaxFeatures') {
-                            valEl.innerText = parseInt(config[key]);
-                        } else if (key === 'relocalizePersistence') {
-                            valEl.innerText = `${parseInt(config[key])}ms`;
-                        } else if (key === 'fovScale') {
-                            valEl.innerText = parseFloat(config[key]).toFixed(2);
-                        } else {
-                            valEl.innerText = parseFloat(config[key]).toFixed(2);
-                        }
+                }
+                const valEl = document.getElementById(`val-${key}`);
+                if (valEl) {
+                    if (key.startsWith('rot') || key.startsWith('theta')) {
+                        valEl.innerText = `${parseFloat(config[key]).toFixed(1)}°`;
+                    } else if (key === 'minMatches' || key === 'hammingCutoff' || key === 'orbMaxFeatures') {
+                        valEl.innerText = parseInt(config[key]);
+                    } else if (key === 'relocalizePersistence') {
+                        valEl.innerText = `${parseInt(config[key])}ms`;
+                    } else if (['labelWidthMm','labelHeightMm','radiusTopMm','radiusBottomMm'].includes(key)) {
+                        valEl.innerText = parseInt(config[key]);
+                    } else {
+                        valEl.innerText = parseFloat(config[key]).toFixed(2);
                     }
                 }
             }
+            // Sync checkbox
+            const cb = document.getElementById('usePhysicalDims');
+            if (cb) cb.checked = !!config.usePhysicalDims;
+            // Update derived params preview
+            updatePhysDimsDerivedUI();
         }
+
+        // Update the computed-values preview inside the Physical Dimensions panel
+        function updatePhysDimsDerivedUI() {
+            const thetaEl  = document.getElementById('derived-theta');
+            const heightEl = document.getElementById('derived-height');
+            const rbotEl   = document.getElementById('derived-rbot');
+            if (!thetaEl) return;
+            if (config.usePhysicalDims) {
+                thetaEl.innerText  = `${config.thetaLength.toFixed(1)}°`;
+                heightEl.innerText = config.height.toFixed(3);
+                rbotEl.innerText   = config.radiusBottom.toFixed(3);
+            } else {
+                thetaEl.innerText  = `${parseFloat(config.thetaLength).toFixed(1)}° (manual)`;
+                heightEl.innerText = `${parseFloat(config.height).toFixed(3)} (manual)`;
+                rbotEl.innerText   = `${parseFloat(config.radiusBottom).toFixed(3)} (manual)`;
+            }
+        }
+
+        // Called when a physical-dimension slider changes
+        function onPhysDimInput(key, rawVal) {
+            config[key] = parseFloat(rawVal);
+            const valEl = document.getElementById(`val-${key}`);
+            if (valEl) valEl.innerText = parseInt(rawVal);
+            computePhysicalDerivedParams();
+            updatePhysDimsDerivedUI();
+            // Update dependent sliders (thetaLength, height, radius)
+            ['thetaLength', 'height', 'radiusTop', 'radiusBottom'].forEach(k => {
+                const sl = document.getElementById(k);
+                if (sl) sl.value = config[k];
+                const ve = document.getElementById(`val-${k}`);
+                if (ve) {
+                    if (k === 'thetaLength') ve.innerText = `${parseFloat(config[k]).toFixed(1)}°`;
+                    else ve.innerText = parseFloat(config[k]).toFixed(2);
+                }
+            });
+            saveConfig();
+            rebuildCylinderMesh();
+            if (cvWorker) cvWorker.postMessage({
+                type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true
+            });
+        }
+
+        // Called when Auto checkbox is toggled
+        function onPhysDimToggle(checked) {
+            config.usePhysicalDims = checked;
+            const group = document.getElementById('physdims-group');
+            if (group) group.style.opacity = checked ? '1' : '0.5';
+            if (checked) {
+                computePhysicalDerivedParams();
+                updatePhysDimsDerivedUI();
+                rebuildCylinderMesh();
+                if (cvWorker) cvWorker.postMessage({
+                    type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true
+                });
+            }
+            saveConfig();
+        }
+        window.onPhysDimInput  = onPhysDimInput;
+        window.onPhysDimToggle = onPhysDimToggle;
 
         // Reset calibration
         function resetCalibration() {
             config = { ...defaultConfig };
+            computePhysicalDerivedParams();   // recompute derived from physical mm
             saveConfig();
             updateSlidersUI();
             rebuildCylinderMesh();
             projectionInitialized = false;
             updateCameraProjection();
 
-            // Sync updated config to worker (worker will recompute 3D points + camera matrix)
+            // Sync updated config to worker
             if (cvWorker) {
                 cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true });
             }
@@ -991,23 +1196,28 @@
             if (!videoW || !videoH) return false;
 
             const container = document.getElementById('container');
-            const width = container ? container.clientWidth : window.innerWidth;
+            const width  = container ? container.clientWidth  : window.innerWidth;
             const height = container ? container.clientHeight : window.innerHeight;
 
-            const focalScale = Number(config.fovScale) || defaultConfig.fovScale;
-            const fx = trackW * focalScale;
-            const fy = trackW * focalScale;
-            const cx = trackW / 2;
-            const cy = trackH / 2;
+            // Use split intrinsics (fxScale/fyScale/cxRatio/cyRatio) when available
+            const fxS = Number(config.fxScale) || Number(config.fovScale) || 1.05;
+            const fyS = Number(config.fyScale) || fxS;
+            const cxR = config.cxRatio ?? 0.5;
+            const cyR = config.cyRatio ?? 0.5;
 
-            // Compute scaling factors due to object-fit: cover display centering
+            const fx = trackW * fxS;
+            const fy = trackW * fyS;   // use trackW as base for square-pixel assumption
+            const cx = trackW * cxR;
+            const cy = trackH * cyR;
+
+            // Compute scaling due to object-fit: cover (video fills screen, possibly cropped)
             const scale = Math.max(width / videoW, height / videoH);
             const dispW = videoW * scale;
             const dispH = videoH * scale;
-            const dx = (dispW - width) / 2;
+            const dx = (dispW - width)  / 2;
             const dy = (dispH - height) / 2;
 
-            // Scale tracking coordinate system (640x480) to native video coordinates, then to screen pixels
+            // Map from tracking resolution (640×480) → native video → screen pixels
             const nativeScaleX = videoW / trackW;
             const nativeScaleY = videoH / trackH;
 
@@ -1016,15 +1226,13 @@
             const cx_prime = (cx * nativeScaleX) * scale - dx;
             const cy_prime = (cy * nativeScaleY) * scale - dy;
 
-            // Generate intrinsic projection matrix
-            const near = 0.1;
-            const far = 1000;
+            const near = 0.1, far = 1000;
             const pm = new THREE.Matrix4();
             pm.set(
-                2 * fx_prime / width, 0, 2 * cx_prime / width - 1, 0,
-                0, 2 * fy_prime / height, 1 - 2 * cy_prime / height, 0,
-                0, 0, -(far + near) / (far - near), -2 * far * near / (far - near),
-                0, 0, -1, 0
+                2 * fx_prime / width,  0,                      2 * cx_prime / width  - 1,  0,
+                0,                     2 * fy_prime / height,  1 - 2 * cy_prime / height,  0,
+                0,                     0,                      -(far + near) / (far - near), -2 * far * near / (far - near),
+                0,                     0,                      -1,                           0
             );
             camera.projectionMatrix.copy(pm);
             camera.projectionMatrixInverse.copy(pm).invert();
@@ -1063,6 +1271,15 @@
                 if (dbFlowRatio) dbFlowRatio.innerText = `${Math.round(lastFlowRatio * 100)}%`;
                 const dbFrameCost = document.getElementById('db-frame-cost');
                 if (dbFrameCost) dbFrameCost.innerText = `${Math.round(performance.now() - frameStartTime)}ms`;
+                const fmtZone = (value) => (typeof value === 'number' && value >= 0) ? `${value.toFixed(1)}px` : '-';
+                const dbZoneClr = document.getElementById('db-zone-clr');
+                if (dbZoneClr) {
+                    dbZoneClr.innerText = `${fmtZone(lastZoneErrors.center)} / ${fmtZone(lastZoneErrors.left)} / ${fmtZone(lastZoneErrors.right)}`;
+                }
+                const dbZoneTbm = document.getElementById('db-zone-tbm');
+                if (dbZoneTbm) {
+                    dbZoneTbm.innerText = `${fmtZone(lastZoneErrors.top)} / ${fmtZone(lastZoneErrors.bottom)} / ${fmtZone(lastZoneErrors.max)}`;
+                }
 
                 if (bestScaleText === "-") {
                     const dbRawMatches = document.getElementById('db-raw-matches');
@@ -1272,6 +1489,8 @@
             lastOrbTime = result.lastOrbTime || 0;
             lastPnpTime = result.lastPnpTime || 0;
             frameKpCount = result.frameKpCount || 0;
+            lastReprojPoints = Array.isArray(result.reprojPoints) ? result.reprojPoints : [];
+            lastZoneErrors = result.zoneErrors || {};
 
             // Apply pose to Three.js if tracking successful
             if (result.trackingSuccess && result.rD && result.camPos) {
@@ -1297,6 +1516,12 @@
                     presentedFrames: result.rvfcMeta.presentedFrames || 0,
                     solvedAt: performance.now()
                 };
+            }
+
+            if (result.trackingSuccess) {
+                drawReprojectionPoints(lastReprojPoints);
+            } else {
+                clearDebugOverlay();
             }
 
             // Update debug panel + Three.js camera pose
@@ -1439,10 +1664,10 @@
             debugOverlayCtx.clearRect(0, 0, debugOverlayCanvas.width, debugOverlayCanvas.height);
         }
 
-        // Draw reprojection diagnostic: green = tracked feature points, red = projected 3D points
-        function drawReprojectionPoints(framePoints, objPoints) {
+        // 绘制重投影诊断：绿色是真实观测点，红色是当前位姿反投影点，黄线表示两者误差。
+        function drawReprojectionPoints(reprojPoints) {
             if (!showReprojOverlay || !debugOverlayCtx || !debugOverlayCanvas) return;
-            if (!framePoints || !objPoints || framePoints.length === 0) {
+            if (!Array.isArray(reprojPoints) || reprojPoints.length === 0) {
                 clearDebugOverlay();
                 return;
             }
@@ -1466,14 +1691,32 @@
 
             const ctx = debugOverlayCtx;
 
-            // Green dots: LK-tracked 2D feature points
+            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = 'rgba(241, 196, 15, 0.65)';
             ctx.fillStyle = 'rgba(46, 204, 113, 0.85)';
-            for (const pt of framePoints) {
+            for (const pt of reprojPoints) {
+                const sx = toScreenX(pt.srcX);
+                const sy = toScreenY(pt.srcY);
+                const dx2 = toScreenX(pt.dstX);
+                const dy2 = toScreenY(pt.dstY);
+
+                // 黄线连接观测点和重投影点，误差一眼就能看出来。
                 ctx.beginPath();
-                ctx.arc(toScreenX(pt.x), toScreenY(pt.y), 5, 0, 2 * Math.PI);
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(dx2, dy2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(sx, sy, 4.5, 0, 2 * Math.PI);
                 ctx.fill();
             }
-            // Note: red reprojection dots (cv.projectPoints) now run in cv-worker.js
+
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.9)';
+            for (const pt of reprojPoints) {
+                ctx.beginPath();
+                ctx.arc(toScreenX(pt.dstX), toScreenY(pt.dstY), 3.2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
         }
 
         function toggleReprojOverlay() {
@@ -1485,7 +1728,11 @@
                 btn.style.borderColor = showReprojOverlay ? 'rgba(231, 76, 60, 0.4)' : 'rgba(0, 242, 254, 0.2)';
                 btn.style.color = showReprojOverlay ? '#e74c3c' : 'var(--primary)';
             }
-            if (!showReprojOverlay) clearDebugOverlay();
+            if (showReprojOverlay) {
+                drawReprojectionPoints(lastReprojPoints);
+            } else {
+                clearDebugOverlay();
+            }
         }
         window.toggleReprojOverlay = toggleReprojOverlay;
 
@@ -1940,6 +2187,8 @@
             const flowPoints = document.getElementById('db-flow-points')?.innerText || '0';
             const flowRatio = document.getElementById('db-flow-ratio')?.innerText || '0%';
             const frameCost = document.getElementById('db-frame-cost')?.innerText || '0ms';
+            const zoneClr = document.getElementById('db-zone-clr')?.innerText || '- / - / -';
+            const zoneTbm = document.getElementById('db-zone-tbm')?.innerText || '- / - / -';
             const pnpStatus = document.getElementById('db-pnp-status')?.innerText || 'Idle';
             const pnpMethod = document.getElementById('db-pnp-method')?.innerText || 'None';
             const pnpError = document.getElementById('db-pnp-error')?.innerText || 'None';
@@ -1955,6 +2204,8 @@ Tracking Mode: ${trackingMode}
 Flow Points: ${flowPoints}
 Flow Ratio: ${flowRatio}
 Frame Cost: ${frameCost}
+Zone Err (C/L/R): ${zoneClr}
+Zone Err (T/B/Max): ${zoneTbm}
 PnP Status: ${pnpStatus}
 PnP Method: ${pnpMethod}
 PnP Error: ${pnpError}`;

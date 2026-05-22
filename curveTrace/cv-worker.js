@@ -48,7 +48,13 @@ let cfg = {
     radiusBottom: 1.0,
     height: 1.33,
     thetaLength: 73,
-    fovScale: 1.05
+    fovScale: 1.05,
+    // Physical label dimensions in Three.js units (set by main thread via updateConfig)
+    // labelPhysicalWidth  = arc length of label  (labelWidthMm / radiusTopMm)
+    // labelPhysicalHeight = label height         (labelHeightMm / radiusTopMm)
+    labelPhysicalWidth: 2.4,    // default: 72mm / 30mm
+    labelPhysicalHeight: 3.2,   // default: 96mm / 30mm
+    usePhysicalDims: true
 };
 
 // ============================================================
@@ -121,11 +127,17 @@ function initTracker() {
 }
 
 function initCameraMatrix() {
-    const focalScale = Number(cfg.fovScale) || 1.05;
-    const fx = TRACK_W * focalScale;
-    const fy = TRACK_W * focalScale;
-    const cx = TRACK_W / 2;
-    const cy = TRACK_H / 2;
+    // Use split intrinsics when available; fall back to single fovScale
+    const fxS = Number(cfg.fxScale) || Number(cfg.fovScale) || 1.05;
+    const fyS = Number(cfg.fyScale) || fxS;
+    const cxR = (cfg.cxRatio != null) ? cfg.cxRatio : 0.5;
+    const cyR = (cfg.cyRatio != null) ? cfg.cyRatio : 0.5;
+
+    const fx = TRACK_W * fxS;
+    const fy = TRACK_W * fyS;   // use TRACK_W as base for square-pixel assumption
+    const cx = TRACK_W * cxR;
+    const cy = TRACK_H * cyR;
+
     const d = cameraMatrixMat.data64F;
     d[0] = fx; d[1] = 0;  d[2] = cx;
     d[3] = 0;  d[4] = fy; d[5] = cy;
@@ -221,15 +233,32 @@ async function loadRefFromImage() {
 
 function mapRefPixelTo3D(u, v) {
     const W = refWidth, H = refHeight;
-    const rTop = cfg.radiusTop, rBottom = cfg.radiusBottom;
-    const height = cfg.height;
-    const scale = height / H;
-    const u_centered = u - W / 2;
-    const Y = (H / 2 - v) * scale;
-    const t = (Y + height / 2) / height;
-    const r_at_y = rBottom + (rTop - rBottom) * t;
-    const theta = (u_centered * scale) / r_at_y;
-    return { X: r_at_y * Math.sin(theta), Y, Z: r_at_y * Math.cos(theta) };
+    const rTop = cfg.radiusTop;
+    const rBottom = cfg.radiusBottom;
+
+    if (cfg.usePhysicalDims && cfg.labelPhysicalWidth > 0 && cfg.labelPhysicalHeight > 0) {
+        // ── Corrected mapping: horizontal arc and vertical height are independent ──
+        // Horizontal: pixel u → arc position along label width
+        const xArc = (u / W - 0.5) * cfg.labelPhysicalWidth;   // arc-length offset from centre
+        // Vertical: pixel v → height position (top of image = top of label)
+        const Y    = (0.5 - v / H) * cfg.labelPhysicalHeight;  // positive Y = up
+
+        // Interpolate radius top→bottom (t=0 at top, t=1 at bottom)
+        const t      = v / H;
+        const r      = rTop * (1 - t) + rBottom * t;
+        const theta  = xArc / r;                                 // arc / radius = angle (rad)
+        return { X: r * Math.sin(theta), Y, Z: r * Math.cos(theta) };
+    } else {
+        // ── Legacy mapping (usePhysicalDims=false): kept for backward compat ──
+        const height = cfg.height;
+        const scale  = height / H;
+        const u_centered = u - W / 2;
+        const Y = (H / 2 - v) * scale;
+        const t = (Y + height / 2) / height;
+        const r_at_y = rBottom + (rTop - rBottom) * t;
+        const theta  = (u_centered * scale) / r_at_y;
+        return { X: r_at_y * Math.sin(theta), Y, Z: r_at_y * Math.cos(theta) };
+    }
 }
 
 function updateRef3DPoints() {
@@ -366,6 +395,65 @@ function computeReprojectionError(objPointsMat, imgPointsMat, rvecMat, tvecMat, 
     finally { projectedMat.delete(); }
 }
 
+/**
+ * Compute per-point reprojection data for overlay visualisation.
+ * Returns up to maxPts {srcX,srcY,dstX,dstY,err} pairs plus zone stats.
+ * W/H are the tracking-resolution dimensions (640×480).
+ */
+function computeReprojectionDetails(objPointsMat, imgPointsMat, rvecMat, tvecMat, camMat, distMat, maxPts) {
+    maxPts = maxPts || 60;
+    const W = TRACK_W, H = TRACK_H;
+    let projectedMat = new cv.Mat();
+    try {
+        cv.projectPoints(objPointsMat, rvecMat, tvecMat, camMat, distMat, projectedMat);
+        const projData = projectedMat.data32F;
+        const imgData  = imgPointsMat.data32F;
+        const n        = objPointsMat.rows;
+
+        const points = [];
+        const allErrs = [];
+        // Zone buckets  (centre = middle 1/3 × middle 1/3)
+        const zErrs = { center:[], left:[], right:[], top:[], bottom:[] };
+
+        for (let i = 0; i < n; i++) {
+            const dstX = projData[2*i],   dstY = projData[2*i+1];
+            const srcX = imgData[2*i],    srcY = imgData[2*i+1];
+            if (!isFinite(dstX) || !isFinite(dstY)) continue;
+            const err = Math.sqrt((dstX-srcX)**2 + (dstY-srcY)**2);
+            allErrs.push(err);
+
+            // Zone classification by source pixel position
+            const xRatio = srcX / W, yRatio = srcY / H;
+            if (xRatio < 0.33)       zErrs.left.push(err);
+            else if (xRatio > 0.67)  zErrs.right.push(err);
+            if (yRatio < 0.33)       zErrs.top.push(err);
+            else if (yRatio > 0.67)  zErrs.bottom.push(err);
+            if (xRatio >= 0.33 && xRatio <= 0.67 && yRatio >= 0.33 && yRatio <= 0.67)
+                zErrs.center.push(err);
+
+            if (points.length < maxPts) points.push({ srcX, srcY, dstX, dstY, err });
+        }
+
+        const avg = a => a.length ? a.reduce((s,v)=>s+v,0)/a.length : -1;
+        const allSorted = [...allErrs].sort((a,b)=>a-b);
+        const median = allSorted.length ? allSorted[Math.floor(allSorted.length/2)] : -1;
+
+        return {
+            points,
+            zoneErrors: {
+                center: avg(zErrs.center),
+                left:   avg(zErrs.left),
+                right:  avg(zErrs.right),
+                top:    avg(zErrs.top),
+                bottom: avg(zErrs.bottom),
+                max:    allErrs.length ? Math.max(...allErrs) : -1,
+                median
+            }
+        };
+    } catch (e) { return { points: [], zoneErrors: {} }; }
+    finally { projectedMat.delete(); }
+}
+
 // ============================================================
 // PnP Solve (shared by flow and ORB paths)
 // ============================================================
@@ -418,7 +506,9 @@ function solvePoseFromArrays(objPointList, imgPointList, minPoints, poseConfiden
             return { success: false, status: `Flow Reproj Err: ${reprojErr.toFixed(1)}px`, method, error: 'None', inliers: pnpInlierCount, reprojErr };
         }
         const pose = applySolvedPoseRaw(rvec, tvec, poseConfidenceSource, statusPrefix);
-        return { ...pose, method, error: 'None', inliers: pnpInlierCount, reprojErr };
+        // Compute per-point overlay data (light-weight, shared with main thread for visualisation)
+        const reprojDetails = computeReprojectionDetails(objPointsMat, imgPointsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, 60);
+        return { ...pose, method, error: 'None', inliers: pnpInlierCount, reprojErr, reprojDetails };
     } catch (err) {
         return { success: false, status: 'Flow PnP Exception', method: 'Flow PnP', error: err.message || String(err), inliers: 0, reprojErr: 999.0 };
     } finally {
@@ -616,7 +706,21 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
     let levelMatches = new cv.DMatchVector();
     let srcPts = null, dstPts = null, hmask = null, hH = null;
     let objPtsMat = null, imgPtsMat = null, pnpInliersMat = null;
-    const result = { success: false, status: 'No Match', method: 'None', error: 'None', inliers: 0, goodMatches: 0, inlierRatio: 0, confidence: 1.0, reprojErr: 999.0, inlierMatches: [], localFrameKeypoints: null, frameKpCount: 0 };
+    const result = {
+        success: false,
+        status: 'No Match',
+        method: 'None',
+        error: 'None',
+        inliers: 0,
+        goodMatches: 0,
+        inlierRatio: 0,
+        confidence: 1.0,
+        reprojErr: 999.0,
+        reprojDetails: { points: [], zoneErrors: {} },
+        inlierMatches: [],
+        localFrameKeypoints: null,
+        frameKpCount: 0
+    };
     try {
         result.frameKpCount = frameKp ? frameKp.size() : 0;
         if (!frameDesc || frameDesc.empty() || level.descriptors.empty()) { result.status = 'Empty Descriptors'; return result; }
@@ -684,6 +788,8 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                     if (error <= 8.0) {
                         const pose = applySolvedPoseRaw(rvec, tvec, (inlierRatio * 0.55) + (Math.min(numPts / (dynamicMin * 2), 1) * 0.45), 'Success (PnP)');
                         if (pose.success) {
+                            // 记录重投影点与分区误差，便于主线程做可视化诊断。
+                            result.reprojDetails = computeReprojectionDetails(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, 60);
                             result.success = true;
                             result.status = 'Success';
                             result.confidence = pose.confidence;
@@ -753,6 +859,7 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
     let goodMatchesCount = 0;
     let poseCamPos = null, poseRD = null;
     let frameKpCount = 0;
+    let reprojPoints = [], zoneErrors = {};
 
     try {
         // ── TRACKING_FLOW ──────────────────────────────────────────
@@ -771,6 +878,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                 dynamicMinMatches = cfg.flowMinPoints;
                 poseCamPos = flowResult.camPos;
                 poseRD = flowResult.rD;
+                reprojPoints = flowResult.reprojDetails?.points || [];
+                zoneErrors = flowResult.reprojDetails?.zoneErrors || {};
 
                 // Conditional drift correction (only when drifting or at safety interval)
                 const reprojDrifting = reprojErrVal > 2.5;
@@ -806,6 +915,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                     reprojErrVal = matchResult.reprojErr;
                     poseCamPos = matchResult.camPos;
                     poseRD = matchResult.rD;
+                    reprojPoints = matchResult.reprojDetails?.points || [];
+                    zoneErrors = matchResult.reprojDetails?.zoneErrors || {};
                     seedFlowTrackingFromMatches(level, matchResult.inlierMatches, matchResult.localFrameKeypoints);
                 } else {
                     const timeSinceLast = performance.now() - lastSuccessTime;
@@ -842,6 +953,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                     flowState = 'TRACKING_FLOW'; trackingSuccess = true;
                     poseConfidence = scanResult.confidence; reprojErrVal = scanResult.reprojErr;
                     poseCamPos = scanResult.camPos; poseRD = scanResult.rD;
+                    reprojPoints = scanResult.reprojDetails?.points || [];
+                    zoneErrors = scanResult.reprojDetails?.zoneErrors || {};
                     lastSuccessScaleLevel = scanResult.level;
                     seedFlowTrackingFromMatches(scanResult.level, scanResult.inlierMatches, scanResult.localFrameKeypoints);
                 }
@@ -866,6 +979,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                     flowState = 'TRACKING_FLOW'; trackingSuccess = true;
                     poseConfidence = scanResult.confidence; reprojErrVal = scanResult.reprojErr;
                     poseCamPos = scanResult.camPos; poseRD = scanResult.rD;
+                    reprojPoints = scanResult.reprojDetails?.points || [];
+                    zoneErrors = scanResult.reprojDetails?.zoneErrors || {};
                     lastSuccessScaleLevel = scanResult.level;
                     seedFlowTrackingFromMatches(scanResult.level, scanResult.inlierMatches, scanResult.localFrameKeypoints);
                 }
@@ -899,6 +1014,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
         pnpError,
         pnpInlierCount,
         poseConfidence,
+        reprojPoints,
+        zoneErrors,
         frameStartTime,
         flowState,
         flowFramePointsLen: flowFramePoints.length,
