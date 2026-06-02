@@ -75,6 +75,7 @@ let computedFrameFeatures = false;
 let refWidth = 0, refHeight = 0;
 let refLevels = [];
 let ref3DPoints = [];
+let modelPointLevels = null;
 
 // Tracking state
 let flowState = 'SCANNING';
@@ -183,7 +184,18 @@ async function loadRefFromUrl() {
     }
 
     updateRef3DPoints();
-    self.postMessage({ type: 'refLoaded', refWidth, refHeight, cfgSync: { radiusTop: cfg.radiusTop, radiusBottom: cfg.radiusBottom, height: cfg.height, thetaLength: cfg.thetaLength } });
+    self.postMessage({
+        type: 'refLoaded',
+        refWidth,
+        refHeight,
+        cfgSync: { radiusTop: cfg.radiusTop, radiusBottom: cfg.radiusBottom, height: cfg.height, thetaLength: cfg.thetaLength },
+        levels: refLevels.map(level => ({
+            scale: level.scale,
+            width: level.width,
+            height: level.height,
+            originalPoints: level.originalPoints
+        }))
+    });
 }
 
 async function loadRefFromImage() {
@@ -263,6 +275,25 @@ function mapRefPixelTo3D(u, v) {
 
 function updateRef3DPoints() {
     if (!refLevels || !refLevels.length) return;
+    if (modelPointLevels && modelPointLevels.length === refLevels.length) {
+        let ok = true;
+        for (let i = 0; i < refLevels.length; i++) {
+            const incoming = modelPointLevels[i]?.points3D;
+            if (!incoming || incoming.length !== refLevels[i].originalPoints.length) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) {
+            for (let i = 0; i < refLevels.length; i++) {
+                refLevels[i].points3D = modelPointLevels[i].points3D;
+            }
+            ref3DPoints = refLevels[0] ? refLevels[0].points3D : [];
+            return;
+        }
+        console.warn('[Worker] Ignoring GLB model points: level/point counts do not match reference points');
+        modelPointLevels = null;
+    }
     for (const level of refLevels) {
         level.points3D = level.originalPoints.map(pt => mapRefPixelTo3D(pt.x, pt.y));
     }
@@ -1058,6 +1089,12 @@ function handleMessage(e) {
             initCameraMatrix();
             // 3D points change on geometry config update
             if (e.data.reinit3DPoints) updateRef3DPoints();
+            break;
+        case 'modelPoints':
+            modelPointLevels = Array.isArray(e.data.levels) ? e.data.levels : null;
+            updateRef3DPoints();
+            resetFlowTracking('SCANNING');
+            self.postMessage({ type: 'modelPointsApplied', levels: modelPointLevels ? modelPointLevels.length : 0 });
             break;
         case 'reset':
             resetFlowTracking('SCANNING');
