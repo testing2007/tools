@@ -479,8 +479,7 @@
             <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>📐 Physical Dimensions (mm)</span>
                 <label style="font-size:0.7rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
-                    <input type="checkbox" id="usePhysicalDims" checked
-                        onchange="onPhysDimToggle(this.checked)"
+                    <input type="checkbox" id="usePhysicalDims" checked onchange="onPhysDimToggle(this.checked)"
                         style="accent-color:var(--primary);">
                     Auto
                 </label>
@@ -796,8 +795,8 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+        import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
         // Default calibration configuration
         const defaultConfig = {
@@ -842,7 +841,7 @@
             orbMaxFeatures: 1200
         };
 
-        let config = { ...defaultConfig };
+        let config = {...defaultConfig};
 
         /**
          * Compute geometry params from physical mm measurements and write them into config.
@@ -855,22 +854,22 @@
             if (config.useGlbModel) return;
             if (!config.usePhysicalDims) return;
 
-            const rTopMm    = Math.max(1, Number(config.radiusTopMm));
-            const rBotMm    = Math.max(1, Number(config.radiusBottomMm));
-            const wMm       = Math.max(1, Number(config.labelWidthMm));
-            const hMm       = Math.max(1, Number(config.labelHeightMm));
+            const rTopMm = Math.max(1, Number(config.radiusTopMm));
+            const rBotMm = Math.max(1, Number(config.radiusBottomMm));
+            const wMm = Math.max(1, Number(config.labelWidthMm));
+            const hMm = Math.max(1, Number(config.labelHeightMm));
 
             // Normalise: radiusTopMm → 1.0 reference unit
-            config.radiusTop    = 1.0;
+            config.radiusTop = 1.0;
             config.radiusBottom = rBotMm / rTopMm;
-            config.height       = hMm   / rTopMm;
+            config.height = hMm / rTopMm;
 
             // Arc angle: label_arc_width / radius  (in radians → degrees)
-            const thetaRad      = wMm / rTopMm;   // arc-length / radius = angle (rad)
-            config.thetaLength  = thetaRad * (180 / Math.PI);
+            const thetaRad = wMm / rTopMm;   // arc-length / radius = angle (rad)
+            config.thetaLength = thetaRad * (180 / Math.PI);
 
             // Physical width/height in Three.js units (for worker's corrected mapping)
-            config.labelPhysicalWidth  = thetaRad;          // = arc length in normalised units
+            config.labelPhysicalWidth = thetaRad;          // = arc length in normalised units
             config.labelPhysicalHeight = config.height;
 
             console.log(
@@ -903,8 +902,9 @@
         // Custom Camera Tracking State
         let cameraVideo = null;
         // Tracking canvas constants (pixel capture in main thread, CV in worker)
-        const trackW = 640;
-        const trackH = 480;
+        const TRACK_MAX_DIM = 640;
+        let trackW = 640;
+        let trackH = 480;
         // trackCanvas/trackCtx initialized in initAR
 
 
@@ -965,6 +965,51 @@
         // trackCanvas/trackCtx initialized in initAR (pixel capture canvas)
         let trackCanvas = null, trackCtx = null;
 
+        function computeTrackingSize() {
+            const videoW = cameraVideo ? cameraVideo.videoWidth : 0;
+            const videoH = cameraVideo ? cameraVideo.videoHeight : 0;
+            if (!videoW || !videoH) return {width: trackW, height: trackH};
+
+            const scale = Math.min(1, TRACK_MAX_DIM / Math.max(videoW, videoH));
+            return {
+                width: Math.max(1, Math.round(videoW * scale)),
+                height: Math.max(1, Math.round(videoH * scale))
+            };
+        }
+
+        function updateTrackingCanvasSize() {
+            if (!trackCanvas) return false;
+            const next = computeTrackingSize();
+            if (next.width === trackW && next.height === trackH && trackCanvas.width === trackW && trackCanvas.height === trackH) {
+                return false;
+            }
+
+            trackW = next.width;
+            trackH = next.height;
+            trackCanvas.width = trackW;
+            trackCanvas.height = trackH;
+            projectionInitialized = false;
+            console.log(`[Main] Tracking frame size: ${trackW}x${trackH} (native ${cameraVideo?.videoWidth || 0}x${cameraVideo?.videoHeight || 0})`);
+            return true;
+        }
+
+        function shouldMirrorDisplay() {
+            return isFront && currentMode === 'AR';
+        }
+
+        function updateDisplayMirror() {
+            const transform = shouldMirrorDisplay() ? 'scaleX(-1)' : 'none';
+            if (cameraVideo) cameraVideo.style.transform = 'none';
+            if (renderer && renderer.domElement) {
+                renderer.domElement.style.transformOrigin = 'center center';
+                renderer.domElement.style.transform = transform;
+            }
+            if (debugOverlayCanvas) {
+                debugOverlayCanvas.style.transformOrigin = 'center center';
+                debugOverlayCanvas.style.transform = transform;
+            }
+        }
+
         // Load config from localStorage
         function loadConfig() {
             const saved = localStorage.getItem('webar_curved_calibration');
@@ -989,7 +1034,7 @@
                     if (isUpdated) saveConfig();
                 } catch (e) {
                     console.error('Failed to parse saved config, using defaults');
-                    config = { ...defaultConfig };
+                    config = {...defaultConfig};
                 }
             }
             // Always recompute derived params so geometry is consistent
@@ -1017,7 +1062,7 @@
                         valEl.innerText = parseInt(config[key]);
                     } else if (key === 'relocalizePersistence') {
                         valEl.innerText = `${parseInt(config[key])}ms`;
-                    } else if (['labelWidthMm','labelHeightMm','radiusTopMm','radiusBottomMm'].includes(key)) {
+                    } else if (['labelWidthMm', 'labelHeightMm', 'radiusTopMm', 'radiusBottomMm'].includes(key)) {
                         valEl.innerText = parseInt(config[key]);
                     } else {
                         valEl.innerText = parseFloat(config[key]).toFixed(2);
@@ -1033,18 +1078,18 @@
 
         // Update the computed-values preview inside the Physical Dimensions panel
         function updatePhysDimsDerivedUI() {
-            const thetaEl  = document.getElementById('derived-theta');
+            const thetaEl = document.getElementById('derived-theta');
             const heightEl = document.getElementById('derived-height');
-            const rbotEl   = document.getElementById('derived-rbot');
+            const rbotEl = document.getElementById('derived-rbot');
             if (!thetaEl) return;
             if (config.usePhysicalDims) {
-                thetaEl.innerText  = `${config.thetaLength.toFixed(1)}°`;
+                thetaEl.innerText = `${config.thetaLength.toFixed(1)}°`;
                 heightEl.innerText = config.height.toFixed(3);
-                rbotEl.innerText   = config.radiusBottom.toFixed(3);
+                rbotEl.innerText = config.radiusBottom.toFixed(3);
             } else {
-                thetaEl.innerText  = `${parseFloat(config.thetaLength).toFixed(1)}° (manual)`;
+                thetaEl.innerText = `${parseFloat(config.thetaLength).toFixed(1)}° (manual)`;
                 heightEl.innerText = `${parseFloat(config.height).toFixed(3)} (manual)`;
-                rbotEl.innerText   = `${parseFloat(config.radiusBottom).toFixed(3)} (manual)`;
+                rbotEl.innerText = `${parseFloat(config.radiusBottom).toFixed(3)} (manual)`;
             }
         }
 
@@ -1068,7 +1113,7 @@
             saveConfig();
             rebuildCylinderMesh();
             if (cvWorker) cvWorker.postMessage({
-                type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true
+                type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true
             });
         }
 
@@ -1082,17 +1127,17 @@
                 updatePhysDimsDerivedUI();
                 rebuildCylinderMesh();
                 if (cvWorker) cvWorker.postMessage({
-                    type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true
+                    type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true
                 });
             }
             saveConfig();
         }
-        window.onPhysDimInput  = onPhysDimInput;
+        window.onPhysDimInput = onPhysDimInput;
         window.onPhysDimToggle = onPhysDimToggle;
 
         // Reset calibration
         function resetCalibration() {
-            config = { ...defaultConfig };
+            config = {...defaultConfig};
             computePhysicalDerivedParams();   // recompute derived from physical mm
             saveConfig();
             updateSlidersUI();
@@ -1102,7 +1147,7 @@
 
             // Sync updated config to worker
             if (cvWorker) {
-                cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true });
+                cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true});
             }
 
             // Reset previewCamera and orbitControls
@@ -1303,6 +1348,7 @@
             const mesh = new THREE.Mesh(glbModel.labelGeometry, material);
             mesh.name = 'glbVideoLabelMesh';
             mesh.renderOrder = options.renderOrder || 10;
+            mesh.frustumCulled = false;
             return mesh;
         }
 
@@ -1316,11 +1362,11 @@
                 scale: level.scale,
                 points3D: level.originalPoints.map(pt => {
                     const p = sampleGlbLabelPointFromUv(pt.x / workerRefWidth, pt.y / workerRefHeight);
-                    return p ? { X: p.x, Y: p.y, Z: p.z } : { X: 0, Y: 0, Z: 0 };
+                    return p ? {X: p.x, Y: p.y, Z: p.z} : {X: 0, Y: 0, Z: 0};
                 })
             }));
 
-            cvWorker.postMessage({ type: 'modelPoints', levels });
+            cvWorker.postMessage({type: 'modelPoints', levels});
             console.log(`[Main] Sent GLB labelMesh UV->3D points to worker (${levels.length} levels)`);
         }
 
@@ -1332,38 +1378,38 @@
             const loader = new GLTFLoader();
             glbLoadPromise = new Promise((resolve, reject) => {
                 loader.load('assets/bottle.glb', (gltf) => {
-                const root = gltf.scene;
-                root.updateMatrixWorld(true);
-                const labelMesh = findMeshByNodeName(root, 'labelMesh');
-                const bottleMesh = findMeshByNodeName(root, 'bottleMesh');
+                    const root = gltf.scene;
+                    root.updateMatrixWorld(true);
+                    const labelMesh = findMeshByNodeName(root, 'labelMesh');
+                    const bottleMesh = findMeshByNodeName(root, 'bottleMesh');
 
-                if (!labelMesh || !labelMesh.geometry || !labelMesh.geometry.attributes.uv) {
-                    reject(new Error('assets/bottle.glb must contain labelMesh with UV coordinates'));
-                    return;
-                }
+                    if (!labelMesh || !labelMesh.geometry || !labelMesh.geometry.attributes.uv) {
+                        reject(new Error('assets/bottle.glb must contain labelMesh with UV coordinates'));
+                        return;
+                    }
 
-                const labelGeometry = bakeGeometryToWorld(labelMesh);
-                const labelUvTriangles = buildUvTriangleIndex(labelGeometry);
-                if (!labelUvTriangles.length) {
-                    reject(new Error('labelMesh UV triangles are empty'));
-                    return;
-                }
+                    const labelGeometry = bakeGeometryToWorld(labelMesh);
+                    const labelUvTriangles = buildUvTriangleIndex(labelGeometry);
+                    if (!labelUvTriangles.length) {
+                        reject(new Error('labelMesh UV triangles are empty'));
+                        return;
+                    }
 
-                glbModel = {
-                    root,
-                    labelGeometry,
-                    bottleGeometry: bottleMesh ? bakeGeometryToWorld(bottleMesh) : null,
-                    labelUvTriangles
-                };
+                    glbModel = {
+                        root,
+                        labelGeometry,
+                        bottleGeometry: bottleMesh ? bakeGeometryToWorld(bottleMesh) : null,
+                        labelUvTriangles
+                    };
 
-                applyGlbTextureSettings(videoTexture);
-                applyGlbTextureSettings(labelTexture);
-                console.log(`[GLB] Loaded bottle.glb with ${glbModel.labelUvTriangles.length} label UV triangles`);
+                    applyGlbTextureSettings(videoTexture);
+                    applyGlbTextureSettings(labelTexture);
+                    console.log(`[GLB] Loaded bottle.glb with ${glbModel.labelUvTriangles.length} label UV triangles`);
 
-                fitPreviewCameraToModel();
-                rebuildCylinderMesh();
-                updatePreviewMeshes();
-                sendGlbModelPointsToWorker();
+                    fitPreviewCameraToModel();
+                    rebuildCylinderMesh();
+                    updatePreviewMeshes();
+                    sendGlbModelPointsToWorker();
                     resolve(glbModel);
                 }, undefined, (err) => {
                     reject(err);
@@ -1400,8 +1446,8 @@
             const constraints = {
                 video: {
                     facingMode: 'environment',
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
+                    width: {ideal: 640},
+                    height: {ideal: 480}
                 },
                 audio: false
             };
@@ -1418,9 +1464,6 @@
                     label.includes('webcam') ||
                     (settings.facingMode === undefined && !label.includes('back') && !label.includes('rear') && !label.includes('environment'));
                 console.log(`Camera stream: label="${label}", facingMode="${settings.facingMode}", isFront=${isFront}`);
-                if (isFront) {
-                    video.style.transform = 'scaleX(-1)';
-                }
             } catch (e) {
                 console.warn("Failed to detect or style camera facing mode:", e);
             }
@@ -1443,7 +1486,7 @@
             if (!videoW || !videoH) return false;
 
             const container = document.getElementById('container');
-            const width  = container ? container.clientWidth  : window.innerWidth;
+            const width = container ? container.clientWidth : window.innerWidth;
             const height = container ? container.clientHeight : window.innerHeight;
 
             // Use split intrinsics (fxScale/fyScale/cxRatio/cyRatio) when available
@@ -1461,10 +1504,10 @@
             const scale = Math.max(width / videoW, height / videoH);
             const dispW = videoW * scale;
             const dispH = videoH * scale;
-            const dx = (dispW - width)  / 2;
+            const dx = (dispW - width) / 2;
             const dy = (dispH - height) / 2;
 
-            // Map from tracking resolution (640×480) → native video → screen pixels
+            // Map from current tracking resolution to native video and then screen pixels
             const nativeScaleX = videoW / trackW;
             const nativeScaleY = videoH / trackH;
 
@@ -1473,13 +1516,13 @@
             const cx_prime = (cx * nativeScaleX) * scale - dx;
             const cy_prime = (cy * nativeScaleY) * scale - dy;
 
-            const near = 0.1, far = 1000;
+            const near = 0.01, far = 1000;
             const pm = new THREE.Matrix4();
             pm.set(
-                2 * fx_prime / width,  0,                      2 * cx_prime / width  - 1,  0,
-                0,                     2 * fy_prime / height,  1 - 2 * cy_prime / height,  0,
-                0,                     0,                      -(far + near) / (far - near), -2 * far * near / (far - near),
-                0,                     0,                      -1,                           0
+                2 * fx_prime / width, 0, 2 * cx_prime / width - 1, 0,
+                0, 2 * fy_prime / height, 1 - 2 * cy_prime / height, 0,
+                0, 0, -(far + near) / (far - near), -2 * far * near / (far - near),
+                0, 0, -1, 0
             );
             camera.projectionMatrix.copy(pm);
             camera.projectionMatrixInverse.copy(pm).invert();
@@ -1607,7 +1650,7 @@
                         } else {
                             poseVelocity.set(0, 0, 0);
                         }
-                        lastPoseSample = { pos: currentPos.clone(), time: nowPred };
+                        lastPoseSample = {pos: currentPos.clone(), time: nowPred};
                     } else {
                         const factor = config.trackingMode === 'fast'
                             ? Number(config.lerpFactor)
@@ -1640,6 +1683,7 @@
                 // Play video & fade in
                 if (videoElement) {
                     videoElement.play().catch(err => { });
+                    if (videoTexture) videoTexture.needsUpdate = true;
                     if (videoMesh && videoMesh.material) {
                         setMeshOpacity(videoMesh, THREE.MathUtils.lerp(videoMesh.material.opacity, 1.0, 0.1));
                     }
@@ -1671,13 +1715,14 @@
             if (!glbModel || !glbModelPointsReady) return;
             if (workerBusy || !cvWorker) return; // drop frame, worker not ready
 
+            updateTrackingCanvasSize();
             if (!projectionInitialized) {
                 if (updateCameraProjection()) projectionInitialized = true;
             }
 
             const frameStartTime = performance.now();
-            trackCtx.drawImage(cameraVideo, 0, 0, 640, 480);
-            const imageData = trackCtx.getImageData(0, 0, 640, 480);
+            trackCtx.drawImage(cameraVideo, 0, 0, trackW, trackH);
+            const imageData = trackCtx.getImageData(0, 0, trackW, trackH);
 
             // Transfer pixel ownership to worker (zero-copy)
             // const pixelBuf = imageData.data.buffer.slice(0);
@@ -1686,6 +1731,8 @@
             cvWorker.postMessage({
                 type: 'frame',
                 pixels: pixelBuf,
+                frameWidth: trackW,
+                frameHeight: trackH,
                 frameStartTime,
                 rvfcMeta: rvfcMetadata ? {
                     mediaTime: rvfcMetadata.mediaTime,
@@ -1750,8 +1797,8 @@
             // Apply pose to Three.js if tracking successful
             if (result.trackingSuccess && result.rD && result.camPos) {
                 const rD = result.rD, cp = result.camPos;
-                // Reconstruct camera world matrix (same as original applySolvedPose does via THREE.Matrix4.invert)
-                // Worker returns R^-1 (R'^T with Y,Z flips) and camPos:
+                // Worker returns camera-world rotation with OpenCV -> Three.js axis
+                // conversion applied; camPos remains in the GLB/Three.js object frame.
                 const mat = new THREE.Matrix4();
                 mat.set(
                     rD[0], -rD[3], -rD[6], cp[0],
@@ -1905,15 +1952,18 @@
             debugOverlayCanvas.style.top = '0';
             debugOverlayCanvas.style.pointerEvents = 'none';
             debugOverlayCanvas.style.zIndex = '20';
+            debugOverlayCanvas.style.transformOrigin = 'center center';
             document.body.appendChild(debugOverlayCanvas);
             debugOverlayCtx = debugOverlayCanvas.getContext('2d');
             updateOverlaySize();
+            updateDisplayMirror();
         }
 
         function updateOverlaySize() {
             if (!debugOverlayCanvas) return;
             debugOverlayCanvas.width = window.innerWidth;
             debugOverlayCanvas.height = window.innerHeight;
+            updateDisplayMirror();
         }
 
         function clearDebugOverlay() {
@@ -2067,15 +2117,7 @@
             // Camera video is always hidden — feed rendered via Three.js WebGL background in AR mode
             // (no DOM display change needed)
 
-            if (isFront) {
-                if (mode === 'AR') {
-                    if (cameraVideo) cameraVideo.style.transform = 'scaleX(-1)';
-                    if (renderer && renderer.domElement) renderer.domElement.style.transform = 'scaleX(-1)';
-                } else {
-                    if (cameraVideo) cameraVideo.style.transform = 'none';
-                    if (renderer && renderer.domElement) renderer.domElement.style.transform = 'none';
-                }
-            }
+            updateDisplayMirror();
 
 
             if (mode === 'PREVIEW') {
@@ -2104,6 +2146,7 @@
                 if (container) {
                     container.classList.add('preview-mode');
                 }
+                updateDisplayMirror();
             } else {
                 console.log('Switching to Live AR tracking');
                 statusText.innerText = 'SCANNING LABEL';
@@ -2136,10 +2179,11 @@
                 if (container) {
                     container.classList.remove('preview-mode');
                 }
+                updateDisplayMirror();
 
                 // Reset worker flow tracking state and restart video loop
                 if (cvWorker) {
-                    cvWorker.postMessage({ type: 'reset' });
+                    cvWorker.postMessage({type: 'reset'});
                     workerBusy = false;
                 }
                 isFirstTrackingFrame = true;
@@ -2166,8 +2210,10 @@
                 'rotX', 'rotY', 'rotZ',
                 'thetaLength', 'lerpFactor',
                 'minMatches', 'hammingCutoff', 'fovScale',
+                'fxScale', 'fyScale', 'cxRatio', 'cyRatio',
                 'relocalizePersistence', 'orbMaxFeatures'
             ];
+            const projectionKeys = new Set(['fovScale', 'fxScale', 'fyScale', 'cxRatio', 'cyRatio']);
             const geometryKeys = new Set([
                 'radiusTop', 'radiusBottom', 'height',
                 'offsetX', 'offsetY', 'offsetZ',
@@ -2204,24 +2250,24 @@
                         if (geometryKeys.has(key)) {
                             // Geometry change: rebuild mesh and tell worker to recompute 3D points
                             rebuildCylinderMesh();
-                            if (cvWorker) cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: true });
+                            if (cvWorker) cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true});
                         }
 
-                        if (key === 'fovScale') {
-                            // FOV change: update Three.js projection + worker camera matrix
+                        if (projectionKeys.has(key)) {
+                            // Projection change: update Three.js projection + worker camera matrix
                             projectionInitialized = false;
                             updateCameraProjection();
-                            if (cvWorker) cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: false });
+                            if (cvWorker) cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: false});
                         }
 
                         if (key === 'orbMaxFeatures') {
                             // Reinit ORB in worker with new feature count
-                            if (cvWorker) cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: true, reinit3DPoints: false });
+                            if (cvWorker) cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: true, reinit3DPoints: false});
                         }
 
                         // For non-geometry tracking params, just sync config to worker
-                        if (!geometryKeys.has(key) && key !== 'fovScale' && key !== 'orbMaxFeatures') {
-                            if (cvWorker) cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: false, reinit3DPoints: false });
+                        if (!geometryKeys.has(key) && !projectionKeys.has(key) && key !== 'orbMaxFeatures') {
+                            if (cvWorker) cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: false});
                         }
                     });
                 }
@@ -2239,12 +2285,14 @@
             previewCamera.aspect = width / height;
             previewCamera.updateProjectionMatrix();
 
+            updateTrackingCanvasSize();
             if (currentMode === 'AR') {
                 updateCameraProjection();
             }
             // Sync camera feed UV crop and overlay canvas size on resize
             updateCameraFeedUV();
             updateOverlaySize();
+            updateDisplayMirror();
         }
         window.handleResize = handleResize;
 
@@ -2256,16 +2304,14 @@
             cameraVideo = await setupCamera();
 
             // 2. Setup Three.js scene
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             renderer.setClearColor(0x000000, 0);
             renderer.autoClear = false; // Manual clear for two-pass camera background + AR rendering
             container.appendChild(renderer.domElement);
 
-            if (isFront) {
-                renderer.domElement.style.transform = 'scaleX(-1)';
-            }
+            updateDisplayMirror();
 
             scene = new THREE.Scene();
 
@@ -2304,13 +2350,12 @@
 
             // Init pixel capture canvas (no CV here — worker handles all OpenCV)
             trackCanvas = document.createElement('canvas');
-            trackCanvas.width = 640;
-            trackCanvas.height = 480;
+            updateTrackingCanvasSize();
             trackCtx = trackCanvas.getContext('2d');
 
             // Tell worker to load mark.jpg reference features (async, non-blocking)
-            cvWorker.postMessage({ type: 'loadRef', url: 'assets/mark.jpg' });
-            cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: true, reinit3DPoints: true });
+            cvWorker.postMessage({type: 'loadRef', url: 'assets/mark.jpg'});
+            cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: true, reinit3DPoints: true});
 
             // Create target geometry meshes
             rebuildCylinderMesh();
@@ -2386,8 +2431,18 @@
             const pnpStatus = document.getElementById('db-pnp-status')?.innerText || 'Idle';
             const pnpMethod = document.getElementById('db-pnp-method')?.innerText || 'None';
             const pnpError = document.getElementById('db-pnp-error')?.innerText || 'None';
+            const container = document.getElementById('container');
+            const displayW = container ? container.clientWidth : window.innerWidth;
+            const displayH = container ? container.clientHeight : window.innerHeight;
+            const nativeW = cameraVideo?.videoWidth || 0;
+            const nativeH = cameraVideo?.videoHeight || 0;
 
-            const info = `Ref Keypoints: ${refKp}
+            const info = `Reference Image: ${workerRefWidth || 0}x${workerRefHeight || 0}
+Native Video Size: ${nativeW}x${nativeH}
+Tracking Size: ${trackW}x${trackH}
+Display Size: ${displayW}x${displayH}
+Mirror Display: ${shouldMirrorDisplay() ? 'yes' : 'no'}
+Ref Keypoints: ${refKp}
 Frame Keypoints: ${frameKp}
 Matches (Raw): ${rawMatches}
 Matches (Good): ${goodMatches}

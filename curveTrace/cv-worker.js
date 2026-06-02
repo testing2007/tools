@@ -32,8 +32,8 @@ importScripts('https://docs.opencv.org/4.5.5/opencv.js');
 // Configuration & Constants
 // ============================================================
 
-const TRACK_W = 640;
-const TRACK_H = 480;
+let trackW = 640;
+let trackH = 480;
 const REF_LEVEL_SCALES = [1.0, 0.75, 0.5, 0.35, 0.25, 0.18];
 
 let cfg = {
@@ -100,7 +100,7 @@ let lastGrayTime = 0, lastFlowTime = 0, lastOrbTime = 0, lastPnpTime = 0;
 
 function initCVState() {
     maskMat = new cv.Mat();
-    frameMat = new cv.Mat(TRACK_H, TRACK_W, cv.CV_8UC4);
+    frameMat = new cv.Mat(trackH, trackW, cv.CV_8UC4);
     frameGray = new cv.Mat();
     prevFlowGray = new cv.Mat();
     cameraMatrixMat = new cv.Mat(3, 3, cv.CV_64F);
@@ -134,15 +134,48 @@ function initCameraMatrix() {
     const cxR = (cfg.cxRatio != null) ? cfg.cxRatio : 0.5;
     const cyR = (cfg.cyRatio != null) ? cfg.cyRatio : 0.5;
 
-    const fx = TRACK_W * fxS;
-    const fy = TRACK_W * fyS;   // use TRACK_W as base for square-pixel assumption
-    const cx = TRACK_W * cxR;
-    const cy = TRACK_H * cyR;
+    const fx = trackW * fxS;
+    const fy = trackW * fyS;   // use trackW as base for square-pixel assumption
+    const cx = trackW * cxR;
+    const cy = trackH * cyR;
 
     const d = cameraMatrixMat.data64F;
     d[0] = fx; d[1] = 0;  d[2] = cx;
     d[3] = 0;  d[4] = fy; d[5] = cy;
     d[6] = 0;  d[7] = 0;  d[8] = 1;
+}
+
+function configureFrameSize(width, height) {
+    const nextW = Math.max(1, Math.round(Number(width) || trackW));
+    const nextH = Math.max(1, Math.round(Number(height) || trackH));
+    if (nextW === trackW && nextH === trackH && frameMat && !frameMat.empty()) return;
+
+    trackW = nextW;
+    trackH = nextH;
+    if (frameMat) { try { frameMat.delete(); } catch (e) {} }
+    if (prevFlowGray) { try { prevFlowGray.delete(); } catch (e) {} }
+    frameMat = new cv.Mat(trackH, trackW, cv.CV_8UC4);
+    prevFlowGray = new cv.Mat();
+    initCameraMatrix();
+    resetFlowTracking('SCANNING');
+    isFirstFrame = true;
+    lastCamPos = null;
+    lastCamQuat = null;
+    console.log(`[Worker] Tracking frame size: ${trackW}x${trackH}`);
+}
+
+function formatCvError(err) {
+    if (typeof err === 'number') {
+        try {
+            if (cv && cv.exceptionFromPtr) {
+                const ex = cv.exceptionFromPtr(err);
+                const msg = ex && (ex.msg || ex.message);
+                if (msg) return `OpenCV exception ${err}: ${msg}`;
+            }
+        } catch (e) {}
+        return `OpenCV exception pointer: ${err}`;
+    }
+    return err && (err.message || err.name) ? (err.message || err.name) : String(err);
 }
 
 function collectDescriptorMatches(queryDesc, trainDesc) {
@@ -369,7 +402,8 @@ function applySolvedPoseRaw(rvecMat, tvecMat, poseConfidenceSource, statusPrefix
         return { success: false, status: 'Rejected Behind/Inf' };
     }
 
-    // Camera world position = -(R^T * t)  [in Three.js coord frame with Y,Z flipped]
+    // Camera world position in the GLB/Three.js object frame.
+    // The OpenCV -> Three.js axis flip belongs in the camera rotation matrix, not here.
     const camX = -(rD[0]*tD[0] + rD[3]*tD[1] + rD[6]*tD[2]);
     const camY = -(rD[1]*tD[0] + rD[4]*tD[1] + rD[7]*tD[2]);
     const camZ = -(rD[2]*tD[0] + rD[5]*tD[1] + rD[8]*tD[2]);
@@ -451,11 +485,11 @@ function computeReprojectionError(objPointsMat, imgPointsMat, rvecMat, tvecMat, 
 /**
  * Compute per-point reprojection data for overlay visualisation.
  * Returns up to maxPts {srcX,srcY,dstX,dstY,err} pairs plus zone stats.
- * W/H are the tracking-resolution dimensions (640×480).
+ * W/H are the current tracking-resolution dimensions.
  */
 function computeReprojectionDetails(objPointsMat, imgPointsMat, rvecMat, tvecMat, camMat, distMat, maxPts) {
     maxPts = maxPts || 60;
-    const W = TRACK_W, H = TRACK_H;
+    const W = trackW, H = trackH;
     let projectedMat = new cv.Mat();
     try {
         cv.projectPoints(objPointsMat, rvecMat, tvecMat, camMat, distMat, projectedMat);
@@ -601,7 +635,7 @@ function tryTrackWithOpticalFlow() {
         for (let i = 0; i < flowFramePoints.length; i++) {
             if (statusData[i] !== 1) continue;
             const x = nextData[i * 2], y = nextData[i * 2 + 1];
-            if (!isFinite(x) || !isFinite(y) || x < 0 || y < 0 || x >= TRACK_W || y >= TRACK_H) continue;
+            if (!isFinite(x) || !isFinite(y) || x < 0 || y < 0 || x >= trackW || y >= trackH) continue;
             nextObjPoints.push(flowObjPoints[i]);
             nextFramePoints.push({ x, y });
             nextRefPoints.push(flowRefPoints[i]);
@@ -840,9 +874,9 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
             } else { result.status = `Need >= ${dynamicMin} matches`; }
         } else { result.status = `Low descriptor matches: ${filtered.length}/${dynamicMin}`; }
     } catch (err) {
-        result.error = err.message || String(err);
+        result.error = formatCvError(err);
         result.status = 'Exception';
-        console.error('[Worker] runOrbMatchOnLevel error:', err);
+        console.error('[Worker] runOrbMatchOnLevel error:', result.error, err);
     } finally {
         if (srcPts) srcPts.delete(); if (dstPts) dstPts.delete();
         if (hmask) hmask.delete(); if (hH) hH.delete();
@@ -877,10 +911,15 @@ function runFullScaleScan(frameKp, frameDesc) {
 // Main Frame Processing — called when a 'frame' message arrives
 // ============================================================
 
-function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
+function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, frameHeight) {
+    configureFrameSize(frameWidth, frameHeight);
     // Decode pixel data into cv.Mat and convert to grayscale
     const tStartGray = performance.now();
-    frameMat.data.set(new Uint8ClampedArray(pixels));
+    const pixelData = new Uint8ClampedArray(pixels);
+    if (pixelData.length !== trackW * trackH * 4) {
+        throw new Error(`Frame buffer size mismatch: got ${pixelData.length}, expected ${trackW * trackH * 4}`);
+    }
+    frameMat.data.set(pixelData);
     cv.cvtColor(frameMat, frameGray, cv.COLOR_RGBA2GRAY);
     lastGrayTime = performance.now() - tStartGray;
 
@@ -1034,9 +1073,9 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
         }
 
     } catch (err) {
-        pnpError = err.message || String(err);
+        pnpError = formatCvError(err);
         pnpStatus = 'Loop Exception';
-        console.error('[Worker] processFrame error:', err);
+        console.error('[Worker] processFrame error:', pnpError, err);
     } finally {
         if (localFrameKeypoints) { try { localFrameKeypoints.delete(); } catch(e){} localFrameKeypoints = null; }
         if (localFrameDescriptors) { try { localFrameDescriptors.delete(); } catch(e){} localFrameDescriptors = null; }
@@ -1073,6 +1112,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
         lastOrbTime,
         lastPnpTime,
         frameKpCount,
+        trackingWidth: trackW,
+        trackingHeight: trackH,
         camPos: poseCamPos,
         rD: poseRD,
         rvfcMeta,
@@ -1096,7 +1137,13 @@ function handleMessage(e) {
             });
             break;
         case 'frame':
-            processFrameInWorker(e.data.pixels, e.data.frameStartTime, e.data.rvfcMeta);
+            try {
+                processFrameInWorker(e.data.pixels, e.data.frameStartTime, e.data.rvfcMeta, e.data.frameWidth, e.data.frameHeight);
+            } catch (err) {
+                const message = formatCvError(err);
+                console.error('[Worker] frame message error:', message, err);
+                self.postMessage({ type: 'error', message });
+            }
             break;
         case 'updateConfig':
             Object.assign(cfg, e.data.config);
