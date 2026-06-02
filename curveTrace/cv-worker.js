@@ -242,10 +242,11 @@ async function loadRefFromImage() {
             cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
         }
         buildRefLevel(scaledGray, scale, scaledW, scaledH, false);
-        const mirroredGray = new cv.Mat();
-        cv.flip(scaledGray, mirroredGray, 1);
-        buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
-        mirroredGray.delete();
+        // 关闭镜像版本，因为它在某些情况下会引入不必要的复杂性和性能开销，尤其是在GLB模式下我们已经有了足够的特征点。
+        // const mirroredGray = new cv.Mat();
+        // cv.flip(scaledGray, mirroredGray, 1);
+        // buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
+        // mirroredGray.delete();
         scaledGray.delete();
     }
     srcMat.delete();
