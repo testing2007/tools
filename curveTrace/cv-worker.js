@@ -37,10 +37,10 @@ const TRACK_H = 480;
 const REF_LEVEL_SCALES = [1.0, 0.75, 0.5, 0.35, 0.25, 0.18];
 
 let cfg = {
-    orbMaxFeatures: 500,
+    orbMaxFeatures: 1200,
     flowMinPoints: 12,
     flowMinRatio: 0.45,
-    hammingCutoff: 55,
+    hammingCutoff: 70,
     minMatches: 12,
     orbRelocalizeInterval: 12,
     relocalizePersistence: 1500,
@@ -123,7 +123,7 @@ function initTracker() {
         throw new Error('cv.ORB not available in this build');
     }
     if (!matcher) {
-        matcher = new cv.BFMatcher(cv.NORM_HAMMING, true);
+        matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
     }
 }
 
@@ -145,54 +145,53 @@ function initCameraMatrix() {
     d[6] = 0;  d[7] = 0;  d[8] = 1;
 }
 
+function collectDescriptorMatches(queryDesc, trainDesc) {
+    let knnMatches = null;
+    const filtered = [];
+    let rawCount = 0;
+    try {
+        knnMatches = new cv.DMatchVectorVector();
+        matcher.knnMatch(queryDesc, trainDesc, knnMatches, 2);
+        for (let i = 0; i < knnMatches.size(); i++) {
+            const row = knnMatches.get(i);
+            if (!row || row.size() < 1) continue;
+            const m = row.get(0);
+            rawCount++;
+            let ratioOk = true;
+            if (row.size() >= 2) {
+                const n = row.get(1);
+                ratioOk = m.distance <= n.distance * 0.82;
+            }
+            if (ratioOk && m.distance <= cfg.hammingCutoff) {
+                filtered.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
+            }
+        }
+    } finally {
+        if (knnMatches) knnMatches.delete();
+    }
+    return { rawCount, filtered };
+}
+
 // ============================================================
 // Reference Image Loading
 // ============================================================
 
 async function loadRefFromUrl() {
-    // Try pre-compiled target.json first, fall back to mark.jpg ORB extraction
-    try {
-        const resp = await fetch('assets/target.json', { cache: 'no-store' });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        refWidth = data.imageWidth;
-        refHeight = data.imageHeight;
-
-        // Sync geometry params from compiled package
-        ['radiusTop', 'radiusBottom', 'height', 'thetaLength'].forEach(k => {
-            if (data[k] !== undefined) cfg[k] = data[k];
-        });
-
-        refLevels = [];
-        for (const level of data.levels) {
-            const levelKeypoints = new cv.KeyPointVector();
-            for (const kp of level.keypoints) {
-                const cvKp = new cv.KeyPoint(kp.x, kp.y, kp.size || 0, kp.angle || -1, kp.response || 0, 0, -1);
-                levelKeypoints.push_back(cvKp);
-                cvKp.delete();
-            }
-            const descData = new Uint8Array(atob(level.descriptors).split('').map(c => c.charCodeAt(0)));
-            const levelDescriptors = new cv.Mat(level.keypoints.length, 32, cv.CV_8U);
-            levelDescriptors.data.set(descData);
-            const originalPoints = level.originalPoints || level.keypoints.map(kp => ({ x: kp.origX || kp.x, y: kp.origY || kp.y }));
-            refLevels.push({ scale: level.scale, width: level.width, height: level.height, keypoints: levelKeypoints, descriptors: levelDescriptors, originalPoints, points3D: [] });
-        }
-        console.log('[Worker] Loaded target.json, levels:', refLevels.length);
-    } catch (e) {
-        console.warn('[Worker] target.json failed, extracting from mark.jpg:', e.message);
-        await loadRefFromImage();
-    }
-
+    // GLB mode keeps geometry in bottle.glb and reads recognition features from mark.jpg.
+    // target.json is only a stale-prone precompiled cache, so runtime no longer uses it.
+    await loadRefFromImage();
     updateRef3DPoints();
     self.postMessage({
         type: 'refLoaded',
         refWidth,
         refHeight,
-        cfgSync: { radiusTop: cfg.radiusTop, radiusBottom: cfg.radiusBottom, height: cfg.height, thetaLength: cfg.thetaLength },
+        source: 'mark.jpg',
         levels: refLevels.map(level => ({
             scale: level.scale,
             width: level.width,
             height: level.height,
+            mirrored: !!level.mirrored,
+            keypointsCount: level.keypoints ? level.keypoints.size() : 0,
             originalPoints: level.originalPoints
         }))
     });
@@ -214,6 +213,25 @@ async function loadRefFromImage() {
     cv.cvtColor(srcMat, grayMat, cv.COLOR_RGBA2GRAY);
 
     refLevels = [];
+
+    const buildRefLevel = (scaledGray, scale, scaledW, scaledH, mirrored) => {
+        const levelKp = new cv.KeyPointVector();
+        const levelDesc = new cv.Mat();
+        orb.detectAndCompute(scaledGray, maskMat, levelKp, levelDesc);
+        const originalPoints = [];
+        const matchPoints = [];
+        for (let i = 0; i < levelKp.size(); i++) {
+            const kp = levelKp.get(i);
+            const matchX = kp.pt.x / scale;
+            const matchY = kp.pt.y / scale;
+            const originalX = mirrored ? Math.max(0, Math.min(refWidth, refWidth - matchX)) : matchX;
+            originalPoints.push({ x: originalX, y: matchY });
+            matchPoints.push({ x: matchX, y: matchY });
+        }
+        refLevels.push({ scale, width: scaledW, height: scaledH, mirrored, keypoints: levelKp, descriptors: levelDesc, originalPoints, matchPoints, points3D: [] });
+        console.log(`[Worker] Ref scale ${scale}${mirrored ? ' mirrored' : ''}: ${levelKp.size()} kps (${scaledW}x${scaledH})`);
+    };
+
     for (const scale of REF_LEVEL_SCALES) {
         const scaledW = Math.max(1, Math.round(refWidth * scale));
         const scaledH = Math.max(1, Math.round(refHeight * scale));
@@ -223,16 +241,11 @@ async function loadRefFromImage() {
         } else {
             cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
         }
-        const levelKp = new cv.KeyPointVector();
-        const levelDesc = new cv.Mat();
-        orb.detectAndCompute(scaledGray, maskMat, levelKp, levelDesc);
-        const originalPoints = [];
-        for (let i = 0; i < levelKp.size(); i++) {
-            const kp = levelKp.get(i);
-            originalPoints.push({ x: kp.pt.x / scale, y: kp.pt.y / scale });
-        }
-        refLevels.push({ scale, width: scaledW, height: scaledH, keypoints: levelKp, descriptors: levelDesc, originalPoints, points3D: [] });
-        console.log(`[Worker] Ref scale ${scale}: ${levelKp.size()} kps (${scaledW}x${scaledH})`);
+        buildRefLevel(scaledGray, scale, scaledW, scaledH, false);
+        const mirroredGray = new cv.Mat();
+        cv.flip(scaledGray, mirroredGray, 1);
+        buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
+        mirroredGray.delete();
         scaledGray.delete();
     }
     srcMat.delete();
@@ -334,6 +347,14 @@ function quatDot(q1, q2) { return q1.x*q2.x + q1.y*q2.y + q1.z*q2.z + q1.w*q2.w;
 function quatAngle(q1, q2) { return 2 * Math.acos(Math.min(1.0, Math.abs(quatDot(q1, q2)))); }
 function vecLen(p) { return Math.sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]); }
 
+function readInlierIndex(mat, i) {
+    if (!mat) return -1;
+    if (mat.data32S && mat.data32S.length > i) return mat.data32S[i];
+    if (mat.data32F && mat.data32F.length > i) return Math.round(mat.data32F[i]);
+    if (mat.data && mat.data.length > i) return mat.data[i];
+    try { return mat.intAt(i, 0); } catch (e) { return -1; }
+}
+
 // ============================================================
 // Pose Solver — No Three.js, No 20ms Extrapolation
 // ============================================================
@@ -343,7 +364,7 @@ function applySolvedPoseRaw(rvecMat, tvecMat, poseConfidenceSource, statusPrefix
     const rD = RMat.data64F;
     const tD = tvecMat.data64F;
 
-    if (!isFinite(tD[0]) || !isFinite(tD[1]) || !isFinite(tD[2]) || tD[2] <= 0.1) {
+    if (!isFinite(tD[0]) || !isFinite(tD[1]) || !isFinite(tD[2]) || tD[2] <= 0.02) {
         return { success: false, status: 'Rejected Behind/Inf' };
     }
 
@@ -354,7 +375,7 @@ function applySolvedPoseRaw(rvecMat, tvecMat, poseConfidenceSource, statusPrefix
     const camPos = [camX, camY, camZ];
     const dist = vecLen(camPos);
 
-    if (dist < 0.5 || dist > 25.0) {
+    if (dist < 0.03 || dist > 25.0) {
         return { success: false, status: `Rejected Dist: ${dist.toFixed(2)}` };
     }
 
@@ -407,9 +428,9 @@ function computeReprojectionError(objPointsMat, imgPointsMat, rvecMat, tvecMat, 
         const imgData = imgPointsMat.data32F;
         let sumError = 0, count = 0;
         if (inliersMat && inliersMat.rows > 0) {
-            const inlierData = inliersMat.data32S;
             for (let i = 0; i < inliersMat.rows; i++) {
-                const idx = inlierData[i];
+                const idx = readInlierIndex(inliersMat, i);
+                if (idx < 0 || idx >= objPointsMat.rows) continue;
                 const px = projData[2*idx], py = projData[2*idx+1];
                 const ix = imgData[2*idx],  iy = imgData[2*idx+1];
                 if (isFinite(px) && isFinite(py)) { sumError += Math.sqrt((px-ix)**2 + (py-iy)**2); count++; }
@@ -663,21 +684,15 @@ function seedFlowTrackingFromMatches(level, matches, localKpArray) {
 function runDriftCorrection(frameKp, frameDesc) {
     const level = lastSuccessScaleLevel || refLevels[0];
     if (!level) return;
-    let levelMatches = new cv.DMatchVector();
     let srcPts = null, dstPts = null, hmask = null, hH = null;
     try {
         if (!frameDesc || frameDesc.empty() || level.descriptors.empty()) return;
         const tStart = performance.now();
-        matcher.match(level.descriptors, frameDesc, levelMatches);
-        const filtered = [];
-        for (let i = 0; i < levelMatches.size(); i++) {
-            const m = levelMatches.get(i);
-            if (m.distance < cfg.hammingCutoff) filtered.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
-        }
+        const { filtered } = collectDescriptorMatches(level.descriptors, frameDesc);
         if (filtered.length >= 8) {
             const sp = [], dp = [];
             for (const m of filtered) {
-                const rp = level.originalPoints[m.queryIdx];
+                const rp = (level.matchPoints || level.originalPoints)[m.queryIdx];
                 const kp = frameKp.get(m.trainIdx);
                 sp.push(rp.x, rp.y); dp.push(kp.pt.x, kp.pt.y);
             }
@@ -723,7 +738,6 @@ function runDriftCorrection(frameKp, frameDesc) {
     } catch (err) {
         console.warn('[Worker] Drift correction failed:', err);
     } finally {
-        levelMatches.delete();
         if (srcPts) srcPts.delete(); if (dstPts) dstPts.delete();
         if (hmask) hmask.delete(); if (hH) hH.delete();
     }
@@ -734,7 +748,6 @@ function runDriftCorrection(frameKp, frameDesc) {
 // ============================================================
 
 function runOrbMatchOnLevel(level, frameKp, frameDesc) {
-    let levelMatches = new cv.DMatchVector();
     let srcPts = null, dstPts = null, hmask = null, hH = null;
     let objPtsMat = null, imgPtsMat = null, pnpInliersMat = null;
     const result = {
@@ -743,6 +756,8 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
         method: 'None',
         error: 'None',
         inliers: 0,
+        rawMatches: 0,
+        filteredMatches: 0,
         goodMatches: 0,
         inlierRatio: 0,
         confidence: 1.0,
@@ -757,42 +772,18 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
         if (!frameDesc || frameDesc.empty() || level.descriptors.empty()) { result.status = 'Empty Descriptors'; return result; }
 
         const tStartMatch = performance.now();
-        matcher.match(level.descriptors, frameDesc, levelMatches);
-        const filtered = [];
-        for (let i = 0; i < levelMatches.size(); i++) {
-            const m = levelMatches.get(i);
-            if (m.distance < cfg.hammingCutoff) filtered.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
-        }
-        const rawCount = filtered.length;
-        const inlierMatches = [];
-
-        if (rawCount >= 8) {
-            const sp = [], dp = [];
-            for (const m of filtered) {
-                const rp = level.originalPoints[m.queryIdx];
-                const kp = frameKp.get(m.trainIdx);
-                sp.push(rp.x, rp.y); dp.push(kp.pt.x, kp.pt.y);
-            }
-            srcPts = cv.matFromArray(rawCount, 1, cv.CV_32FC2, sp);
-            dstPts = cv.matFromArray(rawCount, 1, cv.CV_32FC2, dp);
-            hmask = new cv.Mat();
-            hH = cv.findHomography(srcPts, dstPts, cv.RANSAC, 8.0, hmask);
-            if (!hH.empty()) {
-                for (let i = 0; i < rawCount; i++) if (hmask.data[i] === 1) inlierMatches.push(filtered[i]);
-            }
-        }
+        const matchInfo = collectDescriptorMatches(level.descriptors, frameDesc);
+        const filtered = matchInfo.filtered;
+        const rawCount = matchInfo.rawCount;
+        result.rawMatches = rawCount;
+        result.filteredMatches = filtered.length;
         lastOrbTime += performance.now() - tStartMatch;
 
-        const inlierRatio = rawCount > 0 ? inlierMatches.length / rawCount : 0;
-        result.goodMatches = inlierMatches.length;
-        result.inlierRatio = inlierRatio;
-
         const dynamicMin = level.scale <= 0.5 ? Math.min(Math.round(cfg.minMatches), 10) : Math.round(cfg.minMatches);
-        const requiredRatio = level.scale <= 0.5 ? 0.35 : 0.20;
 
-        if (inlierMatches.length >= dynamicMin && inlierRatio >= requiredRatio) {
-            inlierMatches.sort((a, b) => a.distance - b.distance);
-            const topMatches = inlierMatches.slice(0, 80);
+        if (filtered.length >= dynamicMin) {
+            filtered.sort((a, b) => a.distance - b.distance);
+            const topMatches = filtered.slice(0, 120);
             const objPoints = [], imgPoints = [];
             for (const m of topMatches) {
                 const pt3D = level.points3D[m.queryIdx];
@@ -812,12 +803,15 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                 const minPnpInliers = Math.max(8, Math.ceil(dynamicMin * 0.75));
                 result.inliers = pnpInlierCount;
                 result.method = `Ransac PnP (${pnpInlierCount})`;
+                result.goodMatches = pnpInlierCount;
+                result.inlierRatio = topMatches.length > 0 ? pnpInlierCount / topMatches.length : 0;
 
                 if (success && pnpInlierCount >= minPnpInliers) {
                     const error = computeReprojectionError(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, pnpInliersMat);
                     result.reprojErr = error;
                     if (error <= 8.0) {
-                        const pose = applySolvedPoseRaw(rvec, tvec, (inlierRatio * 0.55) + (Math.min(numPts / (dynamicMin * 2), 1) * 0.45), 'Success (PnP)');
+                        const confidence = (result.inlierRatio * 0.55) + (Math.min(numPts / (dynamicMin * 2), 1) * 0.45);
+                        const pose = applySolvedPoseRaw(rvec, tvec, confidence, 'Success (PnP)');
                         if (pose.success) {
                             // 记录重投影点与分区误差，便于主线程做可视化诊断。
                             result.reprojDetails = computeReprojectionDetails(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, 60);
@@ -826,7 +820,14 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                             result.confidence = pose.confidence;
                             result.rD = pose.rD;
                             result.camPos = pose.camPos;
-                            result.inlierMatches = topMatches;
+                            const pnpInlierMatches = [];
+                            if (pnpInliersMat && pnpInliersMat.rows > 0) {
+                                for (let i = 0; i < pnpInliersMat.rows; i++) {
+                                    const idx = readInlierIndex(pnpInliersMat, i);
+                                    if (topMatches[idx]) pnpInlierMatches.push(topMatches[idx]);
+                                }
+                            }
+                            result.inlierMatches = pnpInlierMatches.length ? pnpInlierMatches : topMatches.slice(0, pnpInlierCount);
                             result.localFrameKeypoints = [];
                             for (let i = 0; i < frameKp.size(); i++) {
                                 const kp = frameKp.get(i);
@@ -836,13 +837,12 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                     } else { result.status = `High Reproj: ${error.toFixed(1)}px`; }
                 } else { result.status = success ? `Low Inliers: ${pnpInlierCount}` : 'PnP Failed'; }
             } else { result.status = `Need >= ${dynamicMin} matches`; }
-        } else { result.status = 'Low matches or ratio'; }
+        } else { result.status = `Low descriptor matches: ${filtered.length}/${dynamicMin}`; }
     } catch (err) {
         result.error = err.message || String(err);
         result.status = 'Exception';
         console.error('[Worker] runOrbMatchOnLevel error:', err);
     } finally {
-        levelMatches.delete();
         if (srcPts) srcPts.delete(); if (dstPts) dstPts.delete();
         if (hmask) hmask.delete(); if (hH) hH.delete();
         if (objPtsMat) objPtsMat.delete(); if (imgPtsMat) imgPtsMat.delete();
@@ -859,11 +859,17 @@ function runFullScaleScan(frameKp, frameDesc) {
     let bestResult = null, bestLevel = null;
     for (const level of refLevels) {
         const res = runOrbMatchOnLevel(level, frameKp, frameDesc);
-        if (res.success) return { ...res, level, bestScaleText: `${level.scale.toFixed(2)}x` };
-        if (!bestResult || res.goodMatches > bestResult.goodMatches) { bestResult = res; bestLevel = level; }
+        const levelText = `${level.scale.toFixed(2)}x${level.mirrored ? ' mirrored' : ''}`;
+        if (res.success) return { ...res, level, bestScaleText: levelText };
+        if (!bestResult
+            || res.goodMatches > bestResult.goodMatches
+            || (res.goodMatches === bestResult.goodMatches && res.filteredMatches > (bestResult.filteredMatches || 0))) {
+            bestResult = res;
+            bestLevel = level;
+        }
     }
-    if (bestResult) return { ...bestResult, level: bestLevel, bestScaleText: bestLevel ? `${bestLevel.scale.toFixed(2)}x` : '-' };
-    return { success: false, status: 'Scanning...', method: 'None', error: 'None', inliers: 0, goodMatches: 0, inlierRatio: 0, confidence: 0, reprojErr: 999.0, bestScaleText: '-', level: null };
+    if (bestResult) return { ...bestResult, level: bestLevel, bestScaleText: bestLevel ? `${bestLevel.scale.toFixed(2)}x${bestLevel.mirrored ? ' mirrored' : ''}` : '-' };
+    return { success: false, status: 'Scanning...', method: 'None', error: 'None', inliers: 0, rawMatches: 0, filteredMatches: 0, goodMatches: 0, inlierRatio: 0, confidence: 0, reprojErr: 999.0, bestScaleText: '-', level: null };
 }
 
 // ============================================================
@@ -888,6 +894,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
     let bestInlierRatio = 0, pnpInlierCount = 0, poseConfidence = 1.0;
     let reprojErrVal = 0;
     let goodMatchesCount = 0;
+    let rawMatchesCount = 0;
+    let filteredMatchesCount = 0;
     let poseCamPos = null, poseRD = null;
     let frameKpCount = 0;
     let reprojPoints = [], zoneErrors = {};
@@ -935,6 +943,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                 pnpStatus = matchResult.status; pnpMethod = matchResult.method;
                 pnpError = matchResult.error; pnpInlierCount = matchResult.inliers || 0;
                 goodMatchesCount = matchResult.goodMatches;
+                rawMatchesCount = matchResult.rawMatches || 0;
+                filteredMatchesCount = matchResult.filteredMatches || 0;
                 bestInlierRatio = matchResult.inlierRatio;
                 bestScaleText = `${level.scale.toFixed(2)}x (Reloc)`;
                 frameKpCount = matchResult.frameKpCount || 0;
@@ -977,6 +987,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                 pnpStatus = scanResult.status; pnpMethod = scanResult.method;
                 pnpError = scanResult.error; pnpInlierCount = scanResult.inliers || 0;
                 goodMatchesCount = scanResult.goodMatches;
+                rawMatchesCount = scanResult.rawMatches || 0;
+                filteredMatchesCount = scanResult.filteredMatches || 0;
                 bestInlierRatio = scanResult.inlierRatio;
                 bestScaleText = scanResult.bestScaleText;
                 frameKpCount = scanResult.frameKpCount || 0;
@@ -1003,6 +1015,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
                 pnpStatus = scanResult.status; pnpMethod = scanResult.method;
                 pnpError = scanResult.error; pnpInlierCount = scanResult.inliers || 0;
                 goodMatchesCount = scanResult.goodMatches;
+                rawMatchesCount = scanResult.rawMatches || 0;
+                filteredMatchesCount = scanResult.filteredMatches || 0;
                 bestInlierRatio = scanResult.inlierRatio;
                 bestScaleText = scanResult.bestScaleText;
                 frameKpCount = scanResult.frameKpCount || 0;
@@ -1036,6 +1050,8 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta) {
         type: 'poseResult',
         trackingSuccess,
         goodMatchesCount,
+        rawMatchesCount,
+        filteredMatchesCount,
         bestScaleText,
         dynamicMinMatches,
         bestInlierRatio,

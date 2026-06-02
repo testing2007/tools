@@ -132,6 +132,11 @@
             box-shadow: 0 0 10px rgba(231, 76, 60, 0.15);
         }
 
+        #section-physdims,
+        .glb-obsolete-control {
+            display: none;
+        }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -524,7 +529,7 @@
         </div>
 
         <!-- Curvature Settings -->
-        <div>
+        <div class="glb-obsolete-control">
             <div class="section-title">Curvature (Manual override when Auto is OFF)</div>
             <div class="slider-group">
                 <div class="slider-label">
@@ -548,7 +553,7 @@
         </div>
 
         <!-- Align Offsets -->
-        <div>
+        <div class="glb-obsolete-control">
             <div class="section-title">Align Offsets (Position)</div>
             <div class="slider-group">
                 <div class="slider-label">
@@ -572,7 +577,7 @@
         </div>
 
         <!-- Rotation Adjustments -->
-        <div>
+        <div class="glb-obsolete-control">
             <div class="section-title">Rotation Adjustments</div>
             <div class="slider-group">
                 <div class="slider-label">
@@ -596,7 +601,7 @@
         </div>
 
         <!-- Wrap Parameters -->
-        <div>
+        <div class="glb-obsolete-control">
             <div class="section-title">Wrap Coverage</div>
             <div class="slider-group">
                 <div class="slider-label">
@@ -634,9 +639,9 @@
 
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Hamming Cutoff</span>
-                    <span class="slider-val" id="val-hammingCutoff">55</span>
+                    <span class="slider-val" id="val-hammingCutoff">70</span>
                 </div>
-                <input type="range" id="hammingCutoff" min="40" max="90" step="1" value="55">
+                <input type="range" id="hammingCutoff" min="40" max="100" step="1" value="70">
 
 
                 <!-- Camera intrinsics section -->
@@ -679,9 +684,9 @@
 
                 <div class="slider-label" style="margin-top: 10px;">
                     <span>Max Frame Features</span>
-                    <span class="slider-val" id="val-orbMaxFeatures">500</span>
+                    <span class="slider-val" id="val-orbMaxFeatures">1200</span>
                 </div>
-                <input type="range" id="orbMaxFeatures" min="100" max="1200" step="50" value="500">
+                <input type="range" id="orbMaxFeatures" min="100" max="2000" step="50" value="1200">
             </div>
         </div>
 
@@ -828,13 +833,13 @@
             // -- Tracking response --
             lerpFactor: 0.45,
             minMatches: 12,
-            hammingCutoff: 55,
+            hammingCutoff: 70,
             trackingMode: "fast",
             flowMinPoints: 12,
             flowMinRatio: 0.45,
             orbRelocalizeInterval: 12,
             relocalizePersistence: 1500,
-            orbMaxFeatures: 500
+            orbMaxFeatures: 1200
         };
 
         let config = { ...defaultConfig };
@@ -847,6 +852,7 @@
          * This makes all distances proportional and scale-agnostic.
          */
         function computePhysicalDerivedParams() {
+            if (config.useGlbModel) return;
             if (!config.usePhysicalDims) return;
 
             const rTopMm    = Math.max(1, Number(config.radiusTopMm));
@@ -883,6 +889,8 @@
         let virtualLabelMesh = null;
         let glbModel = null;
         let glbLoadStarted = false;
+        let glbLoadPromise = null;
+        let glbModelPointsReady = false;
         let workerRefLevels = null;
         let workerRefWidth = 0;
         let workerRefHeight = 0;
@@ -952,6 +960,8 @@
         let lastFlowRatio = 0;
         let lastGrayTime = 0, lastFlowTime = 0, lastOrbTime = 0, lastPnpTime = 0;
         let frameKpCount = 0;
+        let rawMatchesCount = 0;
+        let filteredMatchesCount = 0;
         // trackCanvas/trackCtx initialized in initAR (pixel capture canvas)
         let trackCanvas = null, trackCtx = null;
 
@@ -967,6 +977,14 @@
                             config[key] = defaultConfig[key];
                             isUpdated = true;
                         }
+                    }
+                    if ((Number(config.orbMaxFeatures) || 0) < defaultConfig.orbMaxFeatures) {
+                        config.orbMaxFeatures = defaultConfig.orbMaxFeatures;
+                        isUpdated = true;
+                    }
+                    if ((Number(config.hammingCutoff) || 0) < defaultConfig.hammingCutoff) {
+                        config.hammingCutoff = defaultConfig.hammingCutoff;
+                        isUpdated = true;
                     }
                     if (isUpdated) saveConfig();
                 } catch (e) {
@@ -1264,16 +1282,27 @@
             return nearest ? nearest.clone() : null;
         }
 
-        function createGlbLabelMesh(texture, opacity) {
+        function setMeshOpacity(mesh, opacity) {
+            if (!mesh || !mesh.material) return;
+            mesh.material.opacity = opacity;
+            mesh.material.transparent = opacity < 0.999;
+            mesh.material.depthWrite = opacity >= 0.999;
+            mesh.material.needsUpdate = true;
+        }
+
+        function createGlbLabelMesh(texture, opacity, options = {}) {
             applyGlbTextureSettings(texture);
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
                 side: THREE.DoubleSide,
-                transparent: true,
-                opacity
+                transparent: opacity < 0.999,
+                opacity,
+                depthWrite: opacity >= 0.999,
+                depthTest: true
             });
             const mesh = new THREE.Mesh(glbModel.labelGeometry, material);
             mesh.name = 'glbVideoLabelMesh';
+            mesh.renderOrder = options.renderOrder || 10;
             return mesh;
         }
 
@@ -1282,6 +1311,7 @@
                 return;
             }
 
+            glbModelPointsReady = false;
             const levels = workerRefLevels.map(level => ({
                 scale: level.scale,
                 points3D: level.originalPoints.map(pt => {
@@ -1295,27 +1325,35 @@
         }
 
         function loadBottleModel() {
-            if (glbLoadStarted || !config.useGlbModel) return;
+            if (glbModel) return Promise.resolve(glbModel);
+            if (glbLoadPromise) return glbLoadPromise;
             glbLoadStarted = true;
 
             const loader = new GLTFLoader();
-            loader.load('assets/bottle.glb', (gltf) => {
+            glbLoadPromise = new Promise((resolve, reject) => {
+                loader.load('assets/bottle.glb', (gltf) => {
                 const root = gltf.scene;
                 root.updateMatrixWorld(true);
                 const labelMesh = findMeshByNodeName(root, 'labelMesh');
                 const bottleMesh = findMeshByNodeName(root, 'bottleMesh');
 
                 if (!labelMesh || !labelMesh.geometry || !labelMesh.geometry.attributes.uv) {
-                    console.warn('[GLB] labelMesh with UVs was not found; falling back to generated cylinder geometry');
+                    reject(new Error('assets/bottle.glb must contain labelMesh with UV coordinates'));
                     return;
                 }
 
                 const labelGeometry = bakeGeometryToWorld(labelMesh);
+                const labelUvTriangles = buildUvTriangleIndex(labelGeometry);
+                if (!labelUvTriangles.length) {
+                    reject(new Error('labelMesh UV triangles are empty'));
+                    return;
+                }
+
                 glbModel = {
                     root,
                     labelGeometry,
                     bottleGeometry: bottleMesh ? bakeGeometryToWorld(bottleMesh) : null,
-                    labelUvTriangles: buildUvTriangleIndex(labelGeometry)
+                    labelUvTriangles
                 };
 
                 applyGlbTextureSettings(videoTexture);
@@ -1326,9 +1364,12 @@
                 rebuildCylinderMesh();
                 updatePreviewMeshes();
                 sendGlbModelPointsToWorker();
-            }, undefined, (err) => {
-                console.error('[GLB] Failed to load assets/bottle.glb; using generated cylinder fallback', err);
+                    resolve(glbModel);
+                }, undefined, (err) => {
+                    reject(err);
+                });
             });
+            return glbLoadPromise;
         }
 
         function toggleMute() {
@@ -1446,7 +1487,7 @@
         }
 
         // Shared function to update UI metrics and renderer pose
-        function updateUIAndRenderer(trackingSuccess, goodMatchesCount, bestScaleText, dynamicMinMatches, bestInlierRatio, reprojErrVal, pnpStatus, pnpMethod, pnpError, pnpInlierCount, poseConfidence, frameStartTime) {
+        function updateUIAndRenderer(trackingSuccess, goodMatchesCount, rawMatchesCount, filteredMatchesCount, bestScaleText, dynamicMinMatches, bestInlierRatio, reprojErrVal, pnpStatus, pnpMethod, pnpError, pnpInlierCount, poseConfidence, frameStartTime) {
             const now = performance.now();
             const updateDebug = (now - lastDebugUpdate > 150);
 
@@ -1499,7 +1540,7 @@
                     if (dbGoodMatches) dbGoodMatches.innerText = `${flowFramePointsLen} (${Math.round(lastFlowRatio * 100)}%)`;
                 } else {
                     const dbRawMatches = document.getElementById('db-raw-matches');
-                    if (dbRawMatches) dbRawMatches.innerText = goodMatchesCount;
+                    if (dbRawMatches) dbRawMatches.innerText = `${rawMatchesCount}/${filteredMatchesCount}`;
                     const dbGoodMatches = document.getElementById('db-good-matches');
                     if (dbGoodMatches) dbGoodMatches.innerText = `${goodMatchesCount} (${Math.round(bestInlierRatio * 100)}%)`;
                 }
@@ -1600,7 +1641,7 @@
                 if (videoElement) {
                     videoElement.play().catch(err => { });
                     if (videoMesh && videoMesh.material) {
-                        videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.95, 0.1);
+                        setMeshOpacity(videoMesh, THREE.MathUtils.lerp(videoMesh.material.opacity, 1.0, 0.1));
                     }
                 }
             } else {
@@ -1617,7 +1658,7 @@
                 if (videoElement) {
                     videoElement.pause();
                     if (videoMesh && videoMesh.material) {
-                        videoMesh.material.opacity = THREE.MathUtils.lerp(videoMesh.material.opacity, 0.0, 0.15);
+                        setMeshOpacity(videoMesh, THREE.MathUtils.lerp(videoMesh.material.opacity, 0.0, 0.15));
                     }
                 }
             }
@@ -1627,6 +1668,7 @@
         function processFrame(rvfcMetadata) {
             if (currentMode !== 'AR' || !cameraVideo) return;
             if (cameraVideo.readyState < 2) return;
+            if (!glbModel || !glbModelPointsReady) return;
             if (workerBusy || !cvWorker) return; // drop frame, worker not ready
 
             if (!projectionInitialized) {
@@ -1666,19 +1708,17 @@
                     document.getElementById('status-badge').className = 'status-badge scanning';
                     break;
                 case 'refLoaded':
-                    console.log('[Main] Worker: Reference loaded', data.refWidth, 'x', data.refHeight);
+                    console.log(`[Main] Worker: Reference loaded from ${data.source || 'mark.jpg'}`, data.refWidth, 'x', data.refHeight);
                     workerRefWidth = data.refWidth || 0;
                     workerRefHeight = data.refHeight || 0;
                     workerRefLevels = Array.isArray(data.levels) ? data.levels : null;
-                    // Sync geometry params from compiled target (if worker updated them)
-                    if (data.cfgSync) {
-                        Object.keys(data.cfgSync).forEach(k => { if (data.cfgSync[k] !== undefined) config[k] = data.cfgSync[k]; });
-                        updateSlidersUI();
-                        rebuildCylinderMesh();
-                    }
+                    const firstNonMirroredLevel = workerRefLevels?.find(level => !level.mirrored) || workerRefLevels?.[0];
+                    const dbRefKp = document.getElementById('db-ref-kp');
+                    if (dbRefKp && firstNonMirroredLevel) dbRefKp.innerText = firstNonMirroredLevel.keypointsCount || firstNonMirroredLevel.originalPoints?.length || 0;
                     sendGlbModelPointsToWorker();
                     break;
                 case 'modelPointsApplied':
+                    glbModelPointsReady = true;
                     console.log(`[Main] Worker applied GLB model points (${data.levels} levels)`);
                     break;
                 case 'poseResult':
@@ -1702,6 +1742,8 @@
             lastOrbTime = result.lastOrbTime || 0;
             lastPnpTime = result.lastPnpTime || 0;
             frameKpCount = result.frameKpCount || 0;
+            rawMatchesCount = result.rawMatchesCount || 0;
+            filteredMatchesCount = result.filteredMatchesCount || 0;
             lastReprojPoints = Array.isArray(result.reprojPoints) ? result.reprojPoints : [];
             lastZoneErrors = result.zoneErrors || {};
 
@@ -1741,6 +1783,8 @@
             updateUIAndRenderer(
                 result.trackingSuccess,
                 result.goodMatchesCount,
+                result.rawMatchesCount || 0,
+                result.filteredMatchesCount || 0,
                 result.bestScaleText,
                 result.dynamicMinMatches,
                 result.bestInlierRatio,
@@ -1949,54 +1993,10 @@
         }
         window.toggleReprojOverlay = toggleReprojOverlay;
 
-        // Rebuild cylinder geometry which renders the video
+        // Rebuild GLB label geometry which renders the video
         function createCylinderMesh() {
-            if (config.useGlbModel && glbModel) {
-                return createGlbLabelMesh(videoTexture, 0.0);
-            }
-
-            applyLegacyTextureSettings(videoTexture);
-
-            // Center the video segment at +Z (0 deg, facing camera directly)
-            const thetaStartVal = - config.thetaLength / 2;
-            const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
-            const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
-
-            const geometry = new THREE.CylinderGeometry(
-                config.radiusTop,
-                config.radiusBottom,
-                config.height,
-                64, // radialSegments for smoothness
-                1,  // heightSegments
-                true, // openEnded
-                tStartRad,
-                tLengthRad
-            );
-
-            const material = new THREE.MeshBasicMaterial({
-                map: videoTexture,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.0
-            });
-
-            const mesh = new THREE.Mesh(geometry, material);
-
-            // Adjust position
-            mesh.position.set(
-                parseFloat(config.offsetX),
-                parseFloat(config.offsetY),
-                parseFloat(config.offsetZ)
-            );
-
-            // Adjust rotation
-            mesh.rotation.set(
-                THREE.MathUtils.degToRad(config.rotX),
-                THREE.MathUtils.degToRad(config.rotY),
-                THREE.MathUtils.degToRad(config.rotZ)
-            );
-
-            return mesh;
+            if (!glbModel) throw new Error('bottle.glb is required before creating the video mesh');
+            return createGlbLabelMesh(videoTexture, 0.0);
         }
 
         function rebuildCylinderMesh() {
@@ -2030,85 +2030,24 @@
 
             if (currentMode !== 'PREVIEW') return;
 
-            if (config.useGlbModel && glbModel) {
-                if (glbModel.bottleGeometry) {
-                    const bottleMat = new THREE.MeshStandardMaterial({
-                        color: 0x333333,
-                        transparent: true,
-                        opacity: 0.25,
-                        roughness: 0.1,
-                        metalness: 0.1,
-                        side: THREE.DoubleSide
-                    });
-                    virtualBottleMesh = new THREE.Mesh(glbModel.bottleGeometry, bottleMat);
-                    virtualBottleMesh.name = 'glbPreviewBottleMesh';
-                    scene.add(virtualBottleMesh);
-                }
+            if (!glbModel) return;
 
-                if (labelTexture) {
-                    virtualLabelMesh = createGlbLabelMesh(labelTexture, 0.8);
-                    virtualLabelMesh.name = 'glbPreviewLabelMesh';
-                    scene.add(virtualLabelMesh);
-                }
-                return;
-            }
-
-            applyLegacyTextureSettings(labelTexture);
-
-            // Semi-transparent bottle cylinder
-            const bottleGeom = new THREE.CylinderGeometry(
-                config.radiusTop,
-                config.radiusBottom,
-                config.height * 1.8,
-                64
-            );
-            const bottleMat = new THREE.MeshStandardMaterial({
-                color: 0x333333,
-                transparent: true,
-                opacity: 0.25,
-                roughness: 0.1,
-                metalness: 0.1
-            });
-            virtualBottleMesh = new THREE.Mesh(bottleGeom, bottleMat);
-            virtualBottleMesh.position.set(0, 0, 0); // Cylinder origin
-            scene.add(virtualBottleMesh);
-
-            // Virtual label guide mesh
-            if (labelTexture) {
-                // Center the virtual label guide at +Z (0 deg, facing camera directly)
-                const thetaStartVal = - config.thetaLength / 2;
-                const tStartRad = THREE.MathUtils.degToRad(thetaStartVal);
-                const tLengthRad = THREE.MathUtils.degToRad(config.thetaLength);
-
-                const labelGeom = new THREE.CylinderGeometry(
-                    config.radiusTop - 0.002,
-                    config.radiusBottom - 0.002,
-                    config.height,
-                    64,
-                    1,
-                    true,
-                    tStartRad,
-                    tLengthRad
-                );
-                const labelMat = new THREE.MeshBasicMaterial({
-                    map: labelTexture,
-                    side: THREE.DoubleSide,
+            if (glbModel.bottleGeometry) {
+                const bottleMat = new THREE.MeshStandardMaterial({
+                    color: 0x333333,
                     transparent: true,
-                    opacity: 0.8
+                    opacity: 0.25,
+                    roughness: 0.1,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
                 });
-                virtualLabelMesh = new THREE.Mesh(labelGeom, labelMat);
-                virtualLabelMesh.position.set(
-                    parseFloat(config.offsetX),
-                    parseFloat(config.offsetY),
-                    parseFloat(config.offsetZ)
-                );
-                virtualLabelMesh.rotation.set(
-                    THREE.MathUtils.degToRad(config.rotX),
-                    THREE.MathUtils.degToRad(config.rotY),
-                    THREE.MathUtils.degToRad(config.rotZ)
-                );
-                scene.add(virtualLabelMesh);
+                virtualBottleMesh = new THREE.Mesh(glbModel.bottleGeometry, bottleMat);
+                virtualBottleMesh.name = 'glbPreviewBottleMesh';
+                virtualBottleMesh.renderOrder = 0;
+                scene.add(virtualBottleMesh);
             }
+
         }
 
         // Toggle Modes: Live AR or 3D Preview
@@ -2156,7 +2095,7 @@
 
                 // Ensure video is visible in preview mode
                 if (videoMesh && videoMesh.material) {
-                    videoMesh.material.opacity = 0.95;
+                    setMeshOpacity(videoMesh, 1.0);
                 }
 
                 updatePreviewMeshes();
@@ -2189,7 +2128,7 @@
 
                 // Reset opacity to fade in on next track
                 if (videoMesh && videoMesh.material) {
-                    videoMesh.material.opacity = 0.0;
+                    setMeshOpacity(videoMesh, 0.0);
                 }
 
                 videoElement.pause();
@@ -2350,7 +2289,14 @@
 
             // 3. Initialize AR video overlay (Three.js mesh textures)
             initVideo();
-            loadBottleModel();
+            try {
+                await loadBottleModel();
+            } catch (err) {
+                console.error('[GLB] Failed to load required assets/bottle.glb', err);
+                document.getElementById('status-text').innerText = 'GLB LOAD FAILED';
+                document.getElementById('status-badge').className = 'status-badge lost';
+                throw err;
+            }
 
             // 4. Create OpenCV Web Worker (all CV processing runs off-main-thread)
             cvWorker = new Worker('cv-worker.js');
@@ -2362,8 +2308,8 @@
             trackCanvas.height = 480;
             trackCtx = trackCanvas.getContext('2d');
 
-            // Tell worker to load the reference image (async, non-blocking)
-            cvWorker.postMessage({ type: 'loadRef', url: 'assets/target.json' });
+            // Tell worker to load mark.jpg reference features (async, non-blocking)
+            cvWorker.postMessage({ type: 'loadRef', url: 'assets/mark.jpg' });
             cvWorker.postMessage({ type: 'updateConfig', config: { ...config }, reinitOrb: true, reinit3DPoints: true });
 
             // Create target geometry meshes
