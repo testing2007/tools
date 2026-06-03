@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -132,7 +132,6 @@
             box-shadow: 0 0 10px rgba(231, 76, 60, 0.15);
         }
 
-        #section-physdims,
         .glb-obsolete-control {
             display: none;
         }
@@ -1080,8 +1079,24 @@
             updatePhysDimsDerivedUI();
         }
 
+        function ensurePhysDimsDerivedMarkup() {
+            const box = document.getElementById('physdims-derived');
+            if (!box || box.dataset.normalized === '1') return;
+            box.innerHTML = `
+                <div>→ 半弧角 halfAngle: <b id="derived-theta" style="color:var(--primary);">—</b></div>
+                <div style="border-top:1px solid rgba(0,242,254,0.1);margin-top:4px;padding-top:4px;">
+                    <span style="opacity:0.7;">↓ 从 bottle.glb 提取的位置锚点</span>
+                </div>
+                <div>→ 标签中心Y centerY: <b id="derived-centerY" style="color:#a8edff;">—</b></div>
+                <div>→ 弧面前点Z frontZ: <b id="derived-frontZ" style="color:#a8edff;">—</b></div>
+                <div>→ 圆柱轴Z axisZ=frontZ−R: <b id="derived-axisZ" style="color:#ffd700;">—</b></div>
+            `;
+            box.dataset.normalized = '1';
+        }
+
         // Update the computed-values preview inside the Physical Dimensions panel
         function updatePhysDimsDerivedUI() {
+            ensurePhysDimsDerivedMarkup();
             const thetaEl  = document.getElementById('derived-theta');
             const centerYEl = document.getElementById('derived-centerY');
             const frontZEl  = document.getElementById('derived-frontZ');
@@ -1096,6 +1111,9 @@
                 `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m/(2*R_m)).toFixed(3)}rad)`;
 
             // GLB 锚点（如已加载）
+            thetaEl.innerText = `${(halfAngleRad * 180 / Math.PI).toFixed(1)}° ` +
+                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m/(2*R_m)).toFixed(3)}rad)`;
+
             const p = glbModel && glbModel.cylinderParams;
             if (p && centerYEl) {
                 centerYEl.innerText = `${(p.centerY*1000).toFixed(1)}mm`;
@@ -1111,6 +1129,34 @@
                 if (axisZEl)   axisZEl.innerText   = '(GLB 未加载)';
             }
         }
+
+        updatePhysDimsDerivedUI = function updatePhysDimsDerivedUIClean() {
+            ensurePhysDimsDerivedMarkup();
+            const thetaEl = document.getElementById('derived-theta');
+            const centerYEl = document.getElementById('derived-centerY');
+            const frontZEl = document.getElementById('derived-frontZ');
+            const axisZEl = document.getElementById('derived-axisZ');
+            if (!thetaEl || !centerYEl || !frontZEl || !axisZEl) return;
+
+            const R_m = Math.max(0.001, Number(config.radiusTopMm) / 1000);
+            const arc_m = Math.max(0.001, Number(config.labelWidthMm) / 1000);
+            const halfAngleRad = Math.min(Math.PI * 0.499, arc_m / (2 * R_m));
+            thetaEl.innerText = `${(halfAngleRad * 180 / Math.PI).toFixed(1)}° ` +
+                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m / (2 * R_m)).toFixed(3)}rad)`;
+
+            const p = glbModel && glbModel.cylinderParams;
+            if (p) {
+                centerYEl.innerText = `${(p.centerY * 1000).toFixed(1)}mm`;
+                frontZEl.innerText = `${(p.frontZ * 1000).toFixed(1)}mm`;
+                const axisZ = p.frontZ - R_m;
+                axisZEl.innerText = `${(axisZ * 1000).toFixed(1)}mm` +
+                    (Math.abs(axisZ) < 0.003 ? '  ✓ ≈0 (原点)' : '');
+            } else {
+                centerYEl.innerText = '(GLB 未加载)';
+                frontZEl.innerText = '(GLB 未加载)';
+                axisZEl.innerText = '(GLB 未加载)';
+            }
+        };
 
         // Called when a physical-dimension slider changes
         function onPhysDimInput(key, rawVal) {
