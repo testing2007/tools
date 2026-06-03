@@ -487,42 +487,46 @@
             <div class="slider-group" id="physdims-group">
                 <!-- Label Width -->
                 <div class="slider-label">
-                    <span>Label Width (arc, mm)</span>
-                    <span class="slider-val" id="val-labelWidthMm">72</span>
+                    <span>弧长 Label Arc Length (mm)</span>
+                    <span class="slider-val" id="val-labelWidthMm">56</span>
                 </div>
-                <input type="range" id="labelWidthMm" min="20" max="300" step="1" value="72"
+                <input type="range" id="labelWidthMm" min="20" max="300" step="1" value="56"
                     oninput="onPhysDimInput('labelWidthMm', this.value)">
 
                 <!-- Label Height -->
                 <div class="slider-label" style="margin-top:10px;">
-                    <span>Label Height (mm)</span>
-                    <span class="slider-val" id="val-labelHeightMm">96</span>
+                    <span>高度 Label Height (mm)</span>
+                    <span class="slider-val" id="val-labelHeightMm">88</span>
                 </div>
-                <input type="range" id="labelHeightMm" min="20" max="300" step="1" value="96"
+                <input type="range" id="labelHeightMm" min="20" max="300" step="1" value="88"
                     oninput="onPhysDimInput('labelHeightMm', this.value)">
 
                 <!-- Radius Top -->
                 <div class="slider-label" style="margin-top:10px;">
-                    <span>Bottle Radius Top (mm)</span>
-                    <span class="slider-val" id="val-radiusTopMm">30</span>
+                    <span>半径 R (mm) — 标签区圆柱半径</span>
+                    <span class="slider-val" id="val-radiusTopMm">35</span>
                 </div>
-                <input type="range" id="radiusTopMm" min="5" max="100" step="1" value="30"
+                <input type="range" id="radiusTopMm" min="5" max="100" step="1" value="35"
                     oninput="onPhysDimInput('radiusTopMm', this.value)">
 
                 <!-- Radius Bottom -->
                 <div class="slider-label" style="margin-top:10px;">
-                    <span>Bottle Radius Bottom (mm)</span>
-                    <span class="slider-val" id="val-radiusBottomMm">30</span>
+                    <span>底部半径 Radius Bottom (mm)</span>
+                    <span class="slider-val" id="val-radiusBottomMm">35</span>
                 </div>
-                <input type="range" id="radiusBottomMm" min="5" max="100" step="1" value="30"
+                <input type="range" id="radiusBottomMm" min="5" max="100" step="1" value="35"
                     oninput="onPhysDimInput('radiusBottomMm', this.value)">
 
                 <!-- Computed preview -->
                 <div id="physdims-derived"
-                    style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,242,254,0.06);border:1px solid rgba(0,242,254,0.15);font-size:0.72rem;line-height:1.7;color:var(--text-muted);">
-                    <div>→ Arc Angle: <b id="derived-theta" style="color:var(--primary);">—</b></div>
-                    <div>→ Height (units): <b id="derived-height" style="color:var(--primary);">—</b></div>
-                    <div>→ Radius Ratio: <b id="derived-rbot" style="color:var(--primary);">—</b></div>
+                    style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(0,242,254,0.06);border:1px solid rgba(0,242,254,0.15);font-size:0.72rem;line-height:1.9;color:var(--text-muted);">
+                    <div>→ 半弧角 halfAngle: <b id="derived-theta" style="color:var(--primary);">—</b></div>
+                    <div style="border-top:1px solid rgba(0,242,254,0.1);margin-top:4px;padding-top:4px;">
+                        <span style="opacity:0.7;">↓ 从 bottle.glb 提取的位置锚点</span>
+                    </div>
+                    <div>→ 标签中心Y centerY: <b id="derived-centerY" style="color:#a8edff;">—</b></div>
+                    <div>→ 弧面前点Z frontZ: <b id="derived-frontZ" style="color:#a8edff;">—</b></div>
+                    <div>→ 圆柱轴Z axisZ=frontZ−R: <b id="derived-axisZ" style="color:#ffd700;">—</b></div>
                 </div>
             </div>
         </div>
@@ -801,10 +805,10 @@
         // Default calibration configuration
         const defaultConfig = {
             // -- Physical dimensions (mm) -- drives geometric params automatically --
-            labelWidthMm: 72,       // Label arc width in millimeters
-            labelHeightMm: 96,      // Label height in millimeters
-            radiusTopMm: 30,        // Bottle radius at top edge of label (mm)
-            radiusBottomMm: 30,     // Bottle radius at bottom edge of label (mm)
+            labelWidthMm: 56,       // Label arc width in millimeters  (实测: 弧长56mm / 周长≈220mm)
+            labelHeightMm: 88,      // Label height in millimeters      (实测: 88mm)
+            radiusTopMm: 35,        // Bottle radius at top edge of label (mm) (实测: 35mm)
+            radiusBottomMm: 35,     // Bottle radius at bottom edge of label (mm)
             usePhysicalDims: true,  // If true, auto-compute thetaLength/height/radius from mm values
             useGlbModel: true,       // If true, use assets/bottle.glb labelMesh UV/geometry when available
 
@@ -1078,18 +1082,33 @@
 
         // Update the computed-values preview inside the Physical Dimensions panel
         function updatePhysDimsDerivedUI() {
-            const thetaEl = document.getElementById('derived-theta');
-            const heightEl = document.getElementById('derived-height');
-            const rbotEl = document.getElementById('derived-rbot');
+            const thetaEl  = document.getElementById('derived-theta');
+            const centerYEl = document.getElementById('derived-centerY');
+            const frontZEl  = document.getElementById('derived-frontZ');
+            const axisZEl   = document.getElementById('derived-axisZ');
             if (!thetaEl) return;
-            if (config.usePhysicalDims) {
-                thetaEl.innerText = `${config.thetaLength.toFixed(1)}°`;
-                heightEl.innerText = config.height.toFixed(3);
-                rbotEl.innerText = config.radiusBottom.toFixed(3);
+
+            // 半弧角（弧度转度）= arcLen / (2R)
+            const R_m   = config.radiusTopMm / 1000;
+            const arc_m = config.labelWidthMm / 1000;
+            const halfAngleRad = R_m > 0 ? Math.min(Math.PI * 0.499, arc_m / (2 * R_m)) : 0;
+            thetaEl.innerText = `${(halfAngleRad * 180 / Math.PI).toFixed(1)}° ` +
+                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m/(2*R_m)).toFixed(3)}rad)`;
+
+            // GLB 锚点（如已加载）
+            const p = glbModel && glbModel.cylinderParams;
+            if (p && centerYEl) {
+                centerYEl.innerText = `${(p.centerY*1000).toFixed(1)}mm`;
+                if (frontZEl)  frontZEl.innerText  = `${(p.frontZ*1000).toFixed(1)}mm`;
+                if (axisZEl) {
+                    const axisZ = p.frontZ - R_m;
+                    axisZEl.innerText = `${(axisZ*1000).toFixed(1)}mm` +
+                        (Math.abs(axisZ) < 0.003 ? '  ✓ ≈0 (原点)' : '');
+                }
             } else {
-                thetaEl.innerText = `${parseFloat(config.thetaLength).toFixed(1)}° (manual)`;
-                heightEl.innerText = `${parseFloat(config.height).toFixed(3)} (manual)`;
-                rbotEl.innerText = `${parseFloat(config.radiusBottom).toFixed(3)} (manual)`;
+                if (centerYEl) centerYEl.innerText = '(GLB 未加载)';
+                if (frontZEl)  frontZEl.innerText  = '(GLB 未加载)';
+                if (axisZEl)   axisZEl.innerText   = '(GLB 未加载)';
             }
         }
 
@@ -1115,6 +1134,10 @@
             if (cvWorker) cvWorker.postMessage({
                 type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true
             });
+            // GLB 模式下：形状来自 config，slider 变化后必须重新计算 UV→3D 并发送给 worker
+            if (glbModel && glbModel.cylinderParams && workerRefLevels) {
+                sendGlbModelPointsToWorker();
+            }
         }
 
         // Called when Auto checkbox is toggled
@@ -1207,13 +1230,22 @@
             texture.needsUpdate = true;
         }
 
-        function applyGlbTextureSettings(texture) {
+        /**
+         * GLB 模式纹理设置。
+         * mirrorU=true: 水平翻转 (repeat.x=-1)，用于前置摄像头让 AR 视频与镜像背景方向一致。
+         */
+        function applyGlbTextureSettings(texture, mirrorU = false) {
             if (!texture) return;
             texture.flipY = false;
-            texture.wrapS = THREE.ClampToEdgeWrapping;
+            texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.ClampToEdgeWrapping;
-            texture.repeat.set(1, 1);
-            texture.offset.set(0, 0);
+            if (mirrorU) {
+                texture.repeat.set(-1, 1);
+                texture.offset.set(1, 0);
+            } else {
+                texture.repeat.set(1, 1);
+                texture.offset.set(0, 0);
+            }
             texture.needsUpdate = true;
         }
 
@@ -1304,6 +1336,7 @@
                 .addScaledVector(triangle.pos[2], weights[2]);
         }
 
+        // 原有三角插值采样（保留用于角落方向检测，精度受三角形数量限制）
         function sampleGlbLabelPointFromUv(uvX, uvY) {
             if (!glbModel || !glbModel.labelUvTriangles.length) return null;
             const p = new THREE.Vector2(uvX, uvY);
@@ -1327,6 +1360,106 @@
             return nearest ? nearest.clone() : null;
         }
 
+        /**
+         * 从 labelMesh AABB 提取位置锚点 + UV 方向标志。
+         *
+         * 职责：只回答"标签在哪里"（位置），不推算"标签有多大/多弯"（形状）。
+         * 形状参数（半径、弧角、高度）由用户通过滑动条配置，比从 GLB 几何倒推更准确。
+         *
+         * 返回: { axisX, centerY, frontZ, uFlip, vFlip }
+         *   axisX:   弦中心 X ≈ 圆柱轴心 X
+         *   centerY: 标签垂直中心 Y（由 Blender 精确定位）
+         *   frontZ:  标签弧面最前点 Z（theta=0 时的 Z，= AABB maxZ）
+         *   uFlip:   true → UV u=0 在右侧，需翻转
+         *   vFlip:   true → UV v=0 在顶部（与图像 y=0 同向），不需翻转
+         */
+        function computeGlbCylinderParams(labelGeometry, labelUvTriangles) {
+            labelGeometry.computeBoundingBox();
+            const lb = labelGeometry.boundingBox;
+
+            // ── 位置锚点（仅从 AABB 取，可靠）──────────────────────────
+            const axisX   = (lb.max.x + lb.min.x) / 2;   // 弦中心 X ≈ 轴心 X
+            const centerY = (lb.max.y + lb.min.y) / 2;   // 标签垂直中心
+            const frontZ  = lb.max.z;                     // 弧面最前点（theta=0）
+
+            // ── UV 方向检测（采样 3 个角点，判断 u/v 轴朝向）───────────
+            const c00 = sampleGlbLabelPointFromUv(0.02, 0.02);  // UV(0,0)
+            const c10 = sampleGlbLabelPointFromUv(0.98, 0.02);  // UV(1,0)
+            const c01 = sampleGlbLabelPointFromUv(0.02, 0.98);  // UV(0,1)
+
+            // u=0 → 哪侧 X？若 c00.x > c10.x，u=0 在右侧（正X），需翻转
+            const uFlip = c00 && c10 ? c00.x > c10.x : false;
+            // v=0 → 顶部还是底部？c00.y > c01.y → v=0 在顶部（与图像同向），无需翻转
+            const vFlip = c00 && c01 ? c00.y > c01.y : false;
+
+            // ── 用配置值验证（仅日志，不影响计算）─────────────────────
+            const R_cfg   = config.radiusTopMm / 1000;
+            const arc_cfg = config.labelWidthMm / 1000;
+            const ha_cfg  = arc_cfg / (2 * R_cfg);
+            console.log(
+                `[CylParams] 位置锚点: axisX=${axisX.toFixed(4)} centerY=${centerY.toFixed(4)} frontZ=${frontZ.toFixed(4)}`
+            );
+            console.log(
+                `[CylParams] UV方向: uFlip=${uFlip} vFlip=${vFlip}` +
+                ` | c(0,0)→(${c00?.x.toFixed(4)},${c00?.y.toFixed(4)})` +
+                ` | c(0,1)→(${c01?.x.toFixed(4)},${c01?.y.toFixed(4)})`
+            );
+            console.log(
+                `[CylParams] 配置形状 (来自滑动条): R=${R_cfg*1000}mm ` +
+                `弧长=${config.labelWidthMm}mm 半弧角=${(ha_cfg*180/Math.PI).toFixed(1)}° ` +
+                `高度=${config.labelHeightMm}mm`
+            );
+
+            return { axisX, centerY, frontZ, uFlip, vFlip };
+        }   // ← computeGlbCylinderParams end
+
+        /**
+         * 解析圆柱采样：将图像 UV 坐标映射到 3D 圆柱面上。
+         *
+         * ★ 形状来自配置（用户物理实测，滑动条输入）:
+         *     R        = radiusTopMm / 1000
+         *     halfAngle = labelWidthMm(弧长mm) / (2 × R_mm)   [弧度]
+         *     height   = labelHeightMm / 1000
+         *
+         * ★ 位置来自 GLB 锚点（Blender 精确摆放）:
+         *     axisX   = 圆柱轴心 X
+         *     axisZ   = frontZ - R   （弧面最前点 - 半径 = 轴心 Z）
+         *     centerY = 标签垂直中心
+         *
+         * 输入: uvX_img ∈ [0,1], uvY_img ∈ [0,1]（图像坐标，左上角为原点）
+         */
+        function sampleGlbLabelAnalytic(uvX_img, uvY_img) {
+            if (!glbModel || !glbModel.cylinderParams) {
+                // 参数未就绪，退回三角插值（低精度，仅作保底）
+                return sampleGlbLabelPointFromUv(uvX_img, 1.0 - uvY_img);
+            }
+            const p = glbModel.cylinderParams;
+
+            // ── 形状参数：来自配置 ─────────────────────────────────────
+            const R         = config.radiusTopMm  / 1000;           // 半径 (m)
+            const arcLen    = config.labelWidthMm / 1000;           // 弧长 (m)
+            const halfAngle = Math.min(Math.PI * 0.499, arcLen / (2 * R)); // 半弧角 (rad)
+            const labelH    = config.labelHeightMm / 1000;          // 标签高度 (m)
+
+            // ── 位置参数：来自 GLB 锚点 ───────────────────────────────
+            const axisX  = p.axisX;
+            const axisZ  = p.frontZ - R;      // 弧面前点 = 轴心 + R → 轴心 = frontZ - R
+            const yTop   = p.centerY + labelH / 2;
+            const yBot   = p.centerY - labelH / 2;
+
+            // ── UV 方向修正 ────────────────────────────────────────────
+            const u = p.uFlip ? (1.0 - uvX_img) : uvX_img;
+            const v = p.vFlip ? uvY_img : (1.0 - uvY_img);
+
+            // ── 解析圆柱坐标 ───────────────────────────────────────────
+            const theta = -halfAngle + u * (2 * halfAngle);   // 弧角（中心=0）
+            const y     = yTop - v * (yTop - yBot);           // v=0→顶 v=1→底
+            const x     = axisX + R * Math.sin(theta);
+            const z     = axisZ + R * Math.cos(theta);
+
+            return new THREE.Vector3(x, y, z);
+        }
+
         function setMeshOpacity(mesh, opacity) {
             if (!mesh || !mesh.material) return;
             mesh.material.opacity = opacity;
@@ -1336,7 +1469,8 @@
         }
 
         function createGlbLabelMesh(texture, opacity, options = {}) {
-            applyGlbTextureSettings(texture);
+            // 前置摄像头：CSS scaleX(-1) 已镜像背景，视频纹理也需要 U 翻转保持方向一致
+            applyGlbTextureSettings(texture, isFront);
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
                 side: THREE.DoubleSide,
@@ -1361,13 +1495,21 @@
             const levels = workerRefLevels.map(level => ({
                 scale: level.scale,
                 points3D: level.originalPoints.map(pt => {
-                    const p = sampleGlbLabelPointFromUv(pt.x / workerRefWidth, pt.y / workerRefHeight);
+                    // ★ 关键修正：镜像参考图层的关键点坐标是水平翻转的。
+                    // 若直接用 pt.x 计算 UV，会得到图像右侧对应的 3D 点（反了）。
+                    // 镜像图层中 pt.x 对应原始图像中的 (W - pt.x)，即 UV u = 1 - pt.x/W。
+                    const uvX = level.mirrored
+                        ? (1 - pt.x / workerRefWidth)   // 镜像层：翻转 U
+                        : (pt.x / workerRefWidth);       // 正常层：直接用
+                    const uvY = pt.y / workerRefHeight;
+                    const p = sampleGlbLabelAnalytic(uvX, uvY);
                     return p ? {X: p.x, Y: p.y, Z: p.z} : {X: 0, Y: 0, Z: 0};
                 })
             }));
 
+            const mirroredCount = workerRefLevels.filter(l => l.mirrored).length;
             cvWorker.postMessage({type: 'modelPoints', levels});
-            console.log(`[Main] Sent GLB labelMesh UV->3D points to worker (${levels.length} levels)`);
+            console.log(`[Main] Sent GLB UV->3D points: ${levels.length} levels (${mirroredCount} mirrored, UV u-flip applied)`);
         }
 
         function loadBottleModel() {
@@ -1399,12 +1541,55 @@
                         root,
                         labelGeometry,
                         bottleGeometry: bottleMesh ? bakeGeometryToWorld(bottleMesh) : null,
-                        labelUvTriangles
+                        labelUvTriangles,
+                        cylinderParams: null   // 在诊断日志后填充
                     };
 
                     applyGlbTextureSettings(videoTexture);
                     applyGlbTextureSettings(labelTexture);
                     console.log(`[GLB] Loaded bottle.glb with ${glbModel.labelUvTriangles.length} label UV triangles`);
+
+                    // ── GLB Geometry Diagnostics ───────────────────────────────
+                    // 打印 labelMesh 和 bottleMesh 的实际坐标范围，用于判断 GLB 单位是否正确
+                    {
+                        const lb = labelGeometry.boundingBox;
+                        const ls = lb ? {
+                            x: (lb.max.x - lb.min.x).toFixed(4),
+                            y: (lb.max.y - lb.min.y).toFixed(4),
+                            z: (lb.max.z - lb.min.z).toFixed(4)
+                        } : null;
+                        const lc = lb ? {
+                            x: ((lb.max.x + lb.min.x) / 2).toFixed(4),
+                            y: ((lb.max.y + lb.min.y) / 2).toFixed(4),
+                            z: ((lb.max.z + lb.min.z) / 2).toFixed(4)
+                        } : null;
+                        const ls_sphere = labelGeometry.boundingSphere;
+                        console.log(`[GLB Diag] labelMesh AABB size:`, ls, '| center:', lc, '| sphere radius:', ls_sphere ? ls_sphere.radius.toFixed(4) : '?');
+                        if (ls) {
+                            const arcW = Math.max(parseFloat(ls.x), parseFloat(ls.z));
+                            const height = parseFloat(ls.y);
+                            const estimatedRadius = ls_sphere ? ls_sphere.radius.toFixed(4) : '?';
+                            console.log(`[GLB Diag] labelMesh 估计弧宽=${arcW.toFixed(4)} 高度=${height.toFixed(4)} 球半径=${estimatedRadius}`);
+                            console.log(`[GLB Diag] 如果单位是米: 弧宽≈${(arcW*1000).toFixed(0)}mm 高度≈${(height*1000).toFixed(0)}mm`);
+                            console.log(`[GLB Diag] 如果单位是mm: 弧宽≈${arcW.toFixed(0)}mm 高度≈${height.toFixed(0)}mm`);
+                            // 理想农夫山泉550ml标签: 弧宽~68mm 高度~100mm (单位为m则是0.068/0.100)
+                            const likelyMeter = arcW < 0.5;
+                            console.log(`[GLB Diag] 推断单位: ${likelyMeter ? '米 (meter) — 建议在 Blender 中放大 ~30x 后重新导出，或代码中统一乘以比例因子' : '毫米 (mm) — 尺寸合理'}`);
+                        }
+                        if (glbModel.bottleGeometry) {
+                            const bb = glbModel.bottleGeometry.boundingBox;
+                            if (bb) {
+                                const bh = (bb.max.y - bb.min.y).toFixed(4);
+                                const br = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2;
+                                console.log(`[GLB Diag] bottleMesh 高度=${bh} 半径≈${br.toFixed(4)}`);
+                            }
+                        }
+                    }
+                    // ─────────────────────────────────────────────────────────────
+
+                    // ── 解析圆柱参数 + UV方向检测（依赖三角索引，必须在 glbModel 赋值后执行）──
+                    glbModel.cylinderParams = computeGlbCylinderParams(labelGeometry, labelUvTriangles);
+                    updatePhysDimsDerivedUI(); // GLB 锚点就绪 → 刷新 UI（centerY/frontZ/axisZ）
 
                     fitPreviewCameraToModel();
                     rebuildCylinderMesh();
@@ -1721,6 +1906,9 @@
             }
 
             const frameStartTime = performance.now();
+            // 直接将摄像头帧画到追踪 canvas。
+            // 前置摄像头（镜像）由 mirrored reference levels 处理匹配，不需要翻转 canvas。
+            // 翻转 canvas 会导致 PnP 在翻转空间求解，CSS scaleX(-1) 再翻转后 AR 贴图跑到瓶子对侧。
             trackCtx.drawImage(cameraVideo, 0, 0, trackW, trackH);
             const imageData = trackCtx.getImageData(0, 0, trackW, trackH);
 
@@ -2506,6 +2694,7 @@ PnP Error: ${pnpError}`;
         window.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             setupSliderListeners();
+            updatePhysDimsDerivedUI();  // 初始化时立刻显示 halfAngle（GLB锚点等加载后再填充）
 
             // Wire up Start overlay launch button
             document.getElementById('btn-start').addEventListener('click', async () => {

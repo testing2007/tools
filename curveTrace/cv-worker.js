@@ -275,11 +275,12 @@ async function loadRefFromImage() {
             cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
         }
         buildRefLevel(scaledGray, scale, scaledW, scaledH, false);
-        // 关闭镜像版本，因为它在某些情况下会引入不必要的复杂性和性能开销，尤其是在GLB模式下我们已经有了足够的特征点。
-        // const mirroredGray = new cv.Mat();
-        // cv.flip(scaledGray, mirroredGray, 1);
-        // buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
-        // mirroredGray.delete();
+        // 前置摄像头图像是水平镜像的，需要镜像参考图层来匹配非对称特征（如文字）。
+        // 主线程发送 GLB 3D 点时会对 mirrored level 翻转 UV u 坐标，确保 3D 位置正确。
+        const mirroredGray = new cv.Mat();
+        cv.flip(scaledGray, mirroredGray, 1);
+        buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
+        mirroredGray.delete();
         scaledGray.delete();
     }
     srcMat.delete();
@@ -826,13 +827,23 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                 if (pt3D && kp) { objPoints.push(pt3D.X, pt3D.Y, pt3D.Z); imgPoints.push(kp.pt.x, kp.pt.y); }
             }
             const numPts = objPoints.length / 3;
-            if (numPts >= dynamicMin) {
+            // DLT 需要至少 6 个点，且不少于动态最小值；低于 6 点会抛出 OpenCV 异常
+            if (numPts >= Math.max(6, dynamicMin)) {
                 objPtsMat = cv.matFromArray(numPts, 3, cv.CV_32F, objPoints);
                 imgPtsMat = cv.matFromArray(numPts, 2, cv.CV_32F, imgPoints);
                 pnpInliersMat = new cv.Mat();
                 const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
                 const tStartPnp = performance.now();
-                const success = cv.solvePnPRansac(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, 80, 6.0, 0.99, pnpInliersMat, pnpFlags);
+                // 内层 try-catch：OpenCV 内部去重后有效点可能 < 6，导致 DLT 异常
+                // 此时静默失败（不是真正的错误，只是当前帧匹配点退化）
+                let success = false;
+                try {
+                    success = cv.solvePnPRansac(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, 80, 6.0, 0.99, pnpInliersMat, pnpFlags);
+                } catch (pnpEx) {
+                    result.status = `PnP退化(${numPts}pts)`;
+                    lastPnpTime += performance.now() - tStartPnp;
+                    return result;  // 直接返回，跳过后续处理
+                }
                 lastPnpTime += performance.now() - tStartPnp;
                 const pnpInlierCount = pnpInliersMat.rows || 0;
                 const minPnpInliers = Math.max(8, Math.ceil(dynamicMin * 0.75));
@@ -871,7 +882,7 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                         } else { result.status = pose.status; }
                     } else { result.status = `High Reproj: ${error.toFixed(1)}px`; }
                 } else { result.status = success ? `Low Inliers: ${pnpInlierCount}` : 'PnP Failed'; }
-            } else { result.status = `Need >= ${dynamicMin} matches`; }
+            } else { result.status = `Need >= ${Math.max(6, dynamicMin)} pts, got ${numPts}`; }
         } else { result.status = `Low descriptor matches: ${filtered.length}/${dynamicMin}`; }
     } catch (err) {
         result.error = formatCvError(err);
