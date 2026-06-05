@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -418,10 +418,12 @@
       }
     }
     </script>
-    <!-- Import OpenCV.js via CDN -->
+    <!-- 加载本地 opencv.js（自编译，SINGLE_FILE WASM，内嵌 wasm）-->
+    <!-- Emscripten 5.x async factory：window.cv 可能是 async function（调用得到 Promise）或 Promise -->
+    <script src="/libs/opencv.js"></script>
     <script>
-        window.Module = {
-            onRuntimeInitialized: function () {
+        (function () {
+            function onCvReady() {
                 console.log('OpenCV.js initialized successfully.');
                 const btnStart = document.getElementById('btn-start');
                 if (btnStart) {
@@ -429,10 +431,43 @@
                     btnStart.disabled = false;
                 }
             }
-        };
+
+            const _cvOrigRef = window.cv;
+            let cvPromise;
+
+            if (typeof _cvOrigRef === 'function') {
+                // Emscripten 5.x: factory 返回了 async factory function，调用得到 Promise
+                console.log('[Main] cv is async function, invoking...');
+                cvPromise = _cvOrigRef({});
+            } else if (_cvOrigRef && typeof _cvOrigRef.then === 'function') {
+                // factory 返回了 Promise
+                console.log('[Main] cv is a Promise...');
+                cvPromise = _cvOrigRef;
+            } else if (_cvOrigRef) {
+                // 同步模块（旧版 asm.js）
+                console.log('[Main] cv is sync module');
+                cvPromise = Promise.resolve(_cvOrigRef);
+            } else {
+                console.warn('window.cv 未定义，请检查 /libs/opencv.js 是否加载成功');
+                return;
+            }
+
+            cvPromise.then(function (cvInstance) {
+                // 打补丁原始引用，确保内部闭包（matFromArray 等）也能找到 Mat 等
+                if (cvInstance && _cvOrigRef && cvInstance !== _cvOrigRef) {
+                    try {
+                        Object.keys(cvInstance).forEach(function (k) {
+                            try {_cvOrigRef[k] = cvInstance[k];} catch (_) { }
+                        });
+                    } catch (e) { }
+                }
+                window.cv = cvInstance;
+                onCvReady();
+            }).catch(function (err) {
+                console.error('OpenCV.js 初始化失败:', err);
+            });
+        })();
     </script>
-    <!-- 引入 OpenCV.js (WebAssembly版，使用 4.5.5 稳定版) -->
-    <script async src="https://docs.opencv.org/4.5.5/opencv.js" type="text/javascript"></script>
 
 </head>
 
@@ -1097,36 +1132,36 @@
         // Update the computed-values preview inside the Physical Dimensions panel
         function updatePhysDimsDerivedUI() {
             ensurePhysDimsDerivedMarkup();
-            const thetaEl  = document.getElementById('derived-theta');
+            const thetaEl = document.getElementById('derived-theta');
             const centerYEl = document.getElementById('derived-centerY');
-            const frontZEl  = document.getElementById('derived-frontZ');
-            const axisZEl   = document.getElementById('derived-axisZ');
+            const frontZEl = document.getElementById('derived-frontZ');
+            const axisZEl = document.getElementById('derived-axisZ');
             if (!thetaEl) return;
 
             // 半弧角（弧度转度）= arcLen / (2R)
-            const R_m   = config.radiusTopMm / 1000;
+            const R_m = config.radiusTopMm / 1000;
             const arc_m = config.labelWidthMm / 1000;
             const halfAngleRad = R_m > 0 ? Math.min(Math.PI * 0.499, arc_m / (2 * R_m)) : 0;
             thetaEl.innerText = `${(halfAngleRad * 180 / Math.PI).toFixed(1)}° ` +
-                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m/(2*R_m)).toFixed(3)}rad)`;
+                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m / (2 * R_m)).toFixed(3)}rad)`;
 
             // GLB 锚点（如已加载）
             thetaEl.innerText = `${(halfAngleRad * 180 / Math.PI).toFixed(1)}° ` +
-                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m/(2*R_m)).toFixed(3)}rad)`;
+                `(弧长${config.labelWidthMm}÷(2×${config.radiusTopMm}mm) = ${(arc_m / (2 * R_m)).toFixed(3)}rad)`;
 
             const p = glbModel && glbModel.cylinderParams;
             if (p && centerYEl) {
-                centerYEl.innerText = `${(p.centerY*1000).toFixed(1)}mm`;
-                if (frontZEl)  frontZEl.innerText  = `${(p.frontZ*1000).toFixed(1)}mm`;
+                centerYEl.innerText = `${(p.centerY * 1000).toFixed(1)}mm`;
+                if (frontZEl) frontZEl.innerText = `${(p.frontZ * 1000).toFixed(1)}mm`;
                 if (axisZEl) {
                     const axisZ = p.frontZ - R_m;
-                    axisZEl.innerText = `${(axisZ*1000).toFixed(1)}mm` +
+                    axisZEl.innerText = `${(axisZ * 1000).toFixed(1)}mm` +
                         (Math.abs(axisZ) < 0.003 ? '  ✓ ≈0 (原点)' : '');
                 }
             } else {
                 if (centerYEl) centerYEl.innerText = '(GLB 未加载)';
-                if (frontZEl)  frontZEl.innerText  = '(GLB 未加载)';
-                if (axisZEl)   axisZEl.innerText   = '(GLB 未加载)';
+                if (frontZEl) frontZEl.innerText = '(GLB 未加载)';
+                if (axisZEl) axisZEl.innerText = '(GLB 未加载)';
             }
         }
 
@@ -1245,21 +1280,14 @@
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
-
-            // Mirror horizontally to match reference 3D points
-            videoTexture.wrapS = THREE.RepeatWrapping;
-            videoTexture.repeat.x = -1;
-            videoTexture.offset.x = 1;
+            // UV 方向由 uFlip/vFlip 动态处理，不需要在这里手动翻转
 
             // Load label texture for preview guide
             const loader = new THREE.TextureLoader();
             labelTexture = loader.load('assets/mark.jpg', (texture) => {
                 texture.minFilter = THREE.LinearFilter;
                 texture.magFilter = THREE.LinearFilter;
-                // Mirror horizontally to match reference 3D points
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.repeat.x = -1;
-                texture.offset.x = 1;
+                // UV 方向由 uFlip/vFlip 动态处理，不需要在这里手动翻转
                 console.log('Label guide texture loaded successfully');
             }, undefined, (err) => {
                 console.error('Failed to load label guide texture:', err);
@@ -1382,7 +1410,7 @@
                 .addScaledVector(triangle.pos[2], weights[2]);
         }
 
-        // 原有三角插值采样（保留用于角落方向检测，精度受三角形数量限制）
+        // 原有三角插值采样（保留用于 UV 方向检测的候选方法）
         function sampleGlbLabelPointFromUv(uvX, uvY) {
             if (!glbModel || !glbModel.labelUvTriangles.length) return null;
             const p = new THREE.Vector2(uvX, uvY);
@@ -1407,56 +1435,145 @@
         }
 
         /**
+         * 鲁棒 UV 方向检测：多点采样 + 中位数投票。
+         * 比单次角点采样在高细分 mesh 下更稳定——高细分时角点边界三角形不稳定。
+         *
+         * @param {string} axis - 'u' 或 'v'
+         * @param {string} component - 'x', 'y', 或 'z'（3D 空间分量）
+         * @returns {boolean} flip — true 说明该轴需要翻转
+         */
+        function detectUvFlipRobust(axis, component) {
+            if (!glbModel || !glbModel.labelUvTriangles.length) return false;
+            // 采样 5 个均匀分布的 UV 行/列对，每对比较两端的 3D 分量
+            const SAMPLES = 5;
+            let flipVotes = 0, noFlipVotes = 0;
+            for (let k = 0; k < SAMPLES; k++) {
+                const t = (k + 1) / (SAMPLES + 1); // 0.16, 0.33, 0.5, 0.66, 0.83
+                let pA, pB;
+                if (axis === 'u') {
+                    // 固定 v=t，对比 u=0.05 和 u=0.95
+                    pA = sampleGlbLabelPointFromUv(0.05, t);
+                    pB = sampleGlbLabelPointFromUv(0.95, t);
+                } else {
+                    // 固定 u=t，对比 v=0.05 和 v=0.95
+                    pA = sampleGlbLabelPointFromUv(t, 0.05);
+                    pB = sampleGlbLabelPointFromUv(t, 0.95);
+                }
+                if (!pA || !pB) continue;
+                // 若 low-UV 端的分量 > high-UV 端，则 flip
+                if (pA[component] > pB[component]) flipVotes++;
+                else noFlipVotes++;
+            }
+            const result = flipVotes > noFlipVotes;
+            console.log(`[UvFlip] axis=${axis} component=${component} → flipVotes=${flipVotes} noFlipVotes=${noFlipVotes} → flip=${result}`);
+            return result;
+        }
+
+        /**
          * 从 labelMesh AABB 提取位置锚点 + UV 方向标志。
          *
          * 职责：只回答"标签在哪里"（位置），不推算"标签有多大/多弯"（形状）。
          * 形状参数（半径、弧角、高度）由用户通过滑动条配置，比从 GLB 几何倒推更准确。
          *
-         * 返回: { axisX, centerY, frontZ, uFlip, vFlip }
-         *   axisX:   弦中心 X ≈ 圆柱轴心 X
+         * 返回: { axisX, axisZ, centerY, frontZ, uFlip, vFlip }
+         *   axisX:   弦中心 X ≈ 圆柱轴心 X（来自 AABB 中心 X）
+         *   axisZ:   圆柱轴心 Z（从 labelMesh UV 中心点采样，比 frontZ-R 更可靠）
          *   centerY: 标签垂直中心 Y（由 Blender 精确定位）
-         *   frontZ:  标签弧面最前点 Z（theta=0 时的 Z，= AABB maxZ）
-         *   uFlip:   true → UV u=0 在右侧，需翻转
-         *   vFlip:   true → UV v=0 在顶部（与图像 y=0 同向），不需翻转
+         *   frontZ:  标签弧面最前点 Z（AABB maxZ，theta=0 时的 Z）
+         *   uFlip:   true → UV u=0 在右侧（正X方向），需翻转
+         *   vFlip:   true → UV v=0 在顶部（与图像 y=0 同向），无需翻转
          */
         function computeGlbCylinderParams(labelGeometry, labelUvTriangles) {
             labelGeometry.computeBoundingBox();
             const lb = labelGeometry.boundingBox;
 
             // ── 位置锚点（仅从 AABB 取，可靠）──────────────────────────
-            const axisX   = (lb.max.x + lb.min.x) / 2;   // 弦中心 X ≈ 轴心 X
+            const axisX = (lb.max.x + lb.min.x) / 2;   // 弦中心 X ≈ 轴心 X
             const centerY = (lb.max.y + lb.min.y) / 2;   // 标签垂直中心
-            const frontZ  = lb.max.z;                     // 弧面最前点（theta=0）
+            const frontZ = lb.max.z;                     // 弧面最前点（theta=0）
 
-            // ── UV 方向检测（采样 3 个角点，判断 u/v 轴朝向）───────────
-            const c00 = sampleGlbLabelPointFromUv(0.02, 0.02);  // UV(0,0)
-            const c10 = sampleGlbLabelPointFromUv(0.98, 0.02);  // UV(1,0)
-            const c01 = sampleGlbLabelPointFromUv(0.02, 0.98);  // UV(0,1)
+            // ── 轴心 Z：从 UV 中心点直接采样（比 frontZ-R 更可靠）──────
+            // UV(0.5, 0.5) 对应标签正中心，对圆柱来说 theta=0，即 Z 最大处附近。
+            // UV(0.0, 0.5) 和 UV(1.0, 0.5) 是标签两侧边缘，Z 最小处。
+            // 用多点拟合轴心 Z，避免因标签弧度导致单点偏差。
+            let axisZEstimate = null;
+            {
+                // 采样 UV 水平中线上均匀分布的点，找最小 Z（左右边缘）和最大 Z（中心）
+                const zVals = [];
+                for (let k = 0; k <= 10; k++) {
+                    const pt = sampleGlbLabelPointFromUv(k / 10, 0.5);
+                    if (pt) zVals.push(pt.z);
+                }
+                if (zVals.length >= 3) {
+                    const minZ = Math.min(...zVals);
+                    const maxZ = Math.max(...zVals);
+                    // 对圆柱弧面：maxZ = axisZ + R，minZ ≈ axisZ + R·cos(halfAngle)
+                    // 直接用中心点 UV(0.5,0.5) 的 Z 值再减去 R 作为 axisZ 更准
+                    const centerPt = sampleGlbLabelPointFromUv(0.5, 0.5);
+                    if (centerPt) {
+                        // centerPt.z ≈ axisZ + R (当 theta=0 时)
+                        // 但圆柱中心不一定完全在 U=0.5，用 maxZ 更稳
+                        axisZEstimate = maxZ; // 存储最前点 Z，在 sampleGlbLabelAnalytic 中减 R
+                        console.log(`[CylParams] Z采样: minZ=${minZ.toFixed(4)} maxZ=${maxZ.toFixed(4)} centerZ=${centerPt.z.toFixed(4)}`);
+                        // 验证：maxZ 应该接近 AABB frontZ
+                        const frontZdiff = Math.abs(maxZ - frontZ);
+                        console.log(`[CylParams] frontZ(AABB)=${frontZ.toFixed(4)} vs maxZ(采样)=${maxZ.toFixed(4)} 差值=${frontZdiff.toFixed(4)}` +
+                            (frontZdiff < 0.005 ? ' ✓' : ' ⚠ 差异较大，请检查 GLB'));
+                    }
+                }
+            }
+            // 如果采样失败，退回 AABB maxZ
+            const resolvedFrontZ = axisZEstimate !== null ? axisZEstimate : frontZ;
 
-            // u=0 → 哪侧 X？若 c00.x > c10.x，u=0 在右侧（正X），需翻转
-            const uFlip = c00 && c10 ? c00.x > c10.x : false;
-            // v=0 → 顶部还是底部？c00.y > c01.y → v=0 在顶部（与图像同向），无需翻转
-            const vFlip = c00 && c01 ? c00.y > c01.y : false;
+            // ── UV 方向检测（多点采样 + 中位数投票，在高细分 mesh 下稳定）──
+            // u 轴方向：u 增加时，X 分量是增加还是减少？
+            const uFlip = detectUvFlipRobust('u', 'x');
+            // v 轴方向：v 增加时，Y 分量是增加还是减少（v=0 在顶部 → Y 大时 flip）
+            const vFlip = detectUvFlipRobust('v', 'y');
+
+            // ── 调试：打印所有角落点供手动核查 ──────────────────────────
+            const c00 = sampleGlbLabelPointFromUv(0.05, 0.05);
+            const c10 = sampleGlbLabelPointFromUv(0.95, 0.05);
+            const c01 = sampleGlbLabelPointFromUv(0.05, 0.95);
+            const c11 = sampleGlbLabelPointFromUv(0.95, 0.95);
+            const c50 = sampleGlbLabelPointFromUv(0.50, 0.05);
+            const c05 = sampleGlbLabelPointFromUv(0.05, 0.50);
 
             // ── 用配置值验证（仅日志，不影响计算）─────────────────────
-            const R_cfg   = config.radiusTopMm / 1000;
+            const R_cfg = config.radiusTopMm / 1000;
             const arc_cfg = config.labelWidthMm / 1000;
-            const ha_cfg  = arc_cfg / (2 * R_cfg);
+            const ha_cfg = arc_cfg / (2 * R_cfg);
+
             console.log(
-                `[CylParams] 位置锚点: axisX=${axisX.toFixed(4)} centerY=${centerY.toFixed(4)} frontZ=${frontZ.toFixed(4)}`
+                `[CylParams] 位置锚点: axisX=${axisX.toFixed(4)} centerY=${centerY.toFixed(4)} ` +
+                `frontZ(AABB)=${frontZ.toFixed(4)} resolvedFrontZ=${resolvedFrontZ.toFixed(4)}`
             );
             console.log(
-                `[CylParams] UV方向: uFlip=${uFlip} vFlip=${vFlip}` +
-                ` | c(0,0)→(${c00?.x.toFixed(4)},${c00?.y.toFixed(4)})` +
-                ` | c(0,1)→(${c01?.x.toFixed(4)},${c01?.y.toFixed(4)})`
+                `[CylParams] UV方向(多点投票): uFlip=${uFlip} vFlip=${vFlip}`
             );
             console.log(
-                `[CylParams] 配置形状 (来自滑动条): R=${R_cfg*1000}mm ` +
-                `弧长=${config.labelWidthMm}mm 半弧角=${(ha_cfg*180/Math.PI).toFixed(1)}° ` +
+                `[CylParams] 角落点验证:` +
+                ` UV(0,0)→3D(${c00?.x.toFixed(3)},${c00?.y.toFixed(3)},${c00?.z.toFixed(3)})` +
+                ` UV(1,0)→3D(${c10?.x.toFixed(3)},${c10?.y.toFixed(3)},${c10?.z.toFixed(3)})` +
+                ` UV(0,1)→3D(${c01?.x.toFixed(3)},${c01?.y.toFixed(3)},${c01?.z.toFixed(3)})` +
+                ` UV(1,1)→3D(${c11?.x.toFixed(3)},${c11?.y.toFixed(3)},${c11?.z.toFixed(3)})`
+            );
+            console.log(
+                `[CylParams] 中线点:` +
+                ` UV(0.5,0)→3D(${c50?.x.toFixed(3)},${c50?.y.toFixed(3)},${c50?.z.toFixed(3)})` +
+                ` UV(0,0.5)→3D(${c05?.x.toFixed(3)},${c05?.y.toFixed(3)},${c05?.z.toFixed(3)})`
+            );
+            console.log(
+                `[CylParams] 配置形状 (来自滑动条): R=${R_cfg * 1000}mm ` +
+                `弧长=${config.labelWidthMm}mm 半弧角=${(ha_cfg * 180 / Math.PI).toFixed(1)}° ` +
                 `高度=${config.labelHeightMm}mm`
             );
+            console.log(
+                `[CylParams] 预期 axisZ = resolvedFrontZ - R = ${(resolvedFrontZ - R_cfg).toFixed(4)}` +
+                ` (单位m，相当于${((resolvedFrontZ - R_cfg) * 1000).toFixed(1)}mm)`
+            );
 
-            return { axisX, centerY, frontZ, uFlip, vFlip };
+            return {axisX, centerY, frontZ: resolvedFrontZ, uFlip, vFlip};
         }   // ← computeGlbCylinderParams end
 
         /**
@@ -1482,16 +1599,16 @@
             const p = glbModel.cylinderParams;
 
             // ── 形状参数：来自配置 ─────────────────────────────────────
-            const R         = config.radiusTopMm  / 1000;           // 半径 (m)
-            const arcLen    = config.labelWidthMm / 1000;           // 弧长 (m)
+            const R = config.radiusTopMm / 1000;           // 半径 (m)
+            const arcLen = config.labelWidthMm / 1000;           // 弧长 (m)
             const halfAngle = Math.min(Math.PI * 0.499, arcLen / (2 * R)); // 半弧角 (rad)
-            const labelH    = config.labelHeightMm / 1000;          // 标签高度 (m)
+            const labelH = config.labelHeightMm / 1000;          // 标签高度 (m)
 
             // ── 位置参数：来自 GLB 锚点 ───────────────────────────────
-            const axisX  = p.axisX;
-            const axisZ  = p.frontZ - R;      // 弧面前点 = 轴心 + R → 轴心 = frontZ - R
-            const yTop   = p.centerY + labelH / 2;
-            const yBot   = p.centerY - labelH / 2;
+            const axisX = p.axisX;
+            const axisZ = p.frontZ - R;      // 弧面前点 = 轴心 + R → 轴心 = frontZ - R
+            const yTop = p.centerY + labelH / 2;
+            const yBot = p.centerY - labelH / 2;
 
             // ── UV 方向修正 ────────────────────────────────────────────
             const u = p.uFlip ? (1.0 - uvX_img) : uvX_img;
@@ -1499,9 +1616,9 @@
 
             // ── 解析圆柱坐标 ───────────────────────────────────────────
             const theta = -halfAngle + u * (2 * halfAngle);   // 弧角（中心=0）
-            const y     = yTop - v * (yTop - yBot);           // v=0→顶 v=1→底
-            const x     = axisX + R * Math.sin(theta);
-            const z     = axisZ + R * Math.cos(theta);
+            const y = yTop - v * (yTop - yBot);           // v=0→顶 v=1→底
+            const x = axisX + R * Math.sin(theta);
+            const z = axisZ + R * Math.cos(theta);
 
             return new THREE.Vector3(x, y, z);
         }
@@ -1516,7 +1633,7 @@
 
         function createGlbLabelMesh(texture, opacity, options = {}) {
             // 前置摄像头：CSS scaleX(-1) 已镜像背景，视频纹理也需要 U 翻转保持方向一致
-            applyGlbTextureSettings(texture, isFront);
+            applyGlbTextureSettings(texture, !!options.mirrorU);
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
                 side: THREE.DoubleSide,
@@ -1544,7 +1661,7 @@
                     // ★ 关键修正：镜像参考图层的关键点坐标是水平翻转的。
                     // 若直接用 pt.x 计算 UV，会得到图像右侧对应的 3D 点（反了）。
                     // 镜像图层中 pt.x 对应原始图像中的 (W - pt.x)，即 UV u = 1 - pt.x/W。
-                    const uvX = level.mirrored
+                    let uvX = level.mirrored
                         ? (1 - pt.x / workerRefWidth)   // 镜像层：翻转 U
                         : (pt.x / workerRefWidth);       // 正常层：直接用
                     const uvY = pt.y / workerRefHeight;
@@ -1555,7 +1672,7 @@
 
             const mirroredCount = workerRefLevels.filter(l => l.mirrored).length;
             cvWorker.postMessage({type: 'modelPoints', levels});
-            console.log(`[Main] Sent GLB UV->3D points: ${levels.length} levels (${mirroredCount} mirrored, UV u-flip applied)`);
+            console.log(`[Main] Sent GLB UV->3D points: ${levels.length} levels (${mirroredCount} mirrored)`);
         }
 
         function loadBottleModel() {
@@ -1591,7 +1708,7 @@
                         cylinderParams: null   // 在诊断日志后填充
                     };
 
-                    applyGlbTextureSettings(videoTexture);
+                    applyGlbTextureSettings(videoTexture, currentMode === 'AR' && isFront);
                     applyGlbTextureSettings(labelTexture);
                     console.log(`[GLB] Loaded bottle.glb with ${glbModel.labelUvTriangles.length} label UV triangles`);
 
@@ -1616,7 +1733,7 @@
                             const height = parseFloat(ls.y);
                             const estimatedRadius = ls_sphere ? ls_sphere.radius.toFixed(4) : '?';
                             console.log(`[GLB Diag] labelMesh 估计弧宽=${arcW.toFixed(4)} 高度=${height.toFixed(4)} 球半径=${estimatedRadius}`);
-                            console.log(`[GLB Diag] 如果单位是米: 弧宽≈${(arcW*1000).toFixed(0)}mm 高度≈${(height*1000).toFixed(0)}mm`);
+                            console.log(`[GLB Diag] 如果单位是米: 弧宽≈${(arcW * 1000).toFixed(0)}mm 高度≈${(height * 1000).toFixed(0)}mm`);
                             console.log(`[GLB Diag] 如果单位是mm: 弧宽≈${arcW.toFixed(0)}mm 高度≈${height.toFixed(0)}mm`);
                             // 理想农夫山泉550ml标签: 弧宽~68mm 高度~100mm (单位为m则是0.068/0.100)
                             const likelyMeter = arcW < 0.5;
@@ -1867,8 +1984,11 @@
                     isFirstTrackingFrame = false;
                 } else {
                     if (flowState === 'TRACKING_FLOW') {
-                        currentPos.copy(targetPos);
-                        currentQuat.copy(targetQuat);
+                        const flowAlpha = config.trackingMode === 'fast'
+                            ? 0.72
+                            : Math.max(0.35, Math.min(0.72, Number(config.lerpFactor) || 0.45));
+                        currentPos.lerp(targetPos, flowAlpha);
+                        currentQuat.slerp(targetQuat, flowAlpha);
                         // EMA-smoothed pose velocity for prediction (alpha=0.25 damps high-freq noise)
                         const nowPred = performance.now();
                         if (lastPoseSample) {
@@ -1899,10 +2019,10 @@
                 // Update Three.js camera pose directly
                 camera.matrixAutoUpdate = false;
                 // Prediction dead zone: suppress prediction when nearly stationary to prevent noise jitter
-                // Only predict when velocity exceeds 0.015 units/sec (empirical threshold)
+                // Only predict when velocity exceeds a dead zone; otherwise it amplifies stationary noise.
                 const velMag = poseVelocity.length();
-                if (flowState === 'TRACKING_FLOW' && lastPoseSample && velMag > 0.015) {
-                    const predictedPos = currentPos.clone().addScaledVector(poseVelocity, 0.020);
+                if (flowState === 'TRACKING_FLOW' && lastPoseSample && velMag > 0.03) {
+                    const predictedPos = currentPos.clone().addScaledVector(poseVelocity, 0.012);
                     camera.position.copy(predictedPos);
                 } else {
                     camera.position.copy(currentPos);
@@ -2280,7 +2400,7 @@
         // Rebuild GLB label geometry which renders the video
         function createCylinderMesh() {
             if (!glbModel) throw new Error('bottle.glb is required before creating the video mesh');
-            return createGlbLabelMesh(videoTexture, 0.0);
+            return createGlbLabelMesh(videoTexture, 0.0, {mirrorU: currentMode === 'AR' && isFront});
         }
 
         function rebuildCylinderMesh() {
@@ -2358,6 +2478,7 @@
                 console.log('Switching to 3D Preview Calibration Mode');
                 statusText.innerText = '3D PREVIEW MODE';
                 statusBadge.className = 'status-badge preview';
+                applyGlbTextureSettings(videoTexture, false);
 
                 orbitControls.enabled = true;
 
@@ -2385,6 +2506,7 @@
                 console.log('Switching to Live AR tracking');
                 statusText.innerText = 'SCANNING LABEL';
                 statusBadge.className = 'status-badge scanning';
+                applyGlbTextureSettings(videoTexture, isFront);
 
                 orbitControls.enabled = false;
 

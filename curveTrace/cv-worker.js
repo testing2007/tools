@@ -14,19 +14,77 @@ const pendingMessages = [];
 
 var cv; // assigned after Module.onRuntimeInitialized
 
-var Module = {
-    onRuntimeInitialized: function () {
-        cv = self.cv;
-        initCVState();
-        cvIsReady = true;
-        // Flush any messages that arrived before OpenCV was ready
-        for (const msg of pendingMessages) handleMessage(msg);
-        pendingMessages.length = 0;
-        self.postMessage({ type: 'cvReady' });
-    }
-};
+// Load local opencv.js (self-compiled SINGLE_FILE WASM, Emscripten 5.x)
+// Structure: outer cv = async function, UMD factory does `return cv(Module)` → Promise
+// All bindings (matFromArray etc.) close over outer `cv` (async fn), NOT Module.
+// So cv.Mat is undefined inside bindings. We fix this after Promise resolves.
+importScripts('/libs/opencv.js');
 
-importScripts('https://docs.opencv.org/4.5.5/opencv.js');
+// self.cv is now a Promise (UMD factory returned cv(Module)).
+// When it resolves, cvInstance = Module, which has Mat, ORB, solvePnP etc.
+// BUT: opencv.js binding code closes over the outer `cv` (async fn) which has NO Mat.
+// We fix this by re-implementing the broken binding functions using cvInstance directly.
+
+self.cv.then(function (cvInstance) {
+    console.log('[Worker] cv resolved. Mat=' + (typeof cvInstance.Mat) +
+        ' ORB=' + (typeof cvInstance.ORB) +
+        ' solvePnP=' + (typeof cvInstance.solvePnP));
+
+    // cvInstance = Module.  All opencvjs APIs are on cvInstance.
+    cv = cvInstance;
+    self.cv = cvInstance;
+
+    // ─── CRITICAL PATCH ─────────────────────────────────────────────────────
+    // The binding functions (matFromArray, matFromImageData, etc.) use the
+    // internal closure variable `cv` (= the async function, NOT Module).
+    // That `cv` never gets Mat assigned, so `new cv.Mat()` throws.
+    // We override those functions with correct versions using our `cvInstance`.
+    // -------------------------------------------------------------------------
+    cvInstance['matFromArray'] = function matFromArray(rows, cols, type, array) {
+        var mat = new cvInstance.Mat(rows, cols, type);
+        switch (type) {
+            case cvInstance.CV_8U: case cvInstance.CV_8UC1: case cvInstance.CV_8UC2:
+            case cvInstance.CV_8UC3: case cvInstance.CV_8UC4:
+                mat.data.set(array); break;
+            case cvInstance.CV_8S: case cvInstance.CV_8SC1: case cvInstance.CV_8SC2:
+            case cvInstance.CV_8SC3: case cvInstance.CV_8SC4:
+                mat.data8S.set(array); break;
+            case cvInstance.CV_16U: case cvInstance.CV_16UC1: case cvInstance.CV_16UC2:
+            case cvInstance.CV_16UC3: case cvInstance.CV_16UC4:
+                mat.data16U.set(array); break;
+            case cvInstance.CV_16S: case cvInstance.CV_16SC1: case cvInstance.CV_16SC2:
+            case cvInstance.CV_16SC3: case cvInstance.CV_16SC4:
+                mat.data16S.set(array); break;
+            case cvInstance.CV_32S: case cvInstance.CV_32SC1: case cvInstance.CV_32SC2:
+            case cvInstance.CV_32SC3: case cvInstance.CV_32SC4:
+                mat.data32S.set(array); break;
+            case cvInstance.CV_32F: case cvInstance.CV_32FC1: case cvInstance.CV_32FC2:
+            case cvInstance.CV_32FC3: case cvInstance.CV_32FC4:
+                mat.data32F.set(array); break;
+            case cvInstance.CV_64F: case cvInstance.CV_64FC1: case cvInstance.CV_64FC2:
+            case cvInstance.CV_64FC3: case cvInstance.CV_64FC4:
+                mat.data64F.set(array); break;
+            default: throw new Error('matFromArray: unsupported type ' + type);
+        }
+        return mat;
+    };
+    cvInstance['matFromImageData'] = function matFromImageData(imageData) {
+        var mat = new cvInstance.Mat(imageData.height, imageData.width, cvInstance.CV_8UC4);
+        mat.data.set(imageData.data);
+        return mat;
+    };
+    console.log('[Worker] matFromArray patched successfully');
+    // ─────────────────────────────────────────────────────────────────────────
+
+    initCVState();
+    cvIsReady = true;
+    for (const msg of pendingMessages) handleMessage(msg);
+    pendingMessages.length = 0;
+    self.postMessage({ type: 'cvReady' });
+}).catch(function (err) {
+    console.error('[Worker] OpenCV init failed:', err);
+    self.postMessage({ type: 'error', message: 'OpenCV init failed: ' + (err && err.message || String(err)) });
+});
 
 // ============================================================
 // Configuration & Constants
@@ -70,6 +128,7 @@ let rvec = null, tvec = null, RMat = null;
 let frameMat = null, frameGray = null, prevFlowGray = null;
 let localFrameKeypoints = null, localFrameDescriptors = null;
 let computedFrameFeatures = false;
+let orbFaultCount = 0;
 
 // Reference image data
 let refWidth = 0, refHeight = 0;
@@ -178,7 +237,81 @@ function formatCvError(err) {
     return err && (err.message || err.name) ? (err.message || err.name) : String(err);
 }
 
+function isWasmMemoryError(err) {
+    const msg = formatCvError(err);
+    return /memory access out of bounds|RuntimeError/i.test(msg);
+}
+
+function isFiniteNumber(v) {
+    return Number.isFinite(Number(v));
+}
+
+function hasValidDescriptors(desc) {
+    return !!desc
+        && !desc.empty()
+        && desc.rows > 0
+        && desc.cols > 0
+        && desc.type
+        && desc.type() === cv.CV_8U;
+}
+
+function makePointKey2(x, y) {
+    return `${Math.round(x * 10)}:${Math.round(y * 10)}`;
+}
+
+function makePointKey3(p) {
+    return `${Math.round(p.X * 10000)}:${Math.round(p.Y * 10000)}:${Math.round(p.Z * 10000)}`;
+}
+
+function validateOrbInput(grayMat, label) {
+    if (!grayMat || grayMat.empty()) {
+        throw new Error(`${label}: empty grayscale frame`);
+    }
+    if (grayMat.rows <= 0 || grayMat.cols <= 0) {
+        throw new Error(`${label}: invalid grayscale size ${grayMat.cols}x${grayMat.rows}`);
+    }
+    if (grayMat.type && grayMat.type() !== cv.CV_8UC1) {
+        throw new Error(`${label}: expected CV_8UC1, got ${grayMat.type()}`);
+    }
+}
+
+function detectAndComputeSafe(grayMat, keypoints, descriptors, label) {
+    validateOrbInput(grayMat, label);
+
+    let clonedInput = null;
+    try {
+        orb.detectAndCompute(grayMat, maskMat, keypoints, descriptors);
+        orbFaultCount = 0;
+    } catch (err) {
+        if (!isWasmMemoryError(err)) throw err;
+
+        orbFaultCount++;
+        console.warn(`[Worker] ORB wasm fault on ${label}; retrying with compact input (${orbFaultCount})`, err);
+        initTracker();
+
+        // OpenCV.js ORB is less forgiving around unusual Mat headers than
+        // desktop OpenCV. Retry once with a compact, owned buffer.
+        clonedInput = grayMat.clone();
+        try {
+            orb.detectAndCompute(clonedInput, maskMat, keypoints, descriptors);
+            orbFaultCount = 0;
+        } catch (retryErr) {
+            if (isWasmMemoryError(retryErr)) initTracker();
+            throw retryErr;
+        }
+    } finally {
+        if (clonedInput) clonedInput.delete();
+    }
+}
+
 function collectDescriptorMatches(queryDesc, trainDesc) {
+    if (!hasValidDescriptors(queryDesc) || !hasValidDescriptors(trainDesc) || queryDesc.cols !== trainDesc.cols) {
+        return { rawCount: 0, filtered: [] };
+    }
+    if (!matcher) {
+        return { rawCount: 0, filtered: [] };
+    }
+
     let knnMatches = null;
     const filtered = [];
     let rawCount = 0;
@@ -187,22 +320,130 @@ function collectDescriptorMatches(queryDesc, trainDesc) {
         matcher.knnMatch(queryDesc, trainDesc, knnMatches, 2);
         for (let i = 0; i < knnMatches.size(); i++) {
             const row = knnMatches.get(i);
-            if (!row || row.size() < 1) continue;
-            const m = row.get(0);
-            rawCount++;
-            let ratioOk = true;
-            if (row.size() >= 2) {
-                const n = row.get(1);
-                ratioOk = m.distance <= n.distance * 0.82;
-            }
-            if (ratioOk && m.distance <= cfg.hammingCutoff) {
-                filtered.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
+            let m = null;
+            let n = null;
+            try {
+                if (!row || row.size() < 1) continue;
+                m = row.get(0);
+                rawCount++;
+                let ratioOk = true;
+                if (row.size() >= 2) {
+                    n = row.get(1);
+                    ratioOk = m.distance <= n.distance * 0.82;
+                }
+                if (ratioOk && m.distance <= cfg.hammingCutoff) {
+                    filtered.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
+                }
+            } finally {
+                if (m && m.delete) m.delete();
+                if (n && n.delete) n.delete();
+                if (row && row.delete) row.delete();
             }
         }
+    } catch (err) {
+        if (isWasmMemoryError(err)) initTracker();
+        throw err;
     } finally {
         if (knnMatches) knnMatches.delete();
     }
     return { rawCount, filtered };
+}
+
+function buildPnPCorrespondences(level, frameKp, matches, maxMatches) {
+    const objPoints = [];
+    const imgPoints = [];
+    const usedObj = new Set();
+    const usedImg = new Set();
+
+    for (const m of matches) {
+        if (objPoints.length / 3 >= maxMatches) break;
+        const pt3D = level.points3D[m.queryIdx];
+        const kp = frameKp.get(m.trainIdx);
+        if (!pt3D || !kp || !kp.pt) continue;
+
+        const x = kp.pt.x;
+        const y = kp.pt.y;
+        if (!isFiniteNumber(pt3D.X) || !isFiniteNumber(pt3D.Y) || !isFiniteNumber(pt3D.Z)
+            || !isFiniteNumber(x) || !isFiniteNumber(y)) {
+            continue;
+        }
+        if (x < 0 || x >= trackW || y < 0 || y >= trackH) continue;
+
+        const objKey = makePointKey3(pt3D);
+        const imgKey = makePointKey2(x, y);
+        if (usedObj.has(objKey) || usedImg.has(imgKey)) continue;
+        usedObj.add(objKey);
+        usedImg.add(imgKey);
+
+        objPoints.push(pt3D.X, pt3D.Y, pt3D.Z);
+        imgPoints.push(x, y);
+    }
+
+    return { objPoints, imgPoints, numPts: objPoints.length / 3 };
+}
+
+function filterMatchesByHomography(level, frameKp, matches, maxMatches) {
+    if (!cv.findHomography || matches.length < 8) {
+        return matches.slice(0, maxMatches);
+    }
+
+    let srcPts = null;
+    let dstPts = null;
+    let hmask = null;
+    let hMat = null;
+    try {
+        const src = [];
+        const dst = [];
+        const candidates = [];
+        for (const m of matches) {
+            if (candidates.length >= maxMatches) break;
+            const refPt = (level.matchPoints || level.originalPoints)[m.queryIdx];
+            const kp = frameKp.get(m.trainIdx);
+            if (!refPt || !kp || !kp.pt) continue;
+            const x = kp.pt.x;
+            const y = kp.pt.y;
+            if (!isFiniteNumber(refPt.x) || !isFiniteNumber(refPt.y)
+                || !isFiniteNumber(x) || !isFiniteNumber(y)) {
+                continue;
+            }
+            if (x < 0 || x >= trackW || y < 0 || y >= trackH) continue;
+            src.push(refPt.x, refPt.y);
+            dst.push(x, y);
+            candidates.push(m);
+        }
+        if (candidates.length < 8) return candidates;
+
+        srcPts = cv.matFromArray(candidates.length, 1, cv.CV_32FC2, src);
+        dstPts = cv.matFromArray(candidates.length, 1, cv.CV_32FC2, dst);
+        hmask = new cv.Mat();
+        hMat = cv.findHomography(srcPts, dstPts, cv.RANSAC, 6.0, hmask);
+        if (!hMat || hMat.empty() || !hmask || hmask.empty()) return candidates;
+
+        const inliers = [];
+        for (let i = 0; i < candidates.length; i++) {
+            if (hmask.data[i] === 1) inliers.push(candidates[i]);
+        }
+        return inliers.length >= 8 ? inliers : candidates;
+    } catch (err) {
+        return matches.slice(0, maxMatches);
+    } finally {
+        if (srcPts) srcPts.delete();
+        if (dstPts) dstPts.delete();
+        if (hmask) hmask.delete();
+        if (hMat) hMat.delete();
+    }
+}
+
+function hasEnough2DSpread(imgPoints) {
+    if (imgPoints.length < 12) return false;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < imgPoints.length; i += 2) {
+        const x = imgPoints[i], y = imgPoints[i + 1];
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    }
+    return (maxX - minX) >= Math.max(20, trackW * 0.04)
+        && (maxY - minY) >= Math.max(20, trackH * 0.04);
 }
 
 // ============================================================
@@ -250,7 +491,7 @@ async function loadRefFromImage() {
     const buildRefLevel = (scaledGray, scale, scaledW, scaledH, mirrored) => {
         const levelKp = new cv.KeyPointVector();
         const levelDesc = new cv.Mat();
-        orb.detectAndCompute(scaledGray, maskMat, levelKp, levelDesc);
+        detectAndComputeSafe(scaledGray, levelKp, levelDesc, `ref ${scale}${mirrored ? ' mirrored' : ''}`);
         const originalPoints = [];
         const matchPoints = [];
         for (let i = 0; i < levelKp.size(); i++) {
@@ -277,10 +518,6 @@ async function loadRefFromImage() {
         buildRefLevel(scaledGray, scale, scaledW, scaledH, false);
         // 前置摄像头图像是水平镜像的，需要镜像参考图层来匹配非对称特征（如文字）。
         // 主线程发送 GLB 3D 点时会对 mirrored level 翻转 UV u 坐标，确保 3D 位置正确。
-        const mirroredGray = new cv.Mat();
-        cv.flip(scaledGray, mirroredGray, 1);
-        buildRefLevel(mirroredGray, scale, scaledW, scaledH, true);
-        mirroredGray.delete();
         scaledGray.delete();
     }
     srcMat.delete();
@@ -555,29 +792,35 @@ function solvePoseFromArrays(objPointList, imgPointList, minPoints, poseConfiden
         const objData = [], imgData = [];
         for (let i = 0; i < objPointList.length; i++) {
             const p3 = objPointList[i], p2 = imgPointList[i];
+            if (!p3 || !p2
+                || !isFiniteNumber(p3.X) || !isFiniteNumber(p3.Y) || !isFiniteNumber(p3.Z)
+                || !isFiniteNumber(p2.x) || !isFiniteNumber(p2.y)) {
+                continue;
+            }
             objData.push(p3.X, p3.Y, p3.Z);
             imgData.push(p2.x, p2.y);
         }
-        objPointsMat = cv.matFromArray(objPointList.length, 3, cv.CV_32F, objData);
-        imgPointsMat = cv.matFromArray(objPointList.length, 2, cv.CV_32F, imgData);
+        const numPts = objData.length / 3;
+        if (numPts < minPoints || !hasEnough2DSpread(imgData)) {
+            return { success: false, status: `Degenerate PnP (${numPts}pts)`, method: 'None', error: 'None', inliers: 0, reprojErr: 999.0 };
+        }
+        objPointsMat = cv.matFromArray(numPts, 3, cv.CV_32F, objData);
+        imgPointsMat = cv.matFromArray(numPts, 2, cv.CV_32F, imgData);
         const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
         const tStartPnp = performance.now();
-        let success = false, method = 'solvePnP', pnpInlierCount = objPointList.length;
+        let success = false, method = 'solvePnP', pnpInlierCount = numPts;
 
-        if (useRansac && cv.solvePnPRansac) {
-            pnpInliersMat = new cv.Mat();
-            success = cv.solvePnPRansac(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, useExtrinsicGuess, 50, 5.0, 0.99, pnpInliersMat, pnpFlags);
-            pnpInlierCount = pnpInliersMat.rows || 0;
-            method = `Flow Ransac (${pnpInlierCount})`;
-        } else {
+        try {
             success = cv.solvePnP(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, useExtrinsicGuess, pnpFlags);
-            method = 'Flow solvePnP';
-            if (success && cv.solvePnPRefineLM) {
-                try {
-                    cv.solvePnPRefineLM(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
-                    method = 'Flow solvePnP+RefineLM';
-                } catch (e) {}
-            }
+        } catch (pnpEx) {
+            return { success: false, status: 'solvePnP failed', method: 'None', error: formatCvError(pnpEx), inliers: 0, reprojErr: 999.0 };
+        }
+        method = 'Flow solvePnP';
+        if (success && cv.solvePnPRefineLM) {
+            try {
+                cv.solvePnPRefineLM(objPointsMat, imgPointsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
+                method = 'Flow solvePnP+RefineLM';
+            } catch (e) {}
         }
         lastPnpTime = performance.now() - tStartPnp;
 
@@ -675,9 +918,17 @@ function tryTrackWithOpticalFlow() {
 function ensureFrameFeatures() {
     if (computedFrameFeatures) return;
     const tStartOrb = performance.now();
-    localFrameKeypoints = new cv.KeyPointVector();
-    localFrameDescriptors = new cv.Mat();
-    orb.detectAndCompute(frameGray, maskMat, localFrameKeypoints, localFrameDescriptors);
+    const nextKeypoints = new cv.KeyPointVector();
+    const nextDescriptors = new cv.Mat();
+    try {
+        detectAndComputeSafe(frameGray, nextKeypoints, nextDescriptors, 'frame');
+    } catch (err) {
+        nextKeypoints.delete();
+        nextDescriptors.delete();
+        throw err;
+    }
+    localFrameKeypoints = nextKeypoints;
+    localFrameDescriptors = nextDescriptors;
     computedFrameFeatures = true;
     lastOrbTime += performance.now() - tStartOrb;
 }
@@ -819,41 +1070,47 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
 
         if (filtered.length >= dynamicMin) {
             filtered.sort((a, b) => a.distance - b.distance);
-            const topMatches = filtered.slice(0, 120);
-            const objPoints = [], imgPoints = [];
-            for (const m of topMatches) {
-                const pt3D = level.points3D[m.queryIdx];
-                const kp = frameKp.get(m.trainIdx);
-                if (pt3D && kp) { objPoints.push(pt3D.X, pt3D.Y, pt3D.Z); imgPoints.push(kp.pt.x, kp.pt.y); }
-            }
-            const numPts = objPoints.length / 3;
+            const topMatches = filtered.slice(0, 160);
+            const homographyMatches = filterMatchesByHomography(level, frameKp, topMatches, 120);
+            const pnpData = buildPnPCorrespondences(level, frameKp, homographyMatches, 100);
+            const objPoints = pnpData.objPoints;
+            const imgPoints = pnpData.imgPoints;
+            const numPts = pnpData.numPts;
             // DLT 需要至少 6 个点，且不少于动态最小值；低于 6 点会抛出 OpenCV 异常
-            if (numPts >= Math.max(6, dynamicMin)) {
+            const minPnpInliers = Math.max(14, Math.round(dynamicMin));
+            if (numPts >= Math.max(6, minPnpInliers)) {
+                if (!hasEnough2DSpread(imgPoints)) {
+                    result.status = `Degenerate PnP spread (${numPts}pts)`;
+                    return result;
+                }
                 objPtsMat = cv.matFromArray(numPts, 3, cv.CV_32F, objPoints);
                 imgPtsMat = cv.matFromArray(numPts, 2, cv.CV_32F, imgPoints);
-                pnpInliersMat = new cv.Mat();
                 const pnpFlags = cv.SOLVEPNP_ITERATIVE !== undefined ? cv.SOLVEPNP_ITERATIVE : 0;
                 const tStartPnp = performance.now();
                 // 内层 try-catch：OpenCV 内部去重后有效点可能 < 6，导致 DLT 异常
                 // 此时静默失败（不是真正的错误，只是当前帧匹配点退化）
                 let success = false;
                 try {
-                    success = cv.solvePnPRansac(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, 80, 6.0, 0.99, pnpInliersMat, pnpFlags);
+                    success = cv.solvePnP(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, pnpFlags);
+                    if (success && cv.solvePnPRefineLM) {
+                        try {
+                            cv.solvePnPRefineLM(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
+                        } catch (refineErr) {}
+                    }
                 } catch (pnpEx) {
                     result.status = `PnP退化(${numPts}pts)`;
                     lastPnpTime += performance.now() - tStartPnp;
                     return result;  // 直接返回，跳过后续处理
                 }
                 lastPnpTime += performance.now() - tStartPnp;
-                const pnpInlierCount = pnpInliersMat.rows || 0;
-                const minPnpInliers = Math.max(8, Math.ceil(dynamicMin * 0.75));
+                const pnpInlierCount = numPts;
                 result.inliers = pnpInlierCount;
-                result.method = `Ransac PnP (${pnpInlierCount})`;
+                result.method = `Homography+PnP (${pnpInlierCount})`;
                 result.goodMatches = pnpInlierCount;
-                result.inlierRatio = topMatches.length > 0 ? pnpInlierCount / topMatches.length : 0;
+                result.inlierRatio = topMatches.length > 0 ? homographyMatches.length / topMatches.length : 0;
 
                 if (success && pnpInlierCount >= minPnpInliers) {
-                    const error = computeReprojectionError(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, pnpInliersMat);
+                    const error = computeReprojectionError(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, null);
                     result.reprojErr = error;
                     if (error <= 8.0) {
                         const confidence = (result.inlierRatio * 0.55) + (Math.min(numPts / (dynamicMin * 2), 1) * 0.45);
@@ -866,14 +1123,7 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                             result.confidence = pose.confidence;
                             result.rD = pose.rD;
                             result.camPos = pose.camPos;
-                            const pnpInlierMatches = [];
-                            if (pnpInliersMat && pnpInliersMat.rows > 0) {
-                                for (let i = 0; i < pnpInliersMat.rows; i++) {
-                                    const idx = readInlierIndex(pnpInliersMat, i);
-                                    if (topMatches[idx]) pnpInlierMatches.push(topMatches[idx]);
-                                }
-                            }
-                            result.inlierMatches = pnpInlierMatches.length ? pnpInlierMatches : topMatches.slice(0, pnpInlierCount);
+                            result.inlierMatches = homographyMatches.slice(0, pnpInlierCount);
                             result.localFrameKeypoints = [];
                             for (let i = 0; i < frameKp.size(); i++) {
                                 const kp = frameKp.get(i);
@@ -972,9 +1222,10 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
                 zoneErrors = flowResult.reprojDetails?.zoneErrors || {};
 
                 // Conditional drift correction (only when drifting or at safety interval)
-                const reprojDrifting = reprojErrVal > 2.5;
-                const safetyInterval = Math.max(cfg.orbRelocalizeInterval * 5, 30);
-                const shouldCorrect = (reprojDrifting && flowFrameCounter % cfg.orbRelocalizeInterval === 0)
+                const reprojDrifting = reprojErrVal > 3.8;
+                const driftInterval = Math.max(cfg.orbRelocalizeInterval * 2, 24);
+                const safetyInterval = Math.max(cfg.orbRelocalizeInterval * 10, 120);
+                const shouldCorrect = (reprojDrifting && flowFrameCounter % driftInterval === 0)
                     || (flowFrameCounter % safetyInterval === 0);
                 if (shouldCorrect) {
                     ensureFrameFeatures();
