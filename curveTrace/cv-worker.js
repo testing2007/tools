@@ -352,6 +352,7 @@ function collectDescriptorMatches(queryDesc, trainDesc) {
 function buildPnPCorrespondences(level, frameKp, matches, maxMatches) {
     const objPoints = [];
     const imgPoints = [];
+    const selectedMatches = [];
     const usedObj = new Set();
     const usedImg = new Set();
 
@@ -377,9 +378,10 @@ function buildPnPCorrespondences(level, frameKp, matches, maxMatches) {
 
         objPoints.push(pt3D.X, pt3D.Y, pt3D.Z);
         imgPoints.push(x, y);
+        selectedMatches.push(m);
     }
 
-    return { objPoints, imgPoints, numPts: objPoints.length / 3 };
+    return { objPoints, imgPoints, matches: selectedMatches, numPts: objPoints.length / 3 };
 }
 
 function filterMatchesByHomography(level, frameKp, matches, maxMatches) {
@@ -444,6 +446,81 @@ function hasEnough2DSpread(imgPoints) {
     }
     return (maxX - minX) >= Math.max(20, trackW * 0.04)
         && (maxY - minY) >= Math.max(20, trackH * 0.04);
+}
+
+function computePointSpread(points, width, height) {
+    const result = {
+        count: Array.isArray(points) ? points.length : 0,
+        minX: 0,
+        minY: 0,
+        maxX: 0,
+        maxY: 0,
+        width: 0,
+        height: 0,
+        widthRatio: 0,
+        heightRatio: 0
+    };
+    if (!points || !points.length || !width || !height) return result;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const pt of points) {
+        if (!pt || !isFiniteNumber(pt.x) || !isFiniteNumber(pt.y)) continue;
+        minX = Math.min(minX, pt.x); maxX = Math.max(maxX, pt.x);
+        minY = Math.min(minY, pt.y); maxY = Math.max(maxY, pt.y);
+    }
+    if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return result;
+    const spreadW = Math.max(0, maxX - minX);
+    const spreadH = Math.max(0, maxY - minY);
+    return {
+        count: result.count,
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width: spreadW,
+        height: spreadH,
+        widthRatio: spreadW / width,
+        heightRatio: spreadH / height
+    };
+}
+
+function estimateFlowQuality(framePoints, refPoints, reprojErr, zoneErrors) {
+    const frameSpread = computePointSpread(framePoints, trackW, trackH);
+    const refSpread = computePointSpread(refPoints, refWidth, refHeight);
+    const zones = zoneErrors || {};
+    const centerOnly = zones.center >= 0
+        && zones.left < 0 && zones.right < 0
+        && zones.top < 0 && zones.bottom < 0;
+    const reasons = [];
+    if ((framePoints?.length || 0) < Math.max(28, cfg.flowMinPoints * 2)) reasons.push('few-points');
+    if (refSpread.widthRatio > 0 && refSpread.widthRatio < 0.22) reasons.push('narrow-ref-x');
+    if (refSpread.heightRatio > 0 && refSpread.heightRatio < 0.16) reasons.push('narrow-ref-y');
+    if (frameSpread.widthRatio > 0 && frameSpread.widthRatio < 0.08) reasons.push('narrow-img-x');
+    if (frameSpread.heightRatio > 0 && frameSpread.heightRatio < 0.08) reasons.push('narrow-img-y');
+    if (centerOnly) reasons.push('center-only');
+    if (reprojErr > 3.8) reasons.push('reproj-drift');
+    return {
+        weak: reasons.length > 0,
+        reasons,
+        refSpread,
+        frameSpread
+    };
+}
+
+function buildInlierSubset(objPoints, imgPoints, matches, inliersMat) {
+    const obj = [];
+    const img = [];
+    const inlierMatches = [];
+    if (!inliersMat || inliersMat.rows <= 0) {
+        return { objPoints, imgPoints, matches, numPts: objPoints.length / 3 };
+    }
+    for (let i = 0; i < inliersMat.rows; i++) {
+        const idx = readInlierIndex(inliersMat, i);
+        if (idx < 0 || idx >= matches.length) continue;
+        obj.push(objPoints[idx * 3], objPoints[idx * 3 + 1], objPoints[idx * 3 + 2]);
+        img.push(imgPoints[idx * 2], imgPoints[idx * 2 + 1]);
+        inlierMatches.push(matches[idx]);
+    }
+    return { objPoints: obj, imgPoints: img, matches: inlierMatches, numPts: obj.length / 3 };
 }
 
 // ============================================================
@@ -516,8 +593,8 @@ async function loadRefFromImage() {
             cv.resize(grayMat, scaledGray, new cv.Size(scaledW, scaledH), 0, 0, cv.INTER_AREA);
         }
         buildRefLevel(scaledGray, scale, scaledW, scaledH, false);
-        // 前置摄像头图像是水平镜像的，需要镜像参考图层来匹配非对称特征（如文字）。
-        // 主线程发送 GLB 3D 点时会对 mirrored level 翻转 UV u 坐标，确保 3D 位置正确。
+        // Front-camera mirroring is handled by the main-thread display/texture path.
+        // The worker keeps tracking pixels in the normal reference coordinate space.
         scaledGray.delete();
     }
     srcMat.delete();
@@ -894,6 +971,9 @@ function tryTrackWithOpticalFlow() {
 
         const poseConfidence = (flowRatio * 0.65) + (Math.min(nextFramePoints.length / 40, 1) * 0.35);
         const poseResult = solvePoseFromArrays(nextObjPoints, nextFramePoints, cfg.flowMinPoints, poseConfidence, 'Success (Flow)', true, false);
+        const flowQuality = poseResult.success
+            ? estimateFlowQuality(nextFramePoints, nextRefPoints, poseResult.reprojErr || 0, poseResult.reprojDetails?.zoneErrors || {})
+            : { weak: false, reasons: [], refSpread: computePointSpread(nextRefPoints, refWidth, refHeight), frameSpread: computePointSpread(nextFramePoints, trackW, trackH) };
 
         if (poseResult.success) {
             flowObjPoints = nextObjPoints;
@@ -902,7 +982,7 @@ function tryTrackWithOpticalFlow() {
             frameGray.copyTo(prevFlowGray);
             flowFrameCounter++;
         }
-        return { ...poseResult, points: nextFramePoints.length, ratio: flowRatio, flowFramePoints: nextFramePoints, flowObjPoints: nextObjPoints };
+        return { ...poseResult, points: nextFramePoints.length, ratio: flowRatio, flowQuality, flowFramePoints: nextFramePoints, flowObjPoints: nextObjPoints };
     } finally {
         if (prevPtsMat) prevPtsMat.delete();
         if (nextPtsMat) nextPtsMat.delete();
@@ -1037,6 +1117,7 @@ function runDriftCorrection(frameKp, frameDesc) {
 function runOrbMatchOnLevel(level, frameKp, frameDesc) {
     let srcPts = null, dstPts = null, hmask = null, hH = null;
     let objPtsMat = null, imgPtsMat = null, pnpInliersMat = null;
+    let inlierObjPtsMat = null, inlierImgPtsMat = null;
     const result = {
         success: false,
         status: 'No Match',
@@ -1071,10 +1152,10 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
         if (filtered.length >= dynamicMin) {
             filtered.sort((a, b) => a.distance - b.distance);
             const topMatches = filtered.slice(0, 160);
-            const homographyMatches = filterMatchesByHomography(level, frameKp, topMatches, 120);
-            const pnpData = buildPnPCorrespondences(level, frameKp, homographyMatches, 100);
+            const pnpData = buildPnPCorrespondences(level, frameKp, topMatches, 120);
             const objPoints = pnpData.objPoints;
             const imgPoints = pnpData.imgPoints;
+            const pnpMatches = pnpData.matches;
             const numPts = pnpData.numPts;
             // DLT 需要至少 6 个点，且不少于动态最小值；低于 6 点会抛出 OpenCV 异常
             const minPnpInliers = Math.max(14, Math.round(dynamicMin));
@@ -1090,40 +1171,85 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
                 // 内层 try-catch：OpenCV 内部去重后有效点可能 < 6，导致 DLT 异常
                 // 此时静默失败（不是真正的错误，只是当前帧匹配点退化）
                 let success = false;
+                let solvedWithRansac = false;
+                let usedObjPtsMat = objPtsMat;
+                let usedImgPtsMat = imgPtsMat;
+                let usedMatches = pnpMatches;
+                let pnpInlierCount = numPts;
                 try {
-                    success = cv.solvePnP(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, pnpFlags);
-                    if (success && cv.solvePnPRefineLM) {
+                    if (cv.solvePnPRansac) {
+                        pnpInliersMat = new cv.Mat();
+                        success = cv.solvePnPRansac(
+                            objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat,
+                            rvec, tvec, false, 100, 6.0, 0.99, pnpInliersMat, pnpFlags
+                        );
+                        solvedWithRansac = true;
+                        pnpInlierCount = pnpInliersMat ? pnpInliersMat.rows : 0;
+                        const inlierSubset = buildInlierSubset(objPoints, imgPoints, pnpMatches, pnpInliersMat);
+                        if (success && inlierSubset.numPts >= minPnpInliers) {
+                            inlierObjPtsMat = cv.matFromArray(inlierSubset.numPts, 3, cv.CV_32F, inlierSubset.objPoints);
+                            inlierImgPtsMat = cv.matFromArray(inlierSubset.numPts, 2, cv.CV_32F, inlierSubset.imgPoints);
+                            usedObjPtsMat = inlierObjPtsMat;
+                            usedImgPtsMat = inlierImgPtsMat;
+                            usedMatches = inlierSubset.matches;
+                            pnpInlierCount = inlierSubset.numPts;
+                        }
+                    } else {
+                        success = cv.solvePnP(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, pnpFlags);
+                    }
+                    if (success && pnpInlierCount >= minPnpInliers && cv.solvePnPRefineLM) {
                         try {
-                            cv.solvePnPRefineLM(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
+                            cv.solvePnPRefineLM(usedObjPtsMat, usedImgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
                         } catch (refineErr) {}
                     }
                 } catch (pnpEx) {
+                    if (pnpInliersMat) { pnpInliersMat.delete(); pnpInliersMat = null; }
+                    try {
+                        success = cv.solvePnP(objPtsMat, imgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec, false, pnpFlags);
+                        solvedWithRansac = false;
+                        pnpInlierCount = numPts;
+                        usedObjPtsMat = objPtsMat;
+                        usedImgPtsMat = imgPtsMat;
+                        usedMatches = pnpMatches;
+                        if (success && cv.solvePnPRefineLM) {
+                            try {
+                                cv.solvePnPRefineLM(usedObjPtsMat, usedImgPtsMat, cameraMatrixMat, distCoeffsMat, rvec, tvec);
+                            } catch (refineErr) {}
+                        }
+                    } catch (fallbackEx) {
+                        result.error = formatCvError(fallbackEx);
+                    }
                     result.status = `PnP退化(${numPts}pts)`;
-                    lastPnpTime += performance.now() - tStartPnp;
-                    return result;  // 直接返回，跳过后续处理
+                    if (success) {
+                        result.status = 'Success (PnP fallback)';
+                    } else {
+                        lastPnpTime += performance.now() - tStartPnp;
+                    }
+                    if (!success) return result;
                 }
                 lastPnpTime += performance.now() - tStartPnp;
-                const pnpInlierCount = numPts;
                 result.inliers = pnpInlierCount;
-                result.method = `Homography+PnP (${pnpInlierCount})`;
+                result.method = solvedWithRansac
+                    ? `PnPRansac+RefineLM (${pnpInlierCount}/${numPts})`
+                    : `PnP+RefineLM (${pnpInlierCount})`;
                 result.goodMatches = pnpInlierCount;
-                result.inlierRatio = topMatches.length > 0 ? homographyMatches.length / topMatches.length : 0;
+                result.inlierRatio = numPts > 0 ? pnpInlierCount / numPts : 0;
 
                 if (success && pnpInlierCount >= minPnpInliers) {
-                    const error = computeReprojectionError(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, null);
+                    const error = computeReprojectionError(usedObjPtsMat, usedImgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, null);
                     result.reprojErr = error;
                     if (error <= 8.0) {
                         const confidence = (result.inlierRatio * 0.55) + (Math.min(numPts / (dynamicMin * 2), 1) * 0.45);
                         const pose = applySolvedPoseRaw(rvec, tvec, confidence, 'Success (PnP)');
                         if (pose.success) {
                             // 记录重投影点与分区误差，便于主线程做可视化诊断。
-                            result.reprojDetails = computeReprojectionDetails(objPtsMat, imgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, 60);
+                            result.reprojDetails = computeReprojectionDetails(usedObjPtsMat, usedImgPtsMat, rvec, tvec, cameraMatrixMat, distCoeffsMat, 60);
                             result.success = true;
                             result.status = 'Success';
                             result.confidence = pose.confidence;
                             result.rD = pose.rD;
                             result.camPos = pose.camPos;
-                            result.inlierMatches = homographyMatches.slice(0, pnpInlierCount);
+                            result.inlierMatches = usedMatches.slice(0, pnpInlierCount);
                             result.localFrameKeypoints = [];
                             for (let i = 0; i < frameKp.size(); i++) {
                                 const kp = frameKp.get(i);
@@ -1142,6 +1268,7 @@ function runOrbMatchOnLevel(level, frameKp, frameDesc) {
         if (srcPts) srcPts.delete(); if (dstPts) dstPts.delete();
         if (hmask) hmask.delete(); if (hH) hH.delete();
         if (objPtsMat) objPtsMat.delete(); if (imgPtsMat) imgPtsMat.delete();
+        if (inlierObjPtsMat) inlierObjPtsMat.delete(); if (inlierImgPtsMat) inlierImgPtsMat.delete();
         if (pnpInliersMat) pnpInliersMat.delete();
     }
     return result;
@@ -1200,6 +1327,10 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
     let poseCamPos = null, poseRD = null;
     let frameKpCount = 0;
     let reprojPoints = [], zoneErrors = {};
+    let flowWeak = false, flowWeakReasons = [];
+    let flowRefSpread = null, flowImgSpread = null;
+    let correctionApplied = false;
+    let poseSource = 'none';
 
     try {
         // ── TRACKING_FLOW ──────────────────────────────────────────
@@ -1220,16 +1351,57 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
                 poseRD = flowResult.rD;
                 reprojPoints = flowResult.reprojDetails?.points || [];
                 zoneErrors = flowResult.reprojDetails?.zoneErrors || {};
+                poseSource = 'flow';
+                const flowQuality = flowResult.flowQuality || {};
+                flowWeak = !!flowQuality.weak;
+                flowWeakReasons = flowQuality.reasons || [];
+                flowRefSpread = flowQuality.refSpread || null;
+                flowImgSpread = flowQuality.frameSpread || null;
 
-                // Conditional drift correction (only when drifting or at safety interval)
+                // Conditional anchor correction. Weak flow can keep a low center
+                // reprojection error while the whole curved label plane is tilted.
                 const reprojDrifting = reprojErrVal > 3.8;
+                const weakInterval = Math.max(3, Math.min(6, Math.round((Number(cfg.orbRelocalizeInterval) || 12) / 2)));
                 const driftInterval = Math.max(cfg.orbRelocalizeInterval * 2, 24);
                 const safetyInterval = Math.max(cfg.orbRelocalizeInterval * 10, 120);
-                const shouldCorrect = (reprojDrifting && flowFrameCounter % driftInterval === 0)
+                const shouldCorrect = (flowWeak && (flowFrameCounter <= 2 || flowFrameCounter % weakInterval === 0))
+                    || (reprojDrifting && flowFrameCounter % driftInterval === 0)
                     || (flowFrameCounter % safetyInterval === 0);
                 if (shouldCorrect) {
                     ensureFrameFeatures();
-                    runDriftCorrection(localFrameKeypoints, localFrameDescriptors);
+                    let correctionLevel = lastSuccessScaleLevel || refLevels[0];
+                    let correctionResult = correctionLevel
+                        ? runOrbMatchOnLevel(correctionLevel, localFrameKeypoints, localFrameDescriptors)
+                        : null;
+                    if ((!correctionResult || !correctionResult.success) && (flowWeak || reprojDrifting)) {
+                        correctionResult = runFullScaleScan(localFrameKeypoints, localFrameDescriptors);
+                        correctionLevel = correctionResult.level || correctionLevel;
+                    }
+                    if (correctionResult && correctionResult.success && correctionLevel) {
+                        correctionApplied = true;
+                        trackingSuccess = true;
+                        poseSource = 'orb-correction';
+                        pnpStatus = 'Success (Flow + ORB correction)';
+                        pnpMethod = `Flow + ${correctionResult.method}`;
+                        pnpError = correctionResult.error || 'None';
+                        pnpInlierCount = correctionResult.inliers || 0;
+                        goodMatchesCount = correctionResult.goodMatches || 0;
+                        rawMatchesCount = correctionResult.rawMatches || 0;
+                        filteredMatchesCount = correctionResult.filteredMatches || 0;
+                        bestInlierRatio = correctionResult.inlierRatio || 0;
+                        bestScaleText = correctionResult.bestScaleText || `${correctionLevel.scale.toFixed(2)}x (Corr)`;
+                        frameKpCount = correctionResult.frameKpCount || 0;
+                        poseConfidence = correctionResult.confidence || poseConfidence;
+                        reprojErrVal = correctionResult.reprojErr || reprojErrVal;
+                        poseCamPos = correctionResult.camPos;
+                        poseRD = correctionResult.rD;
+                        reprojPoints = correctionResult.reprojDetails?.points || [];
+                        zoneErrors = correctionResult.reprojDetails?.zoneErrors || {};
+                        lastSuccessScaleLevel = correctionLevel;
+                        seedFlowTrackingFromMatches(correctionLevel, correctionResult.inlierMatches, correctionResult.localFrameKeypoints);
+                    } else if (!flowWeak) {
+                        runDriftCorrection(localFrameKeypoints, localFrameDescriptors);
+                    }
                 }
             } else {
                 flowState = 'RELOCALIZING';
@@ -1254,6 +1426,7 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
                 if (matchResult.success) {
                     flowState = 'TRACKING_FLOW';
                     trackingSuccess = true;
+                    poseSource = 'orb';
                     poseConfidence = matchResult.confidence;
                     reprojErrVal = matchResult.reprojErr;
                     poseCamPos = matchResult.camPos;
@@ -1296,6 +1469,7 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
                 frameKpCount = scanResult.frameKpCount || 0;
                 if (scanResult.success) {
                     flowState = 'TRACKING_FLOW'; trackingSuccess = true;
+                    poseSource = 'orb';
                     poseConfidence = scanResult.confidence; reprojErrVal = scanResult.reprojErr;
                     poseCamPos = scanResult.camPos; poseRD = scanResult.rD;
                     reprojPoints = scanResult.reprojDetails?.points || [];
@@ -1324,6 +1498,7 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
                 frameKpCount = scanResult.frameKpCount || 0;
                 if (scanResult.success) {
                     flowState = 'TRACKING_FLOW'; trackingSuccess = true;
+                    poseSource = 'orb';
                     poseConfidence = scanResult.confidence; reprojErrVal = scanResult.reprojErr;
                     poseCamPos = scanResult.camPos; poseRD = scanResult.rD;
                     reprojPoints = scanResult.reprojDetails?.points || [];
@@ -1369,6 +1544,12 @@ function processFrameInWorker(pixels, frameStartTime, rvfcMeta, frameWidth, fram
         flowState,
         flowFramePointsLen: flowFramePoints.length,
         flowRatio: lastFlowRatio,
+        flowWeak,
+        flowWeakReasons,
+        flowRefSpread,
+        flowImgSpread,
+        correctionApplied,
+        poseSource,
         lastGrayTime,
         lastFlowTime,
         lastOrbTime,

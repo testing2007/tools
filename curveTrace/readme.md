@@ -77,16 +77,11 @@ impl.html (主线程)
 
 ### 1. 参考图层（Multi-Scale Reference Levels）
 
-Worker 在加载 `mark.jpg` 后，按 6 个尺度（1.0 / 0.75 / 0.5 / 0.35 / 0.25 / 0.18）构建参考图层，每个尺度同时生成正向和**镜像**版本：
-
-- **镜像图层**专为前置摄像头设计：前置摄像头输出水平翻转图像，镜像图层用于匹配非对称特征（如标签文字）。
-- 镜像图层发送 3D 点时，U 坐标翻转处理确保 3D 位置正确。
+Worker 在加载 `mark.jpg` 后，按 6 个尺度（1.0 / 0.75 / 0.5 / 0.35 / 0.25 / 0.18）构建正常参考图层。前置摄像头的镜像效果只在主线程显示层和视频纹理层处理，Worker 追踪输入保持未翻转，避免 PnP 与渲染坐标空间不一致。
 
 ```js
 // cv-worker.js
 buildRefLevel(scaledGray, scale, scaledW, scaledH, false); // 正常图层
-cv.flip(scaledGray, mirroredGray, 1);
-buildRefLevel(mirroredGray, scale, scaledW, scaledH, true); // 镜像图层
 ```
 
 ### 2. UV → 3D 坐标映射（解析圆柱模型）
@@ -217,9 +212,9 @@ GLB 加载后控制台会输出：
 
 前置摄像头（selfie camera）输出水平镜像图像，系统通过以下方式处理：
 
-1. **CSS `scaleX(-1)`**：背景视频显示镜像，用户看到"镜子效果"
-2. **Worker 镜像图层**：为镜像图像专门构建参考图层，实现文字等非对称特征的匹配
-3. **纹理 U 翻转**：Three.js 视频贴图 `repeat.x = -1`，与 CSS 镜像方向保持一致
+1. **显示镜像**：主线程根据前置摄像头状态镜像 WebGL 画面，让用户看到"镜子效果"
+2. **追踪不翻转**：Worker 使用正常参考图层和未翻转 tracking canvas，保证 PnP 坐标与渲染坐标一致
+3. **纹理 U 翻转**：Three.js 视频贴图按前置摄像头状态做 U 翻转，与显示方向保持一致
 
 ---
 
@@ -240,7 +235,7 @@ GLB 加载后控制台会输出：
 打开浏览器控制台，观察：
 
 ```
-[Worker] Ref scale 1 mirrored: 480 kps (640x480)
+[Worker] Ref scale 1: 480 kps (540x800)
 [Worker] ORB: X matches → PnP OK (Npt inliers)
 ```
 
@@ -268,6 +263,6 @@ GLB 加载后控制台会输出：
 | Phase 2 | Web Worker 化，消除主线程卡顿                                         |
 | Phase 3 | 圆柱解析模型替代平面假设，UV→圆柱面 3D 映射                           |
 | Phase 4 | GLB 模型集成：从 Blender 导出瓶体几何，提取位置锚点                   |
-| Phase 5 | 多尺度参考图层 + 前置摄像头镜像图层                                   | （资源上并没有多尺度，代码也许提供了） |
+| Phase 5 | 多尺度参考图层 + 主线程前置摄像头显示/纹理镜像处理                    |
 | Phase 6 | 物理参数滑动条 UI，用户可实时调整弧长/半径/高度                       |
 | Phase 7 | 参数派生显示面板：自动计算并展示 halfAngle / centerY / frontZ / axisZ |

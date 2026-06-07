@@ -786,6 +786,14 @@
                         style="color: var(--text); font-weight: 600;">0</span></div>
                 <div style="display: flex; justify-content: space-between;">Flow Ratio: <span id="db-flow-ratio"
                         style="color: var(--text); font-weight: 600;">0%</span></div>
+                <div style="display: flex; justify-content: space-between;">Flow Weak: <span id="db-flow-weak"
+                        style="color: var(--text); font-weight: 600;">no</span></div>
+                <div style="display: flex; justify-content: space-between;">Pose Source: <span id="db-pose-source"
+                        style="color: var(--text); font-weight: 600;">none</span></div>
+                <div style="display: flex; justify-content: space-between;">Correction: <span id="db-correction"
+                        style="color: var(--text); font-weight: 600;">no</span></div>
+                <div style="display: flex; justify-content: space-between;">Flow Spread R/I: <span id="db-flow-spread"
+                        style="color: var(--text); font-weight: 600;">- / -</span></div>
                 <div style="display: flex; justify-content: space-between;">Frame Cost: <span id="db-frame-cost"
                         style="color: var(--text); font-weight: 600;">0ms</span></div>
                 <div style="display: flex; justify-content: space-between;">Zone Err (C/L/R): <span id="db-zone-clr"
@@ -996,6 +1004,12 @@
         let flowState = 'SCANNING';
         let flowFramePointsLen = 0;
         let lastFlowRatio = 0;
+        let lastFlowWeak = false;
+        let lastFlowWeakReasons = [];
+        let lastFlowRefSpread = null;
+        let lastFlowImgSpread = null;
+        let lastCorrectionApplied = false;
+        let lastPoseSource = 'none';
         let lastGrayTime = 0, lastFlowTime = 0, lastOrbTime = 0, lastPnpTime = 0;
         let frameKpCount = 0;
         let rawMatchesCount = 0;
@@ -1658,12 +1672,11 @@
             const levels = workerRefLevels.map(level => ({
                 scale: level.scale,
                 points3D: level.originalPoints.map(pt => {
-                    // ★ 关键修正：镜像参考图层的关键点坐标是水平翻转的。
-                    // 若直接用 pt.x 计算 UV，会得到图像右侧对应的 3D 点（反了）。
-                    // 镜像图层中 pt.x 对应原始图像中的 (W - pt.x)，即 UV u = 1 - pt.x/W。
+                    // Current worker sends normal reference levels. The mirrored branch is only
+                    // kept as defensive compatibility if external level data ever includes it.
                     let uvX = level.mirrored
-                        ? (1 - pt.x / workerRefWidth)   // 镜像层：翻转 U
-                        : (pt.x / workerRefWidth);       // 正常层：直接用
+                        ? (1 - pt.x / workerRefWidth)
+                        : (pt.x / workerRefWidth);
                     const uvY = pt.y / workerRefHeight;
                     const p = sampleGlbLabelAnalytic(uvX, uvY);
                     return p ? {X: p.x, Y: p.y, Z: p.z} : {X: 0, Y: 0, Z: 0};
@@ -1907,6 +1920,23 @@
                 if (dbFlowPoints) dbFlowPoints.innerText = flowFramePointsLen;
                 const dbFlowRatio = document.getElementById('db-flow-ratio');
                 if (dbFlowRatio) dbFlowRatio.innerText = `${Math.round(lastFlowRatio * 100)}%`;
+                const dbFlowWeak = document.getElementById('db-flow-weak');
+                if (dbFlowWeak) {
+                    dbFlowWeak.innerText = lastFlowWeak ? `yes (${lastFlowWeakReasons.join(',') || 'weak'})` : 'no';
+                    dbFlowWeak.style.color = lastFlowWeak ? '#f59e0b' : 'var(--success)';
+                }
+                const dbPoseSource = document.getElementById('db-pose-source');
+                if (dbPoseSource) dbPoseSource.innerText = lastPoseSource || 'none';
+                const dbCorrection = document.getElementById('db-correction');
+                if (dbCorrection) {
+                    dbCorrection.innerText = lastCorrectionApplied ? 'yes' : 'no';
+                    dbCorrection.style.color = lastCorrectionApplied ? 'var(--success)' : 'var(--text)';
+                }
+                const fmtSpread = (spread) => spread
+                    ? `${Math.round((spread.widthRatio || 0) * 100)}%x${Math.round((spread.heightRatio || 0) * 100)}%`
+                    : '-';
+                const dbFlowSpread = document.getElementById('db-flow-spread');
+                if (dbFlowSpread) dbFlowSpread.innerText = `${fmtSpread(lastFlowRefSpread)} / ${fmtSpread(lastFlowImgSpread)}`;
                 const dbFrameCost = document.getElementById('db-frame-cost');
                 if (dbFrameCost) dbFrameCost.innerText = `${Math.round(performance.now() - frameStartTime)}ms`;
                 const fmtZone = (value) => (typeof value === 'number' && value >= 0) ? `${value.toFixed(1)}px` : '-';
@@ -2073,8 +2103,8 @@
 
             const frameStartTime = performance.now();
             // 直接将摄像头帧画到追踪 canvas。
-            // 前置摄像头（镜像）由 mirrored reference levels 处理匹配，不需要翻转 canvas。
-            // 翻转 canvas 会导致 PnP 在翻转空间求解，CSS scaleX(-1) 再翻转后 AR 贴图跑到瓶子对侧。
+            // Keep tracking pixels unflipped. Display/texture mirroring is handled in the main thread.
+            // Flipping this canvas would make PnP solve in a different coordinate space than rendering.
             trackCtx.drawImage(cameraVideo, 0, 0, trackW, trackH);
             const imageData = trackCtx.getImageData(0, 0, trackW, trackH);
 
@@ -2138,6 +2168,12 @@
             flowState = result.flowState || 'SCANNING';
             flowFramePointsLen = result.flowFramePointsLen || 0;
             lastFlowRatio = result.flowRatio || 0;
+            lastFlowWeak = !!result.flowWeak;
+            lastFlowWeakReasons = Array.isArray(result.flowWeakReasons) ? result.flowWeakReasons : [];
+            lastFlowRefSpread = result.flowRefSpread || null;
+            lastFlowImgSpread = result.flowImgSpread || null;
+            lastCorrectionApplied = !!result.correctionApplied;
+            lastPoseSource = result.poseSource || 'none';
             lastGrayTime = result.lastGrayTime || 0;
             lastFlowTime = result.lastFlowTime || 0;
             lastOrbTime = result.lastOrbTime || 0;
@@ -2781,6 +2817,10 @@
             const trackingMode = document.getElementById('db-tracking-mode')?.innerText || 'SCANNING';
             const flowPoints = document.getElementById('db-flow-points')?.innerText || '0';
             const flowRatio = document.getElementById('db-flow-ratio')?.innerText || '0%';
+            const flowWeak = document.getElementById('db-flow-weak')?.innerText || 'no';
+            const poseSource = document.getElementById('db-pose-source')?.innerText || 'none';
+            const correction = document.getElementById('db-correction')?.innerText || 'no';
+            const flowSpread = document.getElementById('db-flow-spread')?.innerText || '- / -';
             const frameCost = document.getElementById('db-frame-cost')?.innerText || '0ms';
             const zoneClr = document.getElementById('db-zone-clr')?.innerText || '- / - / -';
             const zoneTbm = document.getElementById('db-zone-tbm')?.innerText || '- / - / -';
@@ -2808,6 +2848,10 @@ Inlier Ratio: ${inlierRatio}
 Tracking Mode: ${trackingMode}
 Flow Points: ${flowPoints}
 Flow Ratio: ${flowRatio}
+Flow Weak: ${flowWeak}
+Pose Source: ${poseSource}
+Correction Applied: ${correction}
+Flow Spread (Ref/Image): ${flowSpread}
 Frame Cost: ${frameCost}
 Zone Err (C/L/R): ${zoneClr}
 Zone Err (T/B/Max): ${zoneTbm}
