@@ -135,6 +135,7 @@ let refWidth = 0, refHeight = 0;
 let refLevels = [];
 let ref3DPoints = [];
 let modelPointLevels = null;
+let modelPoseBounds = null;
 
 // Tracking state
 let flowState = 'SCANNING';
@@ -450,16 +451,19 @@ function hasEnough2DSpread(imgPoints) {
 // Reference Image Loading
 // ============================================================
 
-async function loadRefFromUrl() {
+async function loadRefFromUrl(url) {
+    if (!url || typeof url !== 'string') {
+        throw new Error('loadRef requires a reference image URL');
+    }
     // GLB mode keeps geometry in bottle.glb and reads recognition features from mark.jpg.
     // target.json is only a stale-prone precompiled cache, so runtime no longer uses it.
-    await loadRefFromImage();
+    await loadRefFromImage(url);
     updateRef3DPoints();
     self.postMessage({
         type: 'refLoaded',
         refWidth,
         refHeight,
-        source: 'mark.jpg',
+        source: url,
         levels: refLevels.map(level => ({
             scale: level.scale,
             width: level.width,
@@ -471,8 +475,11 @@ async function loadRefFromUrl() {
     });
 }
 
-async function loadRefFromImage() {
-    const resp = await fetch('assets/mark.jpg');
+async function loadRefFromImage(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+        throw new Error(`Failed to load reference image ${url}: HTTP ${resp.status}`);
+    }
     const blob = await resp.blob();
     const bmp = await createImageBitmap(blob);
     const offscreen = new OffscreenCanvas(bmp.width, bmp.height);
@@ -650,6 +657,19 @@ function applySolvedPoseRaw(rvecMat, tvecMat, poseConfidenceSource, statusPrefix
 
     if (dist < 0.03 || dist > 25.0) {
         return { success: false, status: `Rejected Dist: ${dist.toFixed(2)}` };
+    }
+    if (modelPoseBounds) {
+        const axisX = Number(modelPoseBounds.axisX) || 0;
+        const axisZ = Number(modelPoseBounds.axisZ) || 0;
+        const radius = Math.max(0, Number(modelPoseBounds.radius) || 0);
+        const minCameraDistance = Math.max(radius * 2.2, Number(modelPoseBounds.minCameraDistance) || 0);
+        const radialDistance = Math.hypot(camX - axisX, camZ - axisZ);
+        if (radius > 0 && radialDistance <= radius * 1.05) {
+            return { success: false, status: `Rejected Inside Bottle: ${radialDistance.toFixed(3)}` };
+        }
+        if (minCameraDistance > 0 && dist < minCameraDistance) {
+            return { success: false, status: `Rejected Too Close: ${dist.toFixed(3)}` };
+        }
     }
 
     const camQuat = rmatToQuat(rD);
@@ -1393,7 +1413,7 @@ function handleMessage(e) {
     const { type } = e.data;
     switch (type) {
         case 'loadRef':
-            loadRefFromUrl().catch(err => {
+            loadRefFromUrl(e.data.url).catch(err => {
                 console.error('[Worker] loadRef failed:', err);
                 self.postMessage({ type: 'error', message: err.message });
             });
@@ -1418,6 +1438,7 @@ function handleMessage(e) {
             break;
         case 'modelPoints':
             modelPointLevels = Array.isArray(e.data.levels) ? e.data.levels : null;
+            modelPoseBounds = e.data.poseBounds || null;
             updateRef3DPoints();
             resetFlowTracking('SCANNING');
             self.postMessage({ type: 'modelPointsApplied', levels: modelPointLevels ? modelPointLevels.length : 0 });

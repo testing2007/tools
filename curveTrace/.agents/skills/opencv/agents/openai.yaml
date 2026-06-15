@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenCV.js WebAR"
+  short_description: "Build and debug browser OpenCV.js vision pipelines"
+  default_prompt: "Use $opencv to implement or debug this OpenCV.js Web Worker vision pipeline."

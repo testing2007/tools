@@ -366,6 +366,35 @@
             font-weight: 300;
         }
 
+        .target-selector {
+            width: min(360px, 100%);
+            margin: -12px 0 24px;
+            text-align: left;
+        }
+
+        .target-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .target-selector select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            font: inherit;
+            outline: none;
+        }
+
+        .target-selector select option {
+            background: #111820;
+            color: var(--text);
+        }
+
         /* Animations */
         @keyframes pulse {
             0% {
@@ -481,6 +510,13 @@
         <h1>Curved OpenCV.js WebAR</h1>
         <p class="overlay-desc">Low-latency curved 3D tracking engine powered by OpenCV.js solvePnP. Place the video on
             wine bottles and cylindrical surfaces.</p>
+        <div class="target-selector" id="target-selector-wrap">
+            <label for="target-selector">Tracking target</label>
+            <select id="target-selector">
+                <option value="nonghushanquan">Nongfu Spring / 农夫山泉</option>
+                <option value="wanglaoji">Wanglaoji / 王老吉</option>
+            </select>
+        </div>
         <button id="btn-start" class="btn btn-primary"
             style="font-size: 1.1rem; padding: 14px 32px; border-radius: 12px;" disabled>Loading Engine...</button>
     </div>
@@ -737,7 +773,7 @@
             </div>
             <div id="target-viz-container" style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.3;">
-                    Visualizes keypoints extracted from <code>assets/mark.jpg</code>. Green circles show keypoint
+                    Visualizes keypoints extracted from the selected target marker. Green circles show keypoint
                     scale/size.
                 </div>
                 <div
@@ -836,6 +872,45 @@
         import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
         import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
+        const TARGETS = Object.freeze({
+            nonghushanquan: Object.freeze({
+                id: 'nonghushanquan',
+                name: 'Nongfu Spring',
+                markUrl: 'assets/nonghushanquan/mark.jpg',
+                bottleUrl: 'assets/nonghushanquan/bottle.glb',
+                videoUrl: 'assets/nonghushanquan/attach.mp4',
+                calibration: Object.freeze({
+                    labelWidthMm: 61,
+                    labelHeightMm: 88,
+                    radiusTopMm: 31,
+                    radiusBottomMm: 31
+                })
+            }),
+            wanglaoji: Object.freeze({
+                id: 'wanglaoji',
+                name: 'Wanglaoji',
+                markUrl: 'assets/wanglaoji/mark.jpg',
+                bottleUrl: 'assets/wanglaoji/bottle.glb',
+                videoUrl: 'assets/wanglaoji/attach.mp4',
+                calibration: Object.freeze({
+                    labelWidthMm: 212,
+                    labelHeightMm: 111,
+                    radiusTopMm: 34,
+                    radiusBottomMm: 34
+                })
+            })
+        });
+        const DEFAULT_TARGET_ID = 'nonghushanquan';
+        const requestedTargetId = new URLSearchParams(window.location.search).get('target');
+        const forcedTargetId = Object.prototype.hasOwnProperty.call(TARGETS, requestedTargetId)
+            ? requestedTargetId
+            : null;
+        let activeTargetId = forcedTargetId || DEFAULT_TARGET_ID;
+
+        function getActiveTarget() {
+            return TARGETS[activeTargetId];
+        }
+
         // Default calibration configuration
         const defaultConfig = {
             // -- Physical dimensions (mm) -- drives geometric params automatically --
@@ -844,7 +919,7 @@
             radiusTopMm: 35,        // Bottle radius at top edge of label (mm) (实测: 35mm)
             radiusBottomMm: 35,     // Bottle radius at bottom edge of label (mm)
             usePhysicalDims: true,  // If true, auto-compute thetaLength/height/radius from mm values
-            useGlbModel: true,       // If true, use assets/bottle.glb labelMesh UV/geometry when available
+            useGlbModel: true,       // If true, use the selected target's labelMesh UV/geometry
 
             // -- Geometry (auto-derived when usePhysicalDims=true, otherwise manual) --
             radiusTop: 0.80,
@@ -879,7 +954,15 @@
             orbMaxFeatures: 1200
         };
 
-        let config = {...defaultConfig};
+        function createDefaultConfig() {
+            return {...defaultConfig, ...getActiveTarget().calibration};
+        }
+
+        function getCalibrationStorageKey() {
+            return `webar_curved_calibration_${activeTargetId}`;
+        }
+
+        let config = createDefaultConfig();
 
         /**
          * Compute geometry params from physical mm measurements and write them into config.
@@ -976,6 +1059,7 @@
 
         // rVFC frame timing metadata for diagnostics
         let lastPoseMeta = null;
+        let lastSolvedCamPos = null;
 
         // Lightweight pose prediction state
         const poseVelocity = new THREE.Vector3();
@@ -1050,30 +1134,33 @@
 
         // Load config from localStorage
         function loadConfig() {
-            const saved = localStorage.getItem('webar_curved_calibration');
+            const targetDefaults = createDefaultConfig();
+            const saved = localStorage.getItem(getCalibrationStorageKey());
             if (saved) {
                 try {
                     config = JSON.parse(saved);
                     let isUpdated = false;
-                    for (let key in defaultConfig) {
+                    for (let key in targetDefaults) {
                         if (config[key] === undefined) {
-                            config[key] = defaultConfig[key];
+                            config[key] = targetDefaults[key];
                             isUpdated = true;
                         }
                     }
-                    if ((Number(config.orbMaxFeatures) || 0) < defaultConfig.orbMaxFeatures) {
-                        config.orbMaxFeatures = defaultConfig.orbMaxFeatures;
+                    if ((Number(config.orbMaxFeatures) || 0) < targetDefaults.orbMaxFeatures) {
+                        config.orbMaxFeatures = targetDefaults.orbMaxFeatures;
                         isUpdated = true;
                     }
-                    if ((Number(config.hammingCutoff) || 0) < defaultConfig.hammingCutoff) {
-                        config.hammingCutoff = defaultConfig.hammingCutoff;
+                    if ((Number(config.hammingCutoff) || 0) < targetDefaults.hammingCutoff) {
+                        config.hammingCutoff = targetDefaults.hammingCutoff;
                         isUpdated = true;
                     }
                     if (isUpdated) saveConfig();
                 } catch (e) {
                     console.error('Failed to parse saved config, using defaults');
-                    config = {...defaultConfig};
+                    config = targetDefaults;
                 }
+            } else {
+                config = targetDefaults;
             }
             // Always recompute derived params so geometry is consistent
             computePhysicalDerivedParams();
@@ -1082,7 +1169,7 @@
 
         // Save config to localStorage
         function saveConfig() {
-            localStorage.setItem('webar_curved_calibration', JSON.stringify(config));
+            localStorage.setItem(getCalibrationStorageKey(), JSON.stringify(config));
         }
 
         // Sync slider inputs with configuration values
@@ -1241,7 +1328,7 @@
 
         // Reset calibration
         function resetCalibration() {
-            config = {...defaultConfig};
+            config = createDefaultConfig();
             computePhysicalDerivedParams();   // recompute derived from physical mm
             saveConfig();
             updateSlidersUI();
@@ -1267,8 +1354,9 @@
 
         // Video control
         function initVideo() {
+            const target = getActiveTarget();
             videoElement = document.createElement('video');
-            videoElement.src = 'assets/attach.mp4';
+            videoElement.src = target.videoUrl;
             videoElement.loop = true;
             videoElement.muted = true; // Required to autoplay in browsers
             videoElement.playsInline = true;
@@ -1284,11 +1372,11 @@
 
             // Load label texture for preview guide
             const loader = new THREE.TextureLoader();
-            labelTexture = loader.load('assets/mark.jpg', (texture) => {
+            labelTexture = loader.load(target.markUrl, (texture) => {
                 texture.minFilter = THREE.LinearFilter;
                 texture.magFilter = THREE.LinearFilter;
                 // UV 方向由 uFlip/vFlip 动态处理，不需要在这里手动翻转
-                console.log('Label guide texture loaded successfully');
+                console.log(`[Assets] Label guide loaded: ${target.markUrl}`);
             }, undefined, (err) => {
                 console.error('Failed to load label guide texture:', err);
             });
@@ -1636,7 +1724,7 @@
             applyGlbTextureSettings(texture, !!options.mirrorU);
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
-                side: THREE.DoubleSide,
+                side: THREE.FrontSide,
                 transparent: opacity < 0.999,
                 opacity,
                 depthWrite: opacity >= 0.999,
@@ -1658,20 +1746,21 @@
             const levels = workerRefLevels.map(level => ({
                 scale: level.scale,
                 points3D: level.originalPoints.map(pt => {
-                    // ★ 关键修正：镜像参考图层的关键点坐标是水平翻转的。
-                    // 若直接用 pt.x 计算 UV，会得到图像右侧对应的 3D 点（反了）。
-                    // 镜像图层中 pt.x 对应原始图像中的 (W - pt.x)，即 UV u = 1 - pt.x/W。
-                    let uvX = level.mirrored
-                        ? (1 - pt.x / workerRefWidth)   // 镜像层：翻转 U
-                        : (pt.x / workerRefWidth);       // 正常层：直接用
-                    const uvY = pt.y / workerRefHeight;
-                    const p = sampleGlbLabelAnalytic(uvX, uvY);
+                    // originalPoints always use the unmirrored marker coordinate system.
+                    // Both marker Y and these authored label UVs use 0 at the top.
+                    const uvX = THREE.MathUtils.clamp(pt.x / workerRefWidth, 0, 1);
+                    const uvY = THREE.MathUtils.clamp(pt.y / workerRefHeight, 0, 1);
+                    const p = sampleGlbLabelPointFromUv(uvX, uvY);
                     return p ? {X: p.x, Y: p.y, Z: p.z} : {X: 0, Y: 0, Z: 0};
                 })
             }));
 
             const mirroredCount = workerRefLevels.filter(l => l.mirrored).length;
-            cvWorker.postMessage({type: 'modelPoints', levels});
+            cvWorker.postMessage({
+                type: 'modelPoints',
+                levels,
+                poseBounds: glbModel.poseBounds
+            });
             console.log(`[Main] Sent GLB UV->3D points: ${levels.length} levels (${mirroredCount} mirrored)`);
         }
 
@@ -1680,16 +1769,17 @@
             if (glbLoadPromise) return glbLoadPromise;
             glbLoadStarted = true;
 
+            const target = getActiveTarget();
             const loader = new GLTFLoader();
             glbLoadPromise = new Promise((resolve, reject) => {
-                loader.load('assets/bottle.glb', (gltf) => {
+                loader.load(target.bottleUrl, (gltf) => {
                     const root = gltf.scene;
                     root.updateMatrixWorld(true);
                     const labelMesh = findMeshByNodeName(root, 'labelMesh');
                     const bottleMesh = findMeshByNodeName(root, 'bottleMesh');
 
                     if (!labelMesh || !labelMesh.geometry || !labelMesh.geometry.attributes.uv) {
-                        reject(new Error('assets/bottle.glb must contain labelMesh with UV coordinates'));
+                        reject(new Error(`${target.bottleUrl} must contain labelMesh with UV coordinates`));
                         return;
                     }
 
@@ -1699,18 +1789,32 @@
                         reject(new Error('labelMesh UV triangles are empty'));
                         return;
                     }
+                    const bottleGeometry = bottleMesh ? bakeGeometryToWorld(bottleMesh) : null;
+                    const poseGeometry = bottleGeometry || labelGeometry;
+                    const poseBox = poseGeometry.boundingBox;
+                    const poseSize = new THREE.Vector3();
+                    const poseCenter = new THREE.Vector3();
+                    poseBox.getSize(poseSize);
+                    poseBox.getCenter(poseCenter);
+                    const poseRadius = Math.max(poseSize.x, poseSize.z) / 2;
 
                     glbModel = {
                         root,
                         labelGeometry,
-                        bottleGeometry: bottleMesh ? bakeGeometryToWorld(bottleMesh) : null,
+                        bottleGeometry,
                         labelUvTriangles,
+                        poseBounds: {
+                            axisX: poseCenter.x,
+                            axisZ: poseCenter.z,
+                            radius: poseRadius,
+                            minCameraDistance: Math.max(0.08, poseRadius * 2.2)
+                        },
                         cylinderParams: null   // 在诊断日志后填充
                     };
 
                     applyGlbTextureSettings(videoTexture, currentMode === 'AR' && isFront);
                     applyGlbTextureSettings(labelTexture);
-                    console.log(`[GLB] Loaded bottle.glb with ${glbModel.labelUvTriangles.length} label UV triangles`);
+                    console.log(`[GLB] Loaded ${target.bottleUrl} with ${glbModel.labelUvTriangles.length} label UV triangles`);
 
                     // ── GLB Geometry Diagnostics ───────────────────────────────
                     // 打印 labelMesh 和 bottleMesh 的实际坐标范围，用于判断 GLB 单位是否正确
@@ -2151,6 +2255,7 @@
             // Apply pose to Three.js if tracking successful
             if (result.trackingSuccess && result.rD && result.camPos) {
                 const rD = result.rD, cp = result.camPos;
+                lastSolvedCamPos = [cp[0], cp[1], cp[2]];
                 // Worker returns camera-world rotation with OpenCV -> Three.js axis
                 // conversion applied; camPos remains in the GLB/Three.js object frame.
                 const mat = new THREE.Matrix4();
@@ -2655,6 +2760,8 @@
         // Initialize WebAR / Three.js
         async function initAR() {
             const container = document.getElementById('container');
+            const target = getActiveTarget();
+            console.log(`[Target] Starting ${target.name} (${target.id})`, target);
 
             // 1. Initialize native camera
             cameraVideo = await setupCamera();
@@ -2694,7 +2801,7 @@
             try {
                 await loadBottleModel();
             } catch (err) {
-                console.error('[GLB] Failed to load required assets/bottle.glb', err);
+                console.error(`[GLB] Failed to load required ${target.bottleUrl}`, err);
                 document.getElementById('status-text').innerText = 'GLB LOAD FAILED';
                 document.getElementById('status-badge').className = 'status-badge lost';
                 throw err;
@@ -2710,7 +2817,7 @@
             trackCtx = trackCanvas.getContext('2d');
 
             // Tell worker to load mark.jpg reference features (async, non-blocking)
-            cvWorker.postMessage({type: 'loadRef', url: 'assets/mark.jpg'});
+            cvWorker.postMessage({type: 'loadRef', url: target.markUrl});
             cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: true, reinit3DPoints: true});
 
             // Create target geometry meshes
@@ -2792,12 +2899,21 @@
             const displayH = container ? container.clientHeight : window.innerHeight;
             const nativeW = cameraVideo?.videoWidth || 0;
             const nativeH = cameraVideo?.videoHeight || 0;
+            const cameraPosition = lastSolvedCamPos
+                ? lastSolvedCamPos.map(value => Number(value).toFixed(4)).join(', ')
+                : '-';
+            const poseBounds = glbModel?.poseBounds;
+            const bottleBounds = poseBounds
+                ? `axis=(${poseBounds.axisX.toFixed(4)}, ${poseBounds.axisZ.toFixed(4)}), radius=${poseBounds.radius.toFixed(4)}, minDist=${poseBounds.minCameraDistance.toFixed(4)}`
+                : '-';
 
             const info = `Reference Image: ${workerRefWidth || 0}x${workerRefHeight || 0}
 Native Video Size: ${nativeW}x${nativeH}
 Tracking Size: ${trackW}x${trackH}
 Display Size: ${displayW}x${displayH}
 Mirror Display: ${shouldMirrorDisplay() ? 'yes' : 'no'}
+Camera Position: ${cameraPosition}
+Bottle Bounds: ${bottleBounds}
 Ref Keypoints: ${refKp}
 Frame Keypoints: ${frameKp}
 Matches (Raw): ${rawMatches}
@@ -2860,6 +2976,22 @@ PnP Error: ${pnpError}`;
 
         // Bootstrap on page load
         window.addEventListener('DOMContentLoaded', () => {
+            const targetSelector = document.getElementById('target-selector');
+            const targetSelectorWrap = document.getElementById('target-selector-wrap');
+            targetSelector.value = activeTargetId;
+            if (forcedTargetId) {
+                targetSelector.disabled = true;
+                targetSelectorWrap.style.display = 'none';
+            } else {
+                targetSelector.addEventListener('change', () => {
+                    activeTargetId = Object.prototype.hasOwnProperty.call(TARGETS, targetSelector.value)
+                        ? targetSelector.value
+                        : DEFAULT_TARGET_ID;
+                    loadConfig();
+                    updatePhysDimsDerivedUI();
+                });
+            }
+
             loadConfig();
             setupSliderListeners();
             updatePhysDimsDerivedUI();  // 初始化时立刻显示 halfAngle（GLB锚点等加载后再填充）
@@ -2867,6 +2999,7 @@ PnP Error: ${pnpError}`;
             // Wire up Start overlay launch button
             document.getElementById('btn-start').addEventListener('click', async () => {
                 const overlay = document.getElementById('start-overlay');
+                targetSelector.disabled = true;
                 overlay.classList.add('hidden');
 
                 document.getElementById('status-text').innerText = 'INITIALIZING CAMERA';

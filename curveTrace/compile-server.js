@@ -39,6 +39,7 @@ const server = http.createServer((req, res) => {
                 else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
                 else if (ext === '.js') contentType = 'application/javascript';
                 else if (ext === '.mp4') contentType = 'video/mp4';
+                else if (ext === '.glb') contentType = 'model/gltf-binary';
                 else if (ext === '.css') contentType = 'text/css';
                 else if (ext === '.mind') contentType = 'application/octet-stream';
                 else if (ext === '.json') contentType = 'application/json';
