@@ -186,6 +186,21 @@ Worker 中维护上一帧的相机位置和四元数，检测追踪跳变（位�
 
 ## bottle.glb 规范
 
+### 王老吉目标约束
+
+- `assets/wanglaoji/mark.jpg` 的物理展开尺寸为 `207mm × 105mm`。
+- `labelMesh` 使用整圈平面 UV，视频直接复用该网格和 UV，不再创建独立平面或解析圆柱。
+- 加载时以 `bottleMesh` 的轴心和半径为基准，将 `labelMesh` 高度校准为 `105mm`，并保留约 `0.05mm` 的表面间隙以避免深度闪烁。
+- 校准后的同一份 `labelMesh` 几何同时用于 OpenCV PnP 的 UV→3D 对应点和 Three.js 视频渲染，避免识别模型与播放模型不一致。
+- Live AR 会使用不可见的 `bottleMesh` 深度遮挡体，使视频按瓶体表面遮挡关系渲染。
+
+### 视频表面贴合调节
+
+- `Depth Offset (mm)` 沿 `labelMesh` 顶点法线移动视频表面，正值向瓶外移动，负值向瓶内贴近。
+- `Video Width` 与 `Video Height` 始终按相同比例联动，缩放视频时不会改变原始宽高比。
+- 缩放仅改变视频在标签 UV 上的显示区域，不改变 OpenCV PnP 使用的识别几何。
+- `Reset Video` 只重置视频深度和显示比例，不影响相机内参、识别阈值等其他校准参数。
+
 ### 必须包含的网格
 
 | 网格名       | 作用                                         |

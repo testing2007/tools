@@ -2,7 +2,7 @@
 
 2. 在其外表播放 assets/wanglaoji/attach.mp4, bottle.glb 是关于王老吉的建模，里面包含 bottleMesh, labelMesh, labelMesh是有平面UV， 内容就是assets/wanglaoji/mark.jpg ;
 
-3. bottle.glb 的坐标系满足右手规则，大拇指方向X正方向， 手伸向y正方向，四指弯曲方向z正方向， 这个也许对于 openvc, three.js 也许不一样，可能需要注意坐标转换，lableMesh和bottleMesh都是以几何圆心为原点，同时也是世界原点，labelMesh包裹了bottleMesh， 我想得是，是不是labelMesh被是标记后，一旦需要贴视频就会更精准一点， 这一点我不是很确定；
+3. assets/wanglaoji/bottle.glb 的坐标系满足右手规则，大拇指方向X正方向， 手伸向y正方向，四指弯曲方向z正方向， 这个也许对于 openvc, three.js 也许不一样，可能需要注意坐标转换，lableMesh和bottleMesh都是以几何圆心为原点，同时也是世界原点，labelMesh包裹了bottleMesh， 我想得是，是不是labelMesh被是标记后，一旦需要贴视频就会更精准一点， 这一点我不是很确定；
 
 4. libs/opencv.js 已准备。
 
