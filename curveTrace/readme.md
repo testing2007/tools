@@ -182,6 +182,15 @@ Worker 中维护上一帧的相机位置和四元数，检测追踪跳变（位�
 | Lost Persistence          | 追踪丢失后保持显示的时长（ms） |
 | Max Frame Features        | ORB 最大特征点数               |
 
+相机内参会按“追踪目标 + 摄像头设备”保存到本地。`Reset` 会同时重置当前设备的
+`fx/fy/cx/cy` 配置。
+
+### 曲面贴合诊断
+
+- `Surface Offset (mm)` 只用于让视频表面沿圆柱法线外移 `0~2mm`，默认 `0.5mm`。
+- `Show mark.jpg` 会用识别图替换视频纹理，用于区分位姿/几何误差与视频裁剪/UV 误差。
+- 王老吉默认使用 `207×105mm` 标签和 `32.95mm` 半径。
+
 ---
 
 ## bottle.glb 规范
@@ -189,10 +198,12 @@ Worker 中维护上一帧的相机位置和四元数，检测追踪跳变（位�
 ### AR 深度遮挡
 
 - `bottleMesh` 在 Live AR 中使用 depth-only 材质：`colorWrite=false`、`depthWrite=true`、`depthTest=true`。
-- `labelMesh` 保持 GLB 原始几何和 UV，仅替换为视频材质。
+- `labelMesh` 保持 GLB 拓扑和 UV，顶点位置按实测标签宽、高和半径校正。
+- 校正后的标签几何同时用于视频渲染和 Worker 的 UV→3D 对应点。
+- `bottleMesh` 按同一尺寸比例生成 depth-only 遮挡网格。
 - `bottleMesh.renderOrder=0`，`labelMesh.renderOrder=1`，瓶体先写入深度，再绘制视频。
-- 此方案只修改 Three.js 渲染层，不修改 Worker、PnP 对应点或 GLB 几何。
-- 如果两个网格过近导致视频消失或闪烁，应优先在 Blender 中沿法线外扩 `labelMesh` 约 `1~2mm`。
+- Live AR 的视频表面使用 `MeshBasicMaterial`，避免虚拟光照增强悬浮感。
+- 如果两个网格过近导致视频消失或闪烁，优先微调 `Surface Offset`，不要使用世界坐标 Z 偏移。
 
 ### 必须包含的网格
 

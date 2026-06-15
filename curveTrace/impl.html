@@ -540,8 +540,13 @@
     <div id="control-panel" class="glass-panel">
         <div class="panel-header">
             <span class="panel-title">⚙️ Calibration Panel</span>
-            <button class="btn" style="padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;"
-                onclick="resetCalibration()">Reset</button>
+            <div style="display:flex;gap:6px;">
+                <button class="btn" id="btn-marker-diagnostic"
+                    style="padding:4px 8px;border-radius:6px;font-size:0.75rem;"
+                    onclick="toggleMarkerDiagnostic()">Show mark.jpg</button>
+                <button class="btn" style="padding:4px 8px;border-radius:6px;font-size:0.75rem;"
+                    onclick="resetCalibration()">Reset</button>
+            </div>
         </div>
 
         <!-- Physical Dimensions (mm) — drives geometry automatically -->
@@ -576,7 +581,7 @@
                     <span>半径 R (mm) — 标签区圆柱半径</span>
                     <span class="slider-val" id="val-radiusTopMm">35</span>
                 </div>
-                <input type="range" id="radiusTopMm" min="5" max="100" step="1" value="35"
+                <input type="range" id="radiusTopMm" min="5" max="100" step="0.05" value="35"
                     oninput="onPhysDimInput('radiusTopMm', this.value)">
 
                 <!-- Radius Bottom -->
@@ -584,8 +589,16 @@
                     <span>底部半径 Radius Bottom (mm)</span>
                     <span class="slider-val" id="val-radiusBottomMm">35</span>
                 </div>
-                <input type="range" id="radiusBottomMm" min="5" max="100" step="1" value="35"
+                <input type="range" id="radiusBottomMm" min="5" max="100" step="0.05" value="35"
                     oninput="onPhysDimInput('radiusBottomMm', this.value)">
+
+                <!-- Video surface radial offset -->
+                <div class="slider-label" style="margin-top:10px;">
+                    <span>Surface Offset (mm)</span>
+                    <span class="slider-val" id="val-surfaceOffsetMm">0.50</span>
+                </div>
+                <input type="range" id="surfaceOffsetMm" min="0" max="2" step="0.05" value="0.5"
+                    oninput="onPhysDimInput('surfaceOffsetMm', this.value)">
 
                 <!-- Computed preview -->
                 <div id="physdims-derived"
@@ -883,7 +896,8 @@
                     labelWidthMm: 61,
                     labelHeightMm: 88,
                     radiusTopMm: 31,
-                    radiusBottomMm: 31
+                    radiusBottomMm: 31,
+                    geometryCalibrationVersion: 1
                 })
             }),
             wanglaoji: Object.freeze({
@@ -893,10 +907,11 @@
                 bottleUrl: 'assets/wanglaoji/bottle.glb',
                 videoUrl: 'assets/wanglaoji/attach.mp4',
                 calibration: Object.freeze({
-                    labelWidthMm: 212,
-                    labelHeightMm: 111,
-                    radiusTopMm: 34,
-                    radiusBottomMm: 34
+                    labelWidthMm: 207,
+                    labelHeightMm: 105,
+                    radiusTopMm: 32.95,
+                    radiusBottomMm: 32.95,
+                    geometryCalibrationVersion: 2
                 })
             })
         });
@@ -918,6 +933,8 @@
             labelHeightMm: 88,      // Label height in millimeters      (实测: 88mm)
             radiusTopMm: 35,        // Bottle radius at top edge of label (mm) (实测: 35mm)
             radiusBottomMm: 35,     // Bottle radius at bottom edge of label (mm)
+            surfaceOffsetMm: 0.5,   // Radial separation from bottle surface, only for z-fighting
+            geometryCalibrationVersion: 1,
             usePhysicalDims: true,  // If true, auto-compute thetaLength/height/radius from mm values
             useGlbModel: true,       // If true, use the selected target's labelMesh UV/geometry
 
@@ -930,7 +947,7 @@
             // -- Position and rotation offsets --
             offsetX: 0.00,
             offsetY: 0.00,
-            offsetZ: 0.05,
+            offsetZ: 0.00,
             rotX: 0,
             rotY: 0,
             rotZ: 0,
@@ -960,6 +977,24 @@
 
         function getCalibrationStorageKey() {
             return `webar_curved_calibration_${activeTargetId}`;
+        }
+
+        const CAMERA_INTRINSIC_KEYS = ['fxScale', 'fyScale', 'cxRatio', 'cyRatio'];
+        let activeCameraProfileId = null;
+
+        function stableStorageId(value) {
+            const text = String(value || 'default-camera');
+            let hash = 2166136261;
+            for (let i = 0; i < text.length; i++) {
+                hash ^= text.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return (hash >>> 0).toString(36);
+        }
+
+        function getCameraCalibrationStorageKey() {
+            if (!activeCameraProfileId) return null;
+            return `webar_curved_camera_${activeTargetId}_${activeCameraProfileId}`;
         }
 
         let config = createDefaultConfig();
@@ -1020,6 +1055,7 @@
         let videoElement = null;
         let videoTexture = null;
         let labelTexture = null;
+        let useMarkerDiagnosticTexture = false;
 
         // Custom Camera Tracking State
         let cameraVideo = null;
@@ -1141,6 +1177,14 @@
                 try {
                     config = JSON.parse(saved);
                     let isUpdated = false;
+                    if (Number(config.geometryCalibrationVersion || 0) <
+                        Number(targetDefaults.geometryCalibrationVersion || 0)) {
+                        ['labelWidthMm', 'labelHeightMm', 'radiusTopMm', 'radiusBottomMm',
+                            'surfaceOffsetMm', 'geometryCalibrationVersion'].forEach(key => {
+                            config[key] = targetDefaults[key];
+                        });
+                        isUpdated = true;
+                    }
                     for (let key in targetDefaults) {
                         if (config[key] === undefined) {
                             config[key] = targetDefaults[key];
@@ -1153,6 +1197,10 @@
                     }
                     if ((Number(config.hammingCutoff) || 0) < targetDefaults.hammingCutoff) {
                         config.hammingCutoff = targetDefaults.hammingCutoff;
+                        isUpdated = true;
+                    }
+                    if (Number(config.offsetZ) !== 0) {
+                        config.offsetZ = 0;
                         isUpdated = true;
                     }
                     if (isUpdated) saveConfig();
@@ -1170,7 +1218,40 @@
 
         // Save config to localStorage
         function saveConfig() {
-            localStorage.setItem(getCalibrationStorageKey(), JSON.stringify(config));
+            const targetConfig = {...config};
+            CAMERA_INTRINSIC_KEYS.forEach(key => delete targetConfig[key]);
+            localStorage.setItem(getCalibrationStorageKey(), JSON.stringify(targetConfig));
+            const cameraKey = getCameraCalibrationStorageKey();
+            if (cameraKey) {
+                const cameraConfig = {};
+                CAMERA_INTRINSIC_KEYS.forEach(key => {
+                    cameraConfig[key] = config[key];
+                });
+                localStorage.setItem(cameraKey, JSON.stringify(cameraConfig));
+            }
+        }
+
+        function loadCameraCalibrationProfile(settings, label) {
+            const identity = settings?.deviceId || label || settings?.facingMode || 'default-camera';
+            activeCameraProfileId = stableStorageId(identity);
+            const cameraKey = getCameraCalibrationStorageKey();
+            const saved = cameraKey ? localStorage.getItem(cameraKey) : null;
+            if (saved) {
+                try {
+                    const cameraConfig = JSON.parse(saved);
+                    CAMERA_INTRINSIC_KEYS.forEach(key => {
+                        if (Number.isFinite(Number(cameraConfig[key]))) {
+                            config[key] = Number(cameraConfig[key]);
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Failed to parse camera calibration profile:', e);
+                }
+            } else {
+                saveConfig();
+            }
+            updateSlidersUI();
+            console.log(`[Camera Calibration] profile=${activeCameraProfileId} target=${activeTargetId}`);
         }
 
         // Sync slider inputs with configuration values
@@ -1188,8 +1269,10 @@
                         valEl.innerText = parseInt(config[key]);
                     } else if (key === 'relocalizePersistence') {
                         valEl.innerText = `${parseInt(config[key])}ms`;
-                    } else if (['labelWidthMm', 'labelHeightMm', 'radiusTopMm', 'radiusBottomMm'].includes(key)) {
+                    } else if (['labelWidthMm', 'labelHeightMm'].includes(key)) {
                         valEl.innerText = parseInt(config[key]);
+                    } else if (['radiusTopMm', 'radiusBottomMm', 'surfaceOffsetMm'].includes(key)) {
+                        valEl.innerText = parseFloat(config[key]).toFixed(2);
                     } else {
                         valEl.innerText = parseFloat(config[key]).toFixed(2);
                     }
@@ -1242,7 +1325,7 @@
                 centerYEl.innerText = `${(p.centerY * 1000).toFixed(1)}mm`;
                 if (frontZEl) frontZEl.innerText = `${(p.frontZ * 1000).toFixed(1)}mm`;
                 if (axisZEl) {
-                    const axisZ = p.frontZ - R_m;
+                    const axisZ = p.frontZ - R_m - (Number(config.surfaceOffsetMm) || 0) / 1000;
                     axisZEl.innerText = `${(axisZ * 1000).toFixed(1)}mm` +
                         (Math.abs(axisZ) < 0.003 ? '  ✓ ≈0 (原点)' : '');
                 }
@@ -1271,7 +1354,7 @@
             if (p) {
                 centerYEl.innerText = `${(p.centerY * 1000).toFixed(1)}mm`;
                 frontZEl.innerText = `${(p.frontZ * 1000).toFixed(1)}mm`;
-                const axisZ = p.frontZ - R_m;
+                const axisZ = p.frontZ - R_m - (Number(config.surfaceOffsetMm) || 0) / 1000;
                 axisZEl.innerText = `${(axisZ * 1000).toFixed(1)}mm` +
                     (Math.abs(axisZ) < 0.003 ? '  ✓ ≈0 (原点)' : '');
             } else {
@@ -1285,7 +1368,11 @@
         function onPhysDimInput(key, rawVal) {
             config[key] = parseFloat(rawVal);
             const valEl = document.getElementById(`val-${key}`);
-            if (valEl) valEl.innerText = parseInt(rawVal);
+            if (valEl) {
+                valEl.innerText = key === 'surfaceOffsetMm'
+                    ? parseFloat(rawVal).toFixed(2)
+                    : parseFloat(rawVal).toFixed(key.startsWith('radius') ? 2 : 0);
+            }
             computePhysicalDerivedParams();
             updatePhysDimsDerivedUI();
             // Update dependent sliders (thetaLength, height, radius)
@@ -1299,7 +1386,10 @@
                 }
             });
             saveConfig();
+            rebuildCalibratedGlbGeometry();
             rebuildCylinderMesh();
+            updateArDepthOccluder();
+            updatePreviewMeshes();
             if (cvWorker) cvWorker.postMessage({
                 type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true
             });
@@ -1317,10 +1407,16 @@
             if (checked) {
                 computePhysicalDerivedParams();
                 updatePhysDimsDerivedUI();
+                rebuildCalibratedGlbGeometry();
                 rebuildCylinderMesh();
+                updateArDepthOccluder();
+                updatePreviewMeshes();
                 if (cvWorker) cvWorker.postMessage({
                     type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true
                 });
+                if (glbModel && workerRefLevels) {
+                    sendGlbModelPointsToWorker();
+                }
             }
             saveConfig();
         }
@@ -1330,17 +1426,25 @@
 
         // Reset calibration
         function resetCalibration() {
+            const cameraKey = getCameraCalibrationStorageKey();
+            if (cameraKey) localStorage.removeItem(cameraKey);
             config = createDefaultConfig();
             computePhysicalDerivedParams();   // recompute derived from physical mm
             saveConfig();
             updateSlidersUI();
+            rebuildCalibratedGlbGeometry();
             rebuildCylinderMesh();
+            updateArDepthOccluder();
+            updatePreviewMeshes();
             projectionInitialized = false;
             updateCameraProjection();
 
             // Sync updated config to worker
             if (cvWorker) {
                 cvWorker.postMessage({type: 'updateConfig', config: {...config}, reinitOrb: false, reinit3DPoints: true});
+            }
+            if (glbModel && workerRefLevels) {
+                sendGlbModelPointsToWorker();
             }
 
             // Reset previewCamera and orbitControls
@@ -1381,9 +1485,36 @@
                 texture.colorSpace = THREE.SRGBColorSpace;
                 // UV 方向由 uFlip/vFlip 动态处理，不需要在这里手动翻转
                 console.log(`[Assets] Label guide loaded: ${target.markUrl}`);
+                if (useMarkerDiagnosticTexture && glbModel) rebuildCylinderMesh();
             }, undefined, (err) => {
                 console.error('Failed to load label guide texture:', err);
             });
+        }
+
+        function getActiveSurfaceTexture() {
+            return useMarkerDiagnosticTexture && labelTexture ? labelTexture : videoTexture;
+        }
+
+        function updateMarkerDiagnosticButton() {
+            const btn = document.getElementById('btn-marker-diagnostic');
+            if (!btn) return;
+            btn.innerText = useMarkerDiagnosticTexture ? 'Show video' : 'Show mark.jpg';
+            btn.style.background = useMarkerDiagnosticTexture
+                ? 'rgba(46, 204, 113, 0.18)'
+                : 'rgba(255, 255, 255, 0.05)';
+        }
+
+        function toggleMarkerDiagnostic() {
+            useMarkerDiagnosticTexture = !useMarkerDiagnosticTexture;
+            updateMarkerDiagnosticButton();
+            if (videoElement) {
+                if (useMarkerDiagnosticTexture) {
+                    videoElement.pause();
+                } else if (currentMode === 'PREVIEW') {
+                    videoElement.play().catch(() => {});
+                }
+            }
+            rebuildCylinderMesh();
         }
 
         function applyLegacyTextureSettings(texture) {
@@ -1668,21 +1799,131 @@
             return {axisX, centerY, frontZ: resolvedFrontZ, uFlip, vFlip};
         }   // ← computeGlbCylinderParams end
 
-        /**
-         * 解析圆柱采样：将图像 UV 坐标映射到 3D 圆柱面上。
-         *
-         * ★ 形状来自配置（用户物理实测，滑动条输入）:
-         *     R        = radiusTopMm / 1000
-         *     halfAngle = labelWidthMm(弧长mm) / (2 × R_mm)   [弧度]
-         *     height   = labelHeightMm / 1000
-         *
-         * ★ 位置来自 GLB 锚点（Blender 精确摆放）:
-         *     axisX   = 圆柱轴心 X
-         *     axisZ   = frontZ - R   （弧面最前点 - 半径 = 轴心 Z）
-         *     centerY = 标签垂直中心
-         *
-         * 输入: uvX_img ∈ [0,1], uvY_img ∈ [0,1]（图像坐标，左上角为原点）
-         */
+        // Rebuild label and bottle geometry from measured dimensions while preserving GLB UVs.
+        function rebuildCalibratedGlbGeometry() {
+            if (!glbModel?.sourceLabelGeometry || !glbModel?.sourceCylinderParams) return false;
+
+            const sourceLabel = glbModel.sourceLabelGeometry;
+            const sourceBottle = glbModel.sourceBottleGeometry;
+            const sourceParams = glbModel.sourceCylinderParams;
+            sourceLabel.computeBoundingBox();
+            const sourceLabelBox = sourceLabel.boundingBox;
+            const sourceLabelSize = new THREE.Vector3();
+            sourceLabelBox.getSize(sourceLabelSize);
+
+            const topRadius = Math.max(0.001, Number(config.radiusTopMm) / 1000);
+            const bottomRadius = Math.max(0.001, Number(config.radiusBottomMm) / 1000);
+            const meanRadius = (topRadius + bottomRadius) * 0.5;
+            const surfaceOffset = THREE.MathUtils.clamp(Number(config.surfaceOffsetMm) || 0, 0, 2) / 1000;
+            const labelHeight = Math.max(0.001, Number(config.labelHeightMm) / 1000);
+            const arcLength = Math.max(0.001, Number(config.labelWidthMm) / 1000);
+            const arcAngle = Math.min(Math.PI * 2, arcLength / meanRadius);
+            const halfAngle = arcAngle * 0.5;
+
+            const sourceRadialSize = Math.max(sourceLabelSize.x, sourceLabelSize.z);
+            const sourceRadius = Math.max(0.001, sourceRadialSize * 0.5);
+            const axisX = sourceParams.axisX;
+            const axisZ = sourceParams.frontZ - sourceRadius;
+            const centerY = sourceParams.centerY;
+
+            const labelGeometry = sourceLabel.clone();
+            const positions = labelGeometry.attributes.position;
+            const uvs = labelGeometry.attributes.uv;
+            for (let i = 0; i < positions.count; i++) {
+                const u = THREE.MathUtils.clamp(uvs.getX(i), 0, 1);
+                const v = THREE.MathUtils.clamp(uvs.getY(i), 0, 1);
+                const verticalT = sourceParams.vFlip ? v : (1 - v);
+                const theta = sourceParams.uFlip
+                    ? halfAngle - u * arcAngle
+                    : -halfAngle + u * arcAngle;
+                const radius = THREE.MathUtils.lerp(topRadius, bottomRadius, verticalT) + surfaceOffset;
+                positions.setXYZ(
+                    i,
+                    axisX + radius * Math.sin(theta),
+                    centerY + labelHeight * (0.5 - verticalT),
+                    axisZ + radius * Math.cos(theta)
+                );
+            }
+            positions.needsUpdate = true;
+            if (labelGeometry.attributes.normal) labelGeometry.deleteAttribute('normal');
+            if (labelGeometry.attributes.tangent) labelGeometry.deleteAttribute('tangent');
+            labelGeometry.computeVertexNormals();
+            labelGeometry.computeBoundingBox();
+            labelGeometry.computeBoundingSphere();
+
+            let bottleGeometry = null;
+            if (sourceBottle) {
+                sourceBottle.computeBoundingBox();
+                const sourceBottleBox = sourceBottle.boundingBox;
+                const sourceBottleSize = new THREE.Vector3();
+                sourceBottleBox.getSize(sourceBottleSize);
+                const sourceBottleRadius = Math.max(0.001, Math.max(sourceBottleSize.x, sourceBottleSize.z) * 0.5);
+                const radialScale = meanRadius / sourceBottleRadius;
+                const verticalScale = labelHeight / Math.max(0.001, sourceLabelSize.y);
+
+                bottleGeometry = sourceBottle.clone();
+                const bottlePositions = bottleGeometry.attributes.position;
+                for (let i = 0; i < bottlePositions.count; i++) {
+                    const x = bottlePositions.getX(i);
+                    const y = bottlePositions.getY(i);
+                    const z = bottlePositions.getZ(i);
+                    bottlePositions.setXYZ(
+                        i,
+                        axisX + (x - axisX) * radialScale,
+                        centerY + (y - centerY) * verticalScale,
+                        axisZ + (z - axisZ) * radialScale
+                    );
+                }
+                bottlePositions.needsUpdate = true;
+                if (bottleGeometry.attributes.normal) bottleGeometry.deleteAttribute('normal');
+                if (bottleGeometry.attributes.tangent) bottleGeometry.deleteAttribute('tangent');
+                bottleGeometry.computeVertexNormals();
+                bottleGeometry.computeBoundingBox();
+                bottleGeometry.computeBoundingSphere();
+            }
+
+            if (glbModel.labelGeometry && glbModel.labelGeometry !== sourceLabel) {
+                glbModel.labelGeometry.dispose();
+            }
+            if (glbModel.bottleGeometry && glbModel.bottleGeometry !== sourceBottle) {
+                glbModel.bottleGeometry.dispose();
+            }
+            glbModel.labelGeometry = labelGeometry;
+            glbModel.bottleGeometry = bottleGeometry;
+            glbModel.labelUvTriangles = buildUvTriangleIndex(labelGeometry);
+            glbModel.cylinderParams = {
+                axisX,
+                centerY,
+                frontZ: axisZ + topRadius + surfaceOffset,
+                uFlip: sourceParams.uFlip,
+                vFlip: sourceParams.vFlip
+            };
+
+            const poseGeometry = bottleGeometry || labelGeometry;
+            const poseBox = poseGeometry.boundingBox;
+            const poseSize = new THREE.Vector3();
+            const poseCenter = new THREE.Vector3();
+            poseBox.getSize(poseSize);
+            poseBox.getCenter(poseCenter);
+            const poseRadius = Math.max(poseSize.x, poseSize.z) * 0.5;
+            glbModel.poseBounds = {
+                axisX: poseCenter.x,
+                axisZ: poseCenter.z,
+                radius: poseRadius,
+                minCameraDistance: Math.max(0.08, poseRadius * 2.2)
+            };
+            glbModelPointsReady = false;
+            updatePhysDimsDerivedUI();
+            console.log(
+                `[GLB Calibration] arc=${(arcLength * 1000).toFixed(1)}mm ` +
+                `height=${(labelHeight * 1000).toFixed(1)}mm ` +
+                `radius=${(meanRadius * 1000).toFixed(2)}mm ` +
+                `surfaceOffset=${(surfaceOffset * 1000).toFixed(2)}mm`
+            );
+            return true;
+        }
+
+        // Analytic fallback for mapping marker UVs to the calibrated cylinder.
         function sampleGlbLabelAnalytic(uvX_img, uvY_img) {
             if (!glbModel || !glbModel.cylinderParams) {
                 // 参数未就绪，退回三角插值（低精度，仅作保底）
@@ -1691,14 +1932,17 @@
             const p = glbModel.cylinderParams;
 
             // ── 形状参数：来自配置 ─────────────────────────────────────
-            const R = config.radiusTopMm / 1000;           // 半径 (m)
-            const arcLen = config.labelWidthMm / 1000;           // 弧长 (m)
-            const halfAngle = Math.min(Math.PI * 0.499, arcLen / (2 * R)); // 半弧角 (rad)
+            const topRadius = config.radiusTopMm / 1000;
+            const bottomRadius = config.radiusBottomMm / 1000;
+            const surfaceOffset = (Number(config.surfaceOffsetMm) || 0) / 1000;
+            const meanRadius = (topRadius + bottomRadius) * 0.5;
+            const arcLen = config.labelWidthMm / 1000;
+            const halfAngle = Math.min(Math.PI, arcLen / (2 * meanRadius));
             const labelH = config.labelHeightMm / 1000;          // 标签高度 (m)
 
             // ── 位置参数：来自 GLB 锚点 ───────────────────────────────
             const axisX = p.axisX;
-            const axisZ = p.frontZ - R;      // 弧面前点 = 轴心 + R → 轴心 = frontZ - R
+            const axisZ = p.frontZ - topRadius - surfaceOffset;
             const yTop = p.centerY + labelH / 2;
             const yBot = p.centerY - labelH / 2;
 
@@ -1709,8 +1953,9 @@
             // ── 解析圆柱坐标 ───────────────────────────────────────────
             const theta = -halfAngle + u * (2 * halfAngle);   // 弧角（中心=0）
             const y = yTop - v * (yTop - yBot);           // v=0→顶 v=1→底
-            const x = axisX + R * Math.sin(theta);
-            const z = axisZ + R * Math.cos(theta);
+            const radius = THREE.MathUtils.lerp(topRadius, bottomRadius, v) + surfaceOffset;
+            const x = axisX + radius * Math.sin(theta);
+            const z = axisZ + radius * Math.cos(theta);
 
             return new THREE.Vector3(x, y, z);
         }
@@ -1727,16 +1972,21 @@
         function createGlbLabelMesh(texture, opacity, options = {}) {
             // 前置摄像头：CSS scaleX(-1) 已镜像背景，视频纹理也需要 U 翻转保持方向一致
             applyGlbTextureSettings(texture, !!options.mirrorU);
-            const material = new THREE.MeshStandardMaterial({
+            const materialOptions = {
                 map: texture,
                 side: THREE.FrontSide,
-                metalness: 0,
-                roughness: 0.85,
                 transparent: opacity < 0.999,
                 opacity,
                 depthWrite: opacity >= 0.999,
                 depthTest: true
-            });
+            };
+            const material = options.unlit
+                ? new THREE.MeshBasicMaterial(materialOptions)
+                : new THREE.MeshStandardMaterial({
+                    ...materialOptions,
+                    metalness: 0,
+                    roughness: 0.85
+                });
             const mesh = new THREE.Mesh(glbModel.labelGeometry, material);
             mesh.name = 'glbVideoLabelMesh';
             mesh.renderOrder = options.renderOrder || 1;
@@ -1833,6 +2083,9 @@
 
                     glbModel = {
                         root,
+                        sourceLabelGeometry: labelGeometry,
+                        sourceBottleGeometry: bottleGeometry,
+                        sourceCylinderParams: null,
                         labelGeometry,
                         bottleGeometry,
                         labelUvTriangles,
@@ -1888,7 +2141,9 @@
                     // ─────────────────────────────────────────────────────────────
 
                     // ── 解析圆柱参数 + UV方向检测（依赖三角索引，必须在 glbModel 赋值后执行）──
-                    glbModel.cylinderParams = computeGlbCylinderParams(labelGeometry, labelUvTriangles);
+                    glbModel.sourceCylinderParams = computeGlbCylinderParams(labelGeometry, labelUvTriangles);
+                    glbModel.cylinderParams = {...glbModel.sourceCylinderParams};
+                    rebuildCalibratedGlbGeometry();
                     updatePhysDimsDerivedUI(); // GLB 锚点就绪 → 刷新 UI（centerY/frontZ/axisZ）
 
                     fitPreviewCameraToModel();
@@ -1949,6 +2204,7 @@
                     label.includes('front') ||
                     label.includes('webcam') ||
                     (settings.facingMode === undefined && !label.includes('back') && !label.includes('rear') && !label.includes('environment'));
+                loadCameraCalibrationProfile(settings, track?.label || label);
                 console.log(`Camera stream: label="${label}", facingMode="${settings.facingMode}", isFront=${isFront}`);
             } catch (e) {
                 console.warn("Failed to detect or style camera facing mode:", e);
@@ -2171,8 +2427,12 @@
 
                 // Play video & fade in
                 if (videoElement) {
-                    videoElement.play().catch(err => { });
-                    if (videoTexture) videoTexture.needsUpdate = true;
+                    if (!useMarkerDiagnosticTexture) {
+                        videoElement.play().catch(err => { });
+                        if (videoTexture) videoTexture.needsUpdate = true;
+                    } else {
+                        videoElement.pause();
+                    }
                     if (videoMesh && videoMesh.material) {
                         setMeshOpacity(videoMesh, THREE.MathUtils.lerp(videoMesh.material.opacity, 1.0, 0.1));
                     }
@@ -2540,11 +2800,18 @@
         // Rebuild GLB label geometry which renders the video
         function createCylinderMesh() {
             if (!glbModel) throw new Error('bottle.glb is required before creating the video mesh');
-            return createGlbLabelMesh(videoTexture, 0.0, {mirrorU: currentMode === 'AR' && isFront});
+            return createGlbLabelMesh(
+                getActiveSurfaceTexture(),
+                currentMode === 'PREVIEW' ? 1.0 : 0.0,
+                {
+                    mirrorU: currentMode === 'AR' && isFront,
+                    unlit: currentMode === 'AR'
+                }
+            );
         }
 
         function rebuildCylinderMesh() {
-            if (!videoTexture) return;
+            if (!getActiveSurfaceTexture() || !glbModel || !scene) return;
 
             // Remove old mesh from scene
             if (videoMesh) {
@@ -2619,7 +2886,8 @@
                 console.log('Switching to 3D Preview Calibration Mode');
                 statusText.innerText = '3D PREVIEW MODE';
                 statusBadge.className = 'status-badge preview';
-                applyGlbTextureSettings(videoTexture, false);
+                applyGlbTextureSettings(getActiveSurfaceTexture(), false);
+                rebuildCylinderMesh();
 
                 orbitControls.enabled = true;
 
@@ -2638,7 +2906,11 @@
 
                 updatePreviewMeshes();
                 updateArDepthOccluder();
-                videoElement.play().catch(err => console.log('Autoplay error in preview:', err));
+                if (useMarkerDiagnosticTexture) {
+                    videoElement.pause();
+                } else {
+                    videoElement.play().catch(err => console.log('Autoplay error in preview:', err));
+                }
 
                 if (container) {
                     container.classList.add('preview-mode');
@@ -2648,7 +2920,8 @@
                 console.log('Switching to Live AR tracking');
                 statusText.innerText = 'SCANNING LABEL';
                 statusBadge.className = 'status-badge scanning';
-                applyGlbTextureSettings(videoTexture, isFront);
+                applyGlbTextureSettings(getActiveSurfaceTexture(), isFront);
+                rebuildCylinderMesh();
 
                 orbitControls.enabled = false;
 
@@ -3015,6 +3288,7 @@ PnP Error: ${pnpError}`;
         window.resetCalibration = resetCalibration;
         window.toggleMute = toggleMute;
         window.switchMode = switchMode;
+        window.toggleMarkerDiagnostic = toggleMarkerDiagnostic;
 
         // Bootstrap on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -3036,6 +3310,7 @@ PnP Error: ${pnpError}`;
 
             loadConfig();
             setupSliderListeners();
+            updateMarkerDiagnosticButton();
             updatePhysDimsDerivedUI();  // 初始化时立刻显示 halfAngle（GLB锚点等加载后再填充）
 
             // Wire up Start overlay launch button
