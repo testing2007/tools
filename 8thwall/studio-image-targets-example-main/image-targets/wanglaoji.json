@@ -1,0 +1,31 @@
+{
+  "type": "CYLINDER",
+  "properties": {
+    "targetCircumferenceTop": 210,
+    "cylinderSideLength": 104.41,
+    "cylinderCircumferenceTop": 210,
+    "cylinderCircumferenceBottom": 210,
+    "arcAngle": 360,
+    "coniness": 0,
+    "inputMode": "ADVANCED",
+    "unit": "mm",
+    "top": 541,
+    "left": 0,
+    "width": 801,
+    "height": 1068,
+    "isRotated": true,
+    "originalWidth": 801,
+    "originalHeight": 1611
+  },
+  "imagePath": "image-targets/wanglaoji_luminance.jpg",
+  "metadata": null,
+  "name": "wanglaoji",
+  "resources": {
+    "originalImage": "wanglaoji_original.jpg",
+    "croppedImage": "wanglaoji_cropped.jpg",
+    "thumbnailImage": "wanglaoji_thumbnail.jpg",
+    "luminanceImage": "wanglaoji_luminance.jpg"
+  },
+  "created": 1781669164287,
+  "updated": 1781742705223
+}
